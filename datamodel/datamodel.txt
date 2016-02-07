@@ -178,6 +178,14 @@ of the fiber traces.
 
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
+The sky model for a single exposure
+
+   "pfsSky-%6d-%1d%1s.fits" % (visit, spectrograph, arm)
+
+Format: TBD
+
+-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
 The PSF for a single exposure
 
    "pfsPSF-%6d-%1d%1s.fits" % (visit, spectrograph, arm)
@@ -376,3 +384,6 @@ The ISR-extracted H4RG images will be no bigger than
 
 	Need a DB (as well as the butler) to map visit to visit0 for calibration products
 
+	Do we want to model the sky over the entire exposure?  I put in a place holder that is
+	per spectrograph/arm but it isn't obvious that this is correct.  E.g. there's spatial
+	structure over the whole focal plane, and the lines in the red and IR are closely related.
