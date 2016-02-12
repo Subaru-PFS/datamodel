@@ -13,6 +13,7 @@ NROW        The number of rows that spectra extend over in the dispersion direct
 	    In practice, the number of rows in the usable part of the CCD.
 NSIMROW     Number of rows for simulated data.  May be different in different files, depending
 	    on the desired oversampling.
+NCOARSE     Number of wavelengths used in computing the full covariance matrix of the spectra
 
 The values of NCOLUMN and NROW may be different in the optical and IR arms, and will differ for
 raw and reduced data.  Possible values are given in the section, "Parameters"
@@ -224,12 +225,17 @@ The file will have several HDUs:
 
 HDU #1             Flux in units of TBD     	   	       [FLOAT]        NROW
 HDU #2 COVAR       Near-diagonal part of HDU 1's covariance    [FLOAT]        5*NROW
-HDU #3 MASK        Pixel mask	       	      	  	       [32-bit INT]   NROW
-HDU #4 WAVEDISP    Wavelength dispersion in units of TBD       [FLOAT]	      NROW
-HDU #5 SKY         Sky flux in same units as HDU1    	       [FLOAT]	      NROW
-HDU #6 CONFIG	   Information about the PFI, targetting, etc. [BINARY FITS TABLE]
+HDU #3 COVAR2      Low-resolution non-sparse estimate covariance [FLOAT]      NCOARSE*NCOARSE
+HDU #4 MASK        Pixel mask	       	      	  	       [32-bit INT]   NROW
+HDU #5 WAVEDISP    Wavelength dispersion in units of TBD       [FLOAT]	      NROW
+HDU #6 SKY         Sky flux in same units as HDU1    	       [FLOAT]	      NROW
+HDU #7 CONFIG	   Information about the PFI, targetting, etc. [BINARY FITS TABLE]
 
 The wavelengths are specified via the WCS cards in the header (e.g. CRPIX1, CRVAL1)
+
+The second covariance table (COVAR2) is the full covariance at low spectral resolution, maybe 10x10. It's
+really only 0.5*NCOARSE*(NCOARSE + 1) numbers, but it doesn't seem worth the trouble to save a few bytes.  This
+covariance is needed to model the spectrophotometric errors.
 
 The CONFIG table has nVisit rows, and at a minimum contains columns for pfsConfigId and visit.
 
@@ -387,3 +393,5 @@ The ISR-extracted H4RG images will be no bigger than
 	Do we want to model the sky over the entire exposure?  I put in a place holder that is
 	per spectrograph/arm but it isn't obvious that this is correct.  E.g. there's spatial
 	structure over the whole focal plane, and the lines in the red and IR are closely related.
+
+	Think of a better name than NCOARSE
