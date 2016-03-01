@@ -284,7 +284,7 @@ The tract, patch, catId, objId values will also be available as header keywords.
 The file will have two HDUs:
 
 HDU #1             Flux in units of TBD     	   	       [FLOAT]        NSIMROW
-HDU #2 WAVELENGTH  Wavelength solution in TBD (vacuum)	       [FLOAT] 	      NSIMROW
+HDU #2 WAVELENGTH  Wavelength solution in nm (vacuum)	       [FLOAT] 	      NSIMROW
 
 The simulation team will also need to provide a matching pfsConfig file, and may well choose to set
    tract, patch = 0, "0,0"
@@ -378,8 +378,6 @@ The ISR-extracted H4RG images will be no bigger than
 	Decide where to put information about the analysis resulting in pfsArm files
 
 	Define the 1-D outputs
-
-	Should the pfsObject files have a WAVELENGTH HDU rather than a solution in the WCS?
 
 	Define pfsObject files for medium resolution data
 
