@@ -75,7 +75,7 @@ catId
 
 pfsConfigId
   An integer uniquely specifying the configuration of the PFI; I propose using a 160-bit SHA-1 of the
-  (fibreId, ra, dec) tuples (with position rounded to the nearest arcsecond); we abbreviate these
+  (fiberId, ra, dec) tuples (with position rounded to the nearest arcsecond); we abbreviate these
   SHA-1 values to 8 hexadecimal digits, 2^32 ~ 4e9 possible values, in filenames but not in headers.
 
   N.b. SHA-1s are strong hashes, as used by e.g. git (https://en.wikipedia.org/wiki/SHA-1).
@@ -144,7 +144,14 @@ Format:
 
 HDU #1          Fits binary table
 
-lists catId, objId, ra, dec, fiber flux, MPS centroid, ... for each object.
+lists fiberId, catId, objId, ra, dec, fiber flux, MPS centroid, ... for each object. The types should be:
+      fiberId        32-bit int
+      catId          32-bit int
+      objId          64-bit int
+      ra             32-bit float
+      dec            32-bit float
+      fiber flux     32-bit float
+      MPS centroid   pair of 32-bit floats
 
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
