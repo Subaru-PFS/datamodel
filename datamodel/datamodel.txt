@@ -18,6 +18,10 @@ NCOARSE     Number of wavelengths used in computing the full covariance matrix o
 The values of NCOLUMN and NROW may be different in the optical and IR arms, and will differ for
 raw and reduced data.  Possible values are given in the section, "Parameters"
 
+In various places I refer to a SHA-1, which is a strong 160-bit hash, as used by e.g. git
+(https://en.wikipedia.org/wiki/SHA-1).  We truncate these hashes to 64bits (so as to fit
+in standard 64-bit integers), and abbreviate these SHA-1 values to 8 hexadecimal digits,
+2^32 ~ 4e9 possible values, in filenames.
 
 The following variables are used in filename formats (which are written in python notation):
 
@@ -74,11 +78,15 @@ catId
   are defined.
 
 pfsConfigId
-  An integer uniquely specifying the configuration of the PFI; I propose using a 160-bit SHA-1 of the
-  (fiberId, ra, dec) tuples (with position rounded to the nearest arcsecond); we abbreviate these
-  SHA-1 values to 8 hexadecimal digits, 2^32 ~ 4e9 possible values, in filenames but not in headers.
+  An integer uniquely specifying the configuration of the PFI; specifically a SHA-1 of the
+  (fiberId, ra, dec) tuples (with position rounded to the nearest arcsecond) truncated to 64 bits:
+  	    import hashlib
+	    m = hashlib.sha1()
+        
+	    for fiberId, ra, dec in values:
+	        m.update("%d %.0f %.0f" % (fiberId, ra, dec))
 
-  N.b. SHA-1s are strong hashes, as used by e.g. git (https://en.wikipedia.org/wiki/SHA-1).
+	    sha1 = int(m.hexdigest(), 16) & 0xffffffffffffffff
 
   We include the standard prefix "0x" in filenames to visually separate SHA-1s from 64-bit objId; this is
   especially important in pfsObject filenames which have both an objId and a hash.
@@ -91,8 +99,18 @@ pfsConfigId
 pfsVisitHash
 
   An integer uniquely defining the set of visits contributing to a reduced spectrum;
-  this will be calculated as a SHA-1
-   
+  this will be calculated as a SHA-1 truncated to 64 bits
+            import hashlib
+            m = hashlib.sha1()
+        
+            for visit in visits:
+                m.update("%d" % (visit))
+
+	    sha1 = int(m.hexdigest(), 16) & 0xffffffffffffffff
+
+ As a special case, if the only visit is 0, pfsVisitHash shall be taken to be 0x0 for the convenience
+ of simulation code.
+
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 Raw Data (from the spectrograph cameras, but also e.g. the metrology camera)
@@ -255,7 +273,9 @@ The second covariance table (COVAR2) is the full covariance at low spectral reso
 really only 0.5*NCOARSE*(NCOARSE + 1) numbers, but it doesn't seem worth the trouble to save a few bytes.
 This covariance is needed to model the spectrophotometric errors.
 
-The CONFIG table has nVisit rows, and at a minimum contains columns for pfsConfigId and visit.
+The CONFIG table has nVisit rows, and at a minimum contains columns for visit and pfsConfigId:
+    visit:       32-bit int
+    pfsConfigId: 64-bit int
 
 The targetting information that SDSS put in the PLUGMAP table is available from the pfsConfigId column, which
 links to the relevant pfsConfig files.  This could be denormalised into the CONFIG table if desired.
