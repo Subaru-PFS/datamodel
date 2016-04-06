@@ -175,19 +175,27 @@ lists fiberId, catId, objId, ra, dec, fiber flux, MPS centroid, ... for each obj
 
 Reduced but not combined single spectra from a single exposure (flux and wavelength calibrated)
 
-   "pfsArm-%6d-%1d%1s.fits" % (visit, spectrograph, arm)
+   "pfsArm-%06d-%1d%1s.fits" % (visit, spectrograph, arm)
 
 N.b. visit numbers are only unique at a site, but we don't preserve this in derived product names.  There will
 keywords in the header to disambiguate this.
 
 The file will have several HDUs:
 
-HDU #1             Flux in units of TBD     	   	       [FLOAT]        NROW*NFIBER
-HDU #2 COVAR       Near-diagonal part of HDU 1's covariance    [FLOAT]        5*NROW*NFIBER
+HDU #1 FLUX        Flux in units of TBD     	   	       [FLOAT]        NROW*NFIBER
+HDU #2 COVAR       Near-diagonal part of HDU 1's covariance    [FLOAT]        NROW*3*NFIBER
 HDU #3 MASK        Pixel mask	       	      	  	       [32-bit INT]   NROW*NFIBER
 HDU #4 WAVELENGTH  Wavelength solution in nm (vacuum)	       [FLOAT] 	      NROW*NFIBER
 HDU #5 SKY         Sky flux in same units as HDU1    	       [FLOAT]	      NROW*NFIBER
 HDU #6 CONFIG      Information about the PFI, targetting, etc. [BINARY FITS TABLE]
+
+Note that the data need not be resampled onto a uniform grid, as a wavelength is provided for each pixel.
+
+The COVAR data contains the diagonal COVAR[fiberId][0][0:]
+                            +-1      COVAR[fiberId][1][0:-1]
+and
+                            +-2      COVAR[fiberId][2][0:-2]
+terms in the covariance matrix.
 
 At a minimum the CONFIG table contains columns for pfsConfigId and visit (and only one row!  But it's
 a table not header keywords for consistency with the pfsObject file).
@@ -204,7 +212,7 @@ of the fiber traces.
 
 The sky model for a single exposure
 
-   "pfsSky-%6d-%1d%1s.fits" % (visit, spectrograph, arm)
+   "pfsSky-%06d-%1d%1s.fits" % (visit, spectrograph, arm)
 
 Format: TBD
 
@@ -212,7 +220,7 @@ Format: TBD
 
 The PSF for a single exposure
 
-   "pfsPSF-%6d-%1d%1s.fits" % (visit, spectrograph, arm)
+   "pfsPSF-%06d-%1d%1s.fits" % (visit, spectrograph, arm)
 
 Format: TBD
 
@@ -253,7 +261,7 @@ HDU #2 FLUXTBL     Binary table                                [FITS BINARY TABL
 		       intensity in units of TBD	       [FLOAT]
 		       intensity error same units as intensity [FLOAT]
 		       mask                                    [32-bit INT]
-HDU #3 COVAR       Near-diagonal part of HDU 2's covariance    [FLOAT]        5*NROW
+HDU #3 COVAR       Near-diagonal part of HDU 2's covariance    [FLOAT]        NROW*3
 HDU #4 COVAR2      Low-resolution non-sparse estimate covariance [FLOAT]      NCOARSE*NCOARSE
 HDU #5 MASK        Pixel mask	       	      	  	       [32-bit INT]   NROW
 HDU #6 SKY         Sky flux in same units as HDU1    	       [FLOAT]	      NROW
@@ -264,6 +272,8 @@ explicitly in the table for HDU #2.  We chose these two representations for the 
 difficulty in resampling marginally sampled data onto a regular grid,  while recognising the convenience
 of such a grid when rebinning, performing PCAs, or stacking spectra.  For highest precision the data
 in HDU #2 is likely to be used.
+
+See pfsObject for definition of the COVAR data
 
 What resolution should we use for HDU #1?  The instrument has a dispersion per pixel which is roughly constant
 (in the blue arm Jim-sensei calculates that it varies from 0.70 to 0.65 (going red) A/pix; in the red, 0.88 to
