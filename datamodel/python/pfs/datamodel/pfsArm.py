@@ -85,23 +85,33 @@ class PfsArm(object):
                    (self.spectrograph, self.arm, self.pfsConfigId, self.visit),  \
                     pfsConfig.ra, pfsConfig.dec
         
-    def plot(self, fiberId=0, showFlux=None, showMask=False, showSky=False, showCovar=False):
+    def getFiberIdx(self, fiberId):
+        """Convert a fiberId to a fiber index (checking the range)"""
+        if fiberId <= 0 or fiberId > len(self.lam):
+            raise IndexError("fiberId %d is out of range %d..%d" % (fiberId, 1, len(self.lam)))
+
+        return fiberId - 1
+
+    def plot(self, fiberId=1, showFlux=None, showMask=False, showSky=False, showCovar=False):
         """Plot some or all of the contents of the PfsArm
 
         Default is to show the flux
         """
         show = dict(mask=showMask, sky=showSky, covar=showCovar)
         show.update(flux = not sum(show.values()) if showFlux is None else showFlux)
+
+        fiberIdx = self.getFiberIdx(fiberId)
         
         xlabel = "Wavelength (micron)"
-        title = "%06d %d%s" % (self.visit, self.spectrograph, self.arm)
+        title = "%06d %d%s fiber %d" % (self.visit, self.spectrograph, self.arm, fiberId)
+        
         for name, data in (["flux", self.flux],
                            ["mask", self.mask],
                            ["sky", self.sky]):
             if not show[name]:
                 continue
 
-            plt.plot(self.lam[fiberId], data[fiberId])
+            plt.plot(self.lam[fiberIdx], data[fiberIdx])
             plt.xlabel(xlabel)
             plt.title("%s %s" % (title, name))
 
@@ -112,7 +122,7 @@ class PfsArm(object):
 
         if show["covar"]:
             for i in range(self.covar.shape[1]):
-                plt.plot(self.lam[fiberId], self.covar[fiberId][i], label="covar[%d]" % (i))
+                plt.plot(self.lam[fiberIdx], self.covar[fiberIdx][i], label="covar[%d]" % (i))
             plt.legend(loc='best')
 
             plt.title("%s %s" % (title, "covar"))
@@ -143,8 +153,11 @@ class PfsArmSet(object):
         for visit in self.visits:
             for arm in self.arms:
                 self.data[visit][arm].read(dirName, pfsConfigs=self.pfsConfigs)
-           
-    def plot(self, fiberId=0, showFlux=None, showMask=False, showSky=False, showCovar=False):
+
+    def getFiberIdx(self, fiberId):
+        return self.data.values()[0].values()[0].getFiberIdx(fiberId)
+
+    def plot(self, fiberId=1, showFlux=None, showMask=False, showSky=False, showCovar=False):
         """Plot some or all of the contents of the PfsArms
 
         Default is to show the flux
@@ -152,16 +165,18 @@ class PfsArmSet(object):
         show = dict(mask=showMask, sky=showSky, covar=showCovar)
         show.update(flux = not sum(show.values()) if showFlux is None else showFlux)
 
+        fiberIdx = self.getFiberIdx(fiberId)
+
         xlabel = "Wavelength (micron)"
         for visit in self.visits:
-            title = "%06d %d" % (visit, self.spectrograph)
+            title = "%06d %d fiber %d" % (visit, self.spectrograph, fiberId)
             
             for name in ["flux", "mask", "sky"]:
                 if not show[name]:
                     continue
 
                 for arm in self.data[visit].values():
-                    plt.plot(arm.lam[fiberId], getattr(arm, name)[fiberId], label=arm.arm,)
+                    plt.plot(arm.lam[fiberIdx], getattr(arm, name)[fiberIdx], label=arm.arm,)
 
                 plt.title("%s %s" % (title, name))
                 plt.xlabel(xlabel)
@@ -175,7 +190,7 @@ class PfsArmSet(object):
             if show["covar"]:
                 for arm in self.data[visit].values():
                     for i in range(arm.covar.shape[1]):
-                        plt.plot(arm.lam[fiberId], arm.covar[fiberId][i], 
+                        plt.plot(arm.lam[fiberIdx], arm.covar[fiberIdx][i], 
                                  label="%s covar[%d]" % (arm.arm, i))
                 plt.xlabel(xlabel)
                 plt.legend(loc='best')

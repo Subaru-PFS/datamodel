@@ -174,7 +174,7 @@ class PfsObject(object):
         If showFluxTbl is true, take the values from the non-resampled (fluxTbl) arrays
         """
         xlabel = "Wavelength (micron)"
-        title = "%d %s 0x%08x" % (self.tract, self.patch, self.pfsVisitHash)
+        title = "%d %s 0x%08x %08d" % (self.tract, self.patch, self.pfsVisitHash, self.objId)
 
         show = dict(mask=showMask, sky=showSky,
                     covar=showCovar, covar2=showCovar2, fluxVariance=showFluxVariance)
@@ -364,7 +364,7 @@ def makePfsObject(tract, patch, objId, pfsArms, catId=0, lambdaMin=350, lambdaMa
                       )
         firstLam = None                  # the first wavelength to include from previous overlap
         for a1, a2 in overlaps:
-            var2 = interp1d(arms[a2].lam[fiberIdx], arms[a2].covar[0][fiberIdx],
+            var2 = interp1d(arms[a2].lam[fiberIdx], arms[a2].covar[fiberIdx][0],
                             fill_value=np.inf, **kwargs)(arms[a1].lam[fiberIdx])
             #
             # Set an array to the values where the covariance is less in a1 than a2
