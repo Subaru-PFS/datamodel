@@ -21,7 +21,8 @@ raw and reduced data.  Possible values are given in the section, "Parameters"
 In various places I refer to a SHA-1, which is a strong 160-bit hash, as used by e.g. git
 (https://en.wikipedia.org/wiki/SHA-1).  We truncate these hashes to 64bits (so as to fit
 in standard 64-bit integers), and abbreviate these SHA-1 values to 8 hexadecimal digits,
-2^32 ~ 4e9 possible values, in filenames.
+2^32 ~ 4e9 possible values, in filenames.  In filenames, hexadecimal characters shall be
+written in lower case (0x12345abcdef not 0X12345ABCDEF or 0x12345ABCDEF).
 
 The following variables are used in filename formats (which are written in python notation):
 
@@ -160,6 +161,7 @@ The choice of a hex format is because the the pfsConfigId is a SHA-1
 
 Format:
 
+PDU #0 PDU
 HDU #1          Fits binary table
 
 lists fiberId, catId, objId, ra, dec, fiber flux, MPS centroid, ... for each object. The types should be:
@@ -170,6 +172,8 @@ lists fiberId, catId, objId, ra, dec, fiber flux, MPS centroid, ... for each obj
       dec            32-bit float
       fiber flux     32-bit float
       MPS centroid   pair of 32-bit floats
+
+(N.b. fiberIds start at 1)
 
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
@@ -182,6 +186,7 @@ keywords in the header to disambiguate this.
 
 The file will have several HDUs:
 
+PDU #0 PDU
 HDU #1 FLUX        Flux in units of TBD     	   	       [FLOAT]        NROW*NFIBER
 HDU #2 COVAR       Near-diagonal part of HDU 1's covariance    [FLOAT]        NROW*3*NFIBER
 HDU #3 MASK        Pixel mask	       	      	  	       [32-bit INT]   NROW*NFIBER
@@ -254,6 +259,7 @@ The path would be
 
 The file will have several HDUs:
 
+PDU #0 PDU
 HDU #1 FLUX        Flux in units of TBD     	   	       [FLOAT]        NROW
 HDU #2 FLUXTBL     Binary table                                [FITS BINARY TABLE] NROW
     		   Columns for:
@@ -266,6 +272,14 @@ HDU #4 COVAR2      Low-resolution non-sparse estimate covariance [FLOAT]      NC
 HDU #5 MASK        Pixel mask	       	      	  	       [32-bit INT]   NROW
 HDU #6 SKY         Sky flux in same units as HDU1    	       [FLOAT]	      NROW
 HDU #7 CONFIG	   Information about the PFI, targetting, etc. [BINARY FITS TABLE]
+
+The PDU must contain at least the keywords
+	tract		tract		INT
+	patch		patch		STRING
+	catId		catId           INT
+	objId		objId		INT    
+        pfsVHash	pfsVisitHash	INT
+(N.b. the keywords are case-insensitive).  Other HDUs should specify INHERIT=T.
 
 The wavelengths are specified via the WCS cards in the header (e.g. CRPIX1, CRVAL1) for HDU #1, and
 explicitly in the table for HDU #2.  We chose these two representations for the data due to the
@@ -320,6 +334,7 @@ The tract, patch, catId, objId values will also be available as header keywords.
 
 The file will have two HDUs:
 
+PDU #0 PDU
 HDU #1             Flux in units of TBD     	   	       [FLOAT]        NSIMROW
 HDU #2 WAVELENGTH  Wavelength solution in nm (vacuum)	       [FLOAT] 	      NSIMROW
 
