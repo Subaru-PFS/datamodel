@@ -67,7 +67,17 @@ class PfsObject(object):
         fileName = self.fileNameFormat % (self.tract, self.patch, self.catId, self.objId,
                                           self.nVisit % 100, self.pfsVisitHash)
         
-        fd = pyfits.open(os.path.join(dirName, fileName)) 
+        fd = pyfits.open(os.path.join(dirName, fileName))
+
+        phdr = fd[0].header
+        for name, value in [("tract", self.tract),
+                            ("patch", self.patch),
+                            ("catId", self.catId),
+                            ("objId", self.objId),
+                            ("pfsVHash", self.pfsVisitHash)
+                            ]:
+            if value != phdr[name]:
+                raise RuntimeError("Header keyword %s is %s; expected %s" % (name, phdr[name], value))
         
         for hduName in ["FLUX", "FLUXTBL", "COVAR", "COVAR2", "MASK", "SKY"]:
             hdu = fd[hduName]
@@ -116,9 +126,14 @@ class PfsObject(object):
     def write(self, dirName="."):
         hdus = pyfits.HDUList()
 
-        if False:   # write a PDU
-            hdr = pyfits.Header()
-            hdus.append(pyfits.PrimaryHDU(hdr))
+        hdr = pyfits.Header()
+        hdr.update(tract=self.tract,
+                   patch=self.patch,
+                   catId=self.catId,
+                   objId=self.objId,
+                   pfsVHash=self.pfsVisitHash,
+        )
+        hdus.append(pyfits.PrimaryHDU(header=hdr))
             
         for hduName, data in [("FLUX", self.flux),
                               ("FLUXTBL", self.fluxTbl),
@@ -128,12 +143,13 @@ class PfsObject(object):
                               ("SKY", self.sky),
                               ]:
             hdr = pyfits.Header()
+            hdr.update(INHERIT=True)
 
             if hduName == "FLUX":     # Add WCS
                 hdr.update(CRVAL1=self.lam[0], CRPIX1=0, CD1_1=(self.lam[1] - self.lam[0]))
 
             if not hdus:
-                hdu = pyfits.PrimaryHDU(data, hdr)
+                hdu = pyfits.PrimaryHDU(data, header=hdr)
             elif hduName == "FLUXTBL":
                 hdu = pyfits.BinTableHDU.from_columns([
                         pyfits.Column('lambda',       'E', array=data.lam),
@@ -154,12 +170,12 @@ class PfsObject(object):
                                                pyfits.Column('pfsConfigId', 'K',
                                                              array=self.pfsConfigIds),
                                               ], nrows=self.nVisit)
+        hdr.update(INHERIT=True)
         hdu.name = "CONFIG"
         hdus.append(hdu)
 
-        fileName = self.fileNameFormat % (
-                self.tract, self.patch, self.catId, self.objId,
-                self.nVisit % 100, self.pfsVisitHash)
+        fileName = self.fileNameFormat % (self.tract, self.patch, self.catId, self.objId,
+                                          self.nVisit % 100, self.pfsVisitHash)
 
         # clobber=True in writeto prints a message, so use open instead
         with open(os.path.join(dirName, fileName), "w") as fd:
