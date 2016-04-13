@@ -37,14 +37,14 @@ def main(pfsConfigId, tract, patch, fiberId=None, dataDir=".", objId=None,
 
     #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-    pfsArms = PfsArmSet(visits=1, spectrograph=1)
+    pfsArms = PfsArmSet(visit=1, spectrograph=1)
     pfsArms.read(dataDir)
 
     if showPfsArm:
         if True:
-            pfsArms.data[1]['r'].plot(fiberId=fiberId)
+            pfsArms.data['r'].plot(fiberId=fiberId)
         else:
-            pfsArms.data[1]['r'].plot(fiberId=fiberId,
+            pfsArms.data['r'].plot(fiberId=fiberId,
                                       showFlux=True, showSky=True, showCovar=True, showMask=True)
 
     if showPfsArmSet:
@@ -56,7 +56,7 @@ def main(pfsConfigId, tract, patch, fiberId=None, dataDir=".", objId=None,
 
     #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-    pfsObject = makePfsObject(tract, patch, objId, pfsArms)
+    pfsObject = makePfsObject(tract, patch, objId, [pfsArms])
     pfsObject.write(dataDir)
 
     npfs = PfsObject(tract, patch, objId, visits=[1])

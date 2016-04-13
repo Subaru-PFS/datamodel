@@ -252,9 +252,9 @@ class PfsObject(object):
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 def makePfsObject(tract, patch, objId, pfsArms, catId=0, lambdaMin=350, lambdaMax=1260, dLambda=0.1):
-    """Create a PfsObject from a set of PfsArm files"""
-    visits = pfsArms.data.keys()
-    nVisit = len(visits)
+    """Create a PfsObject from a list of PfsArmSet objects"""
+    visits = [aset.visit for aset in pfsArms]
+    nVisit = len(pfsArms)
     pfsVisitHash = calculate_pfsVisitHash(visits)
     pfsObject = PfsObject(tract, patch, objId, catId, visits=visits)
     pfsObject.pfsConfigIds = []         # we'll set them from the pfsArm files
@@ -269,13 +269,14 @@ def makePfsObject(tract, patch, objId, pfsArms, catId=0, lambdaMin=350, lambdaMa
     armSky = {}
     armMask = {}
 
-    for visit in pfsArms.data:
+    for aset in pfsArms:
+        visit = aset.visit
         armFlux[visit] = {}
         armVariance[visit] = {}
         armMask[visit] = {}
         armSky[visit] = {}
 
-        for arm in pfsArms.data[visit].values():
+        for arm in aset.data.values():
             pfsObject.pfsConfigIds.append(arm.pfsConfigId)
             fiberIdx = np.where(arm.pfsConfig.objId == objId)[0]
             if len(fiberIdx):
@@ -315,8 +316,9 @@ def makePfsObject(tract, patch, objId, pfsArms, catId=0, lambdaMin=350, lambdaMa
     #
     # Average together all the arm data
     #
-    for visit in pfsArms.data:
-        for arm in pfsArms.data[visit]:
+    for aset in pfsArms:
+        visit = aset.visit
+        for arm in aset.data:
             w = 1/armVariance[visit][arm]
             pfsObject.flux += w*armFlux[visit][arm]
             pfsObject.sky += w*armSky[visit][arm]
@@ -354,10 +356,8 @@ def makePfsObject(tract, patch, objId, pfsArms, catId=0, lambdaMin=350, lambdaMa
     #
     # Now the best-estimate flux at the native resolution of the pfsArm files
     #
-    visit0 = min(pfsArms.data.keys())
-
     overlaps = []
-    arms = pfsArms.data[visit0]
+    arms = pfsArms[0].data
     if 'b' in arms and 'r' in arms:
         overlaps.append(('b', 'r'))
     if 'r' in arms and 'n' in arms:
@@ -418,14 +418,14 @@ def makePfsObject(tract, patch, objId, pfsArms, catId=0, lambdaMin=350, lambdaMa
     # OK, we have the range of wavelengths that we want to use,
     # so interpolate the data onto those wavelengths (arm by arm) and average
     #
-    assert len(fluxTbl) == len(pfsArms.data[visit0])
+    assert len(fluxTbl) == len(pfsArms[0].data)
     for armStr in fluxTbl:
         armFlux = {}
         armVariance = {}
         armMask = {}
 
-        for visit in pfsArms.data:
-            arm = pfsArms.data[visit][armStr]
+        for aset in pfsArms:
+            arm = aset.data[armStr]
             fiberIdx = np.where(arm.pfsConfig.objId == objId)[0][0]  # we checked existence above
             #
             # how to interpolate
@@ -448,7 +448,8 @@ def makePfsObject(tract, patch, objId, pfsArms, catId=0, lambdaMin=350, lambdaMa
         #
         # Average together all the arm data
         #
-        for visit in pfsArms.data:
+        for aset in pfsArms:
+            visit = aset.visit
             w = 1/armVariance[arm]
             fluxTbl[armStr].flux += w*armFlux[arm]
             fluxTbl[armStr].mask |= np.where(w > 0, armMask[arm], 0)

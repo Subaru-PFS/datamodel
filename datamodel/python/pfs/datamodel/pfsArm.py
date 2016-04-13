@@ -132,30 +132,22 @@ class PfsArm(object):
 
 class PfsArmSet(object):
     """Manipulate a set of pfsArms corresponding to a single visit"""
-    def __init__(self, visits, spectrograph, arms=['b', 'r', 'n'], pfsConfigs={}):
-        try:
-            visits[0]
-        except TypeError:
-            visits = [visits]
-
+    def __init__(self, visit, spectrograph, arms=['b', 'r', 'n'], pfsConfigs={}):
         self.pfsConfigs = pfsConfigs
-        self.visits = visits        
+        self.visit = visit        
         self.spectrograph = spectrograph
         self.arms = arms
         
         self.data = collections.OrderedDict()
-        for visit in self.visits:
-            self.data[visit] = collections.OrderedDict()
-            for arm in self.arms:
-                self.data[visit][arm] = PfsArm(visit, spectrograph, arm)
+        for arm in self.arms:
+            self.data[arm] = PfsArm(visit, spectrograph, arm)
                 
     def read(self, dirName="."):
-        for visit in self.visits:
-            for arm in self.arms:
-                self.data[visit][arm].read(dirName, pfsConfigs=self.pfsConfigs)
+        for arm in self.arms:
+            self.data[arm].read(dirName, pfsConfigs=self.pfsConfigs)
 
     def getFiberIdx(self, fiberId):
-        return self.data.values()[0].values()[0].getFiberIdx(fiberId)
+        return self.data.values()[0].getFiberIdx(fiberId)
 
     def plot(self, fiberId=1, showFlux=None, showMask=False, showSky=False, showCovar=False):
         """Plot some or all of the contents of the PfsArms
@@ -168,32 +160,31 @@ class PfsArmSet(object):
         fiberIdx = self.getFiberIdx(fiberId)
 
         xlabel = "Wavelength (micron)"
-        for visit in self.visits:
-            title = "%06d %d fiber %d" % (visit, self.spectrograph, fiberId)
-            
-            for name in ["flux", "mask", "sky"]:
-                if not show[name]:
-                    continue
+        title = "%06d %d fiber %d" % (self.visit, self.spectrograph, fiberId)
 
-                for arm in self.data[visit].values():
-                    plt.plot(arm.lam[fiberIdx], getattr(arm, name)[fiberIdx], label=arm.arm,)
+        for name in ["flux", "mask", "sky"]:
+            if not show[name]:
+                continue
 
-                plt.title("%s %s" % (title, name))
-                plt.xlabel(xlabel)
-                plt.legend(loc='best')
+            for arm in self.data.values():
+                plt.plot(arm.lam[fiberIdx], getattr(arm, name)[fiberIdx], label=arm.arm,)
 
-                if name in ("flux"):
-                    plt.axhline(0, ls=':', color='black')
+            plt.title("%s %s" % (title, name))
+            plt.xlabel(xlabel)
+            plt.legend(loc='best')
 
-                plt.show()
+            if name in ("flux"):
+                plt.axhline(0, ls=':', color='black')
 
-            if show["covar"]:
-                for arm in self.data[visit].values():
-                    for i in range(arm.covar.shape[1]):
-                        plt.plot(arm.lam[fiberIdx], arm.covar[fiberIdx][i], 
-                                 label="%s covar[%d]" % (arm.arm, i))
-                plt.xlabel(xlabel)
-                plt.legend(loc='best')
-    
-                plt.title("%s %s" % (title, "covar"))
-                plt.show()
+            plt.show()
+
+        if show["covar"]:
+            for arm in self.data.values():
+                for i in range(arm.covar.shape[1]):
+                    plt.plot(arm.lam[fiberIdx], arm.covar[fiberIdx][i], 
+                             label="%s covar[%d]" % (arm.arm, i))
+            plt.xlabel(xlabel)
+            plt.legend(loc='best')
+
+            plt.title("%s %s" % (title, "covar"))
+            plt.show()
