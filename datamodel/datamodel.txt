@@ -161,7 +161,7 @@ The choice of a hex format is because the the pfsConfigId is a SHA-1
 
 Format:
 
-PDU #0 PDU
+HDU #0 PDU
 HDU #1          Fits binary table
 
 lists fiberId, catId, objId, ra, dec, fiber flux, MPS centroid, ... for each object. The types should be:
@@ -186,7 +186,7 @@ keywords in the header to disambiguate this.
 
 The file will have several HDUs:
 
-PDU #0 PDU
+HDU #0 PDU
 HDU #1 FLUX        Flux in units of TBD     	   	       [FLOAT]        NROW*NFIBER
 HDU #2 COVAR       Near-diagonal part of HDU 1's covariance    [FLOAT]        NROW*3*NFIBER
 HDU #3 MASK        Pixel mask	       	      	  	       [32-bit INT]   NROW*NFIBER
@@ -259,7 +259,7 @@ The path would be
 
 The file will have several HDUs:
 
-PDU #0 PDU
+HDU #0 PDU
 HDU #1 FLUX        Flux in units of TBD     	   	       [FLOAT]        NROW
 HDU #2 FLUXTBL     Binary table                                [FITS BINARY TABLE] NROW
     		   Columns for:
@@ -334,7 +334,7 @@ The tract, patch, catId, objId values will also be available as header keywords.
 
 The file will have two HDUs:
 
-PDU #0 PDU
+HDU #0 PDU
 HDU #1             Flux in units of TBD     	   	       [FLOAT]        NSIMROW
 HDU #2 WAVELENGTH  Wavelength solution in nm (vacuum)	       [FLOAT] 	      NSIMROW
 
