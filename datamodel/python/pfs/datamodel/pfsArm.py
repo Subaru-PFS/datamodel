@@ -1,6 +1,10 @@
 import collections
 import os
-import pyfits
+import numpy as np
+try:
+    import pyfits
+except ImportError:
+    pyfits = None
 import matplotlib.pyplot as plt
 
 from pfs.datamodel.pfsConfig import PfsConfig
@@ -15,17 +19,31 @@ class PfsArm(object):
 
     fileNameFormat = "pfsArm-%06d-%1d%1s.fits"
 
-    def __init__(self, visit, spectrograph, arm):
-        self.pfsConfigId = None
+    def __init__(self, visit, spectrograph, arm, pfsConfigId=None, pfsConfig=None):
+        self.pfsConfigId = pfsConfigId
         self.visit = visit
         self.spectrograph = spectrograph
         self.arm = arm
+
+        self.lam = []                   # arrays for each fibre
+        self.flux = []
+        self.mask = []
+        self.sky = []
+        self.covar = []
         
+        self.pfsConfig = pfsConfig
+        if self.pfsConfig and self.pfsConfigId != self.pfsConfig.pfsConfigId:
+            raise RuntimeError("pfsConfigId == 0x%08x != pfsConfig.pfsConfigId == 0x%08x" %
+                               (self.pfsConfigId, self.pfsConfig.pfsConfigId))
+
     def read(self, dirName=".", pfsConfigs=None):
         """Read self's pfsArm file from directory dirName
 
         If provided, pfsConfigs is a dict of pfsConfig objects, indexed by pfsConfigId
         """
+        if not pyfits:
+            raise RuntimeError("I failed to import pyfits, so cannot read from disk")
+
         fileName = PfsArm.fileNameFormat % (self.visit, self.spectrograph, self.arm)
         fd = pyfits.open(os.path.join(dirName, fileName)) 
             
@@ -70,21 +88,66 @@ class PfsArm(object):
         self.pfsConfigId = data['pfsConfigId'][0]
         
         if pfsConfigs is None:
-            self.pfsConfig = None
-        else:
-            if self.pfsConfigId not in pfsConfigs:
-                pfsConfigs[self.pfsConfigId] = PfsConfig(self.pfsConfigId)
-                pfsConfigs[self.pfsConfigId].read(dirName)
+            pfsConfigs = {}             # n.b. won't be passed back to caller
             
-            self.pfsConfig = pfsConfigs[self.pfsConfigId]
-            
-            if len(self.flux) != len(self.pfsConfig.ra):
-                raise RuntimeError("Mismatch between pfsArm and pfsConfig files")
-            if False:
-                print "%d%s 0x%x %d" % \
-                   (self.spectrograph, self.arm, self.pfsConfigId, self.visit),  \
-                    pfsConfig.ra, pfsConfig.dec
+        if self.pfsConfigId not in pfsConfigs:
+            pfsConfigs[self.pfsConfigId] = PfsConfig(self.pfsConfigId)
+            pfsConfigs[self.pfsConfigId].read(dirName)
+
+        self.pfsConfig = pfsConfigs[self.pfsConfigId]
+
+        if len(self.flux) != len(self.pfsConfig.ra):
+            raise RuntimeError("Mismatch between pfsArm and pfsConfig files")
+        if False:
+            print "%d%s 0x%x %d" % \
+               (self.spectrograph, self.arm, self.pfsConfigId, self.visit),  \
+                pfsConfig.ra, pfsConfig.dec
         
+    def write(self, dirName="."):
+        if not pyfits:
+            raise RuntimeError("I failed to import pyfits, so cannot read from disk")
+
+        hdus = pyfits.HDUList()
+
+        hdr = pyfits.Header()
+        hdr.update()
+        hdus.append(pyfits.PrimaryHDU(header=hdr))
+
+        hdu = pyfits.ImageHDU(self.flux)
+        hdu.name = "FLUX"
+        hdus.append(hdu)
+        
+        hdu = pyfits.ImageHDU(self.covar)
+        hdu.name = "COVAR"
+        hdus.append(hdu)
+
+        hdu = pyfits.ImageHDU(self.mask)
+        hdu.name = "MASK"
+        hdus.append(hdu)
+
+        hdu = pyfits.ImageHDU(self.lam)
+        hdu.name = "WAVELENGTH"
+        hdus.append(hdu)
+
+        hdu = pyfits.ImageHDU(self.sky)
+        hdu.name = "SKY"
+        hdus.append(hdu)
+
+        hdu = pyfits.BinTableHDU.from_columns([
+            pyfits.Column(name = 'pfsConfigId', format = 'K',
+                          array=np.array([self.pfsConfigId], dtype=np.int64)),
+            pyfits.Column(name = 'visit', format = 'J',
+                          array=np.array([self.visit], dtype=np.int32))
+        ])
+
+        hdu.name = 'CONFIG'
+        hdus.append(hdu)
+
+        # clobber=True in writeto prints a message, so use open instead
+        fileName = self.fileNameFormat % (self.visit, self.spectrograph, self.arm)
+        with open(os.path.join(dirName, fileName), "w") as fd:
+            hdus.writeto(fd)            
+
     def getFiberIdx(self, fiberId):
         """Convert a fiberId to a fiber index (checking the range)"""
         if fiberId <= 0 or fiberId > len(self.lam):
@@ -132,19 +195,39 @@ class PfsArm(object):
 
 class PfsArmSet(object):
     """Manipulate a set of pfsArms corresponding to a single visit"""
-    def __init__(self, visit, spectrograph, arms=['b', 'r', 'n'], pfsConfigs={}):
+    def __init__(self, visit, spectrograph, arms=['b', 'r', 'n'], pfsConfigId=None, pfsConfig=None,
+                 pfsConfigs={}):
         self.pfsConfigs = pfsConfigs
+        self.pfsConfigId = pfsConfigId
         self.visit = visit        
         self.spectrograph = spectrograph
         self.arms = arms
-        
+      
+        if pfsConfig:
+            if self.pfsConfigId:
+                if self.pfsConfigId != pfsConfig.pfsConfigId:
+                    raise RuntimeError("pfsConfigId == 0x%08x != pfsConfig.pfsConfigId == 0x%08x" %
+                                       (self.pfsConfigId, pfsConfig.pfsConfigId))
+            else:
+                self.pfsConfigId = pfsConfig.pfsConfigId
+
+            self.pfsConfigs[self.pfsConfigId] = pfsConfig
+
+        if self.pfsConfigId in self.pfsConfigs:
+            self.pfsConfig = self.pfsConfigs[self.pfsConfigId]
+        else:
+            self.pfsConfig = None
+
         self.data = collections.OrderedDict()
         for arm in self.arms:
-            self.data[arm] = PfsArm(visit, spectrograph, arm)
+            self.data[arm] = PfsArm(visit, spectrograph, arm, self.pfsConfigId, self.pfsConfig)
                 
     def read(self, dirName="."):
         for arm in self.arms:
             self.data[arm].read(dirName, pfsConfigs=self.pfsConfigs)
+
+            if not self.pfsConfig:
+                self.pfsConfig = self.data[arm].pfsConfig
 
     def getFiberIdx(self, fiberId):
         return self.data.values()[0].getFiberIdx(fiberId)
@@ -180,7 +263,7 @@ class PfsArmSet(object):
 
         if show["covar"]:
             for arm in self.data.values():
-                for i in range(arm.covar.shape[1]):
+                for i in range(arm.covar[fiberIdx].shape[0]):
                     plt.plot(arm.lam[fiberIdx], arm.covar[fiberIdx][i], 
                              label="%s covar[%d]" % (arm.arm, i))
             plt.xlabel(xlabel)

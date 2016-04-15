@@ -167,13 +167,18 @@ HDU #1          Fits binary table
 lists fiberId, catId, objId, ra, dec, fiber flux, MPS centroid, ... for each object. The types should be:
       fiberId        32-bit int
       catId          32-bit int
+      tract	     32-bit int
+      patch          3-byte string
       objId          64-bit int
       ra             32-bit float
       dec            32-bit float
-      fiber flux     32-bit float
+      fiberMag       5*32-bit float
       MPS centroid   pair of 32-bit floats
 
 (N.b. fiberIds start at 1)
+
+The HDU1 header should contain a set of 5 keywords FILTERN (FILTER0...FILTER4) giving the
+names of the filters in the fiberMag entry.
 
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 

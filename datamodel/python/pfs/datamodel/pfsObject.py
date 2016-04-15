@@ -1,7 +1,11 @@
-import os
 import collections
+import os
+import sys
 import numpy as np
-import pyfits
+try:
+    import pyfits
+except ImportError:
+    pyfits = None
 from scipy.interpolate import interp1d
 import matplotlib.pyplot as plt
 
@@ -64,6 +68,11 @@ class PfsObject(object):
         self.covar2 = None
             
     def read(self, dirName="."):
+        """Read self's pfsObject file from directory dirName"""
+
+        if not pyfits:
+            raise RuntimeError("I failed to import pyfits, so cannot read from disk")
+            
         fileName = self.fileNameFormat % (self.tract, self.patch, self.catId, self.objId,
                                           self.nVisit % 100, self.pfsVisitHash)
         
@@ -124,6 +133,9 @@ class PfsObject(object):
         self.pfsConfigIds = data["pfsConfigId"]
         
     def write(self, dirName="."):
+        if not pyfits:
+            raise RuntimeError("I failed to import pyfits, so cannot read from disk")
+
         hdus = pyfits.HDUList()
 
         hdr = pyfits.Header()
@@ -251,16 +263,37 @@ class PfsObject(object):
             
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-def makePfsObject(tract, patch, objId, pfsArms, catId=0, lambdaMin=350, lambdaMax=1260, dLambda=0.1):
+def makePfsObject(objId, pfsArms, catId=0, lambdaMin=350, lambdaMax=1260, dLambda=0.1):
     """Create a PfsObject from a list of PfsArmSet objects"""
     visits = [aset.visit for aset in pfsArms]
     nVisit = len(pfsArms)
+    #
+    # Check that all the pfsArmSets are consistent
+    #
+    pfsConfig = None
+    for aset in pfsArms:
+        for arm in aset.data.values():
+            fiberIdx = np.where(arm.pfsConfig.objId == objId)[0]
+            if len(fiberIdx):
+                fiberIdx = fiberIdx[0]
+            else:
+                raise RuntimeError("Object 0x%x is not present in pfsArm file for " 
+                                   "visit %d, spectrograph %d%s" %
+                                    (objId, aset.visit, arm.spectrograph, arm.arm))
+
+        if pfsConfig:
+            assert (pfsConfig.tract, pfsConfig.patch) == (aset.pfsConfig.tract, aset.pfsConfig.patch)
+        else:
+            pfsConfig = aset.pfsConfig
+            tract = pfsConfig.tract[fiberIdx]
+            patch = pfsConfig.patch[fiberIdx]
+
     pfsVisitHash = calculate_pfsVisitHash(visits)
     pfsObject = PfsObject(tract, patch, objId, catId, visits=visits)
     pfsObject.pfsConfigIds = []         # we'll set them from the pfsArm files
 
     pfsObject.lam = lambdaMin + dLambda*np.arange(int((lambdaMax - lambdaMin)/dLambda),
-                                                  dtype=np.float32)    
+                                                  dtype=np.float32)
     #
     # Start by interpolating all the data onto the single uniform sampling
     #

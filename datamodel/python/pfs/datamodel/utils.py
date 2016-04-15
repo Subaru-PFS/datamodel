@@ -23,9 +23,15 @@ def calculate_pfsVisitHash(visits):
 def calculate_pfsConfigId(fiberIds, ras, decs):
     """Calculate and return the 64-bit SHA-1 from a set of lists of
     fiberId, ra, and dec"""
+
+    if fiberIds is None:
+        if ras is None and decs is None:
+            return 0x0
+
+        raise RuntimeError("Either all or none of fiberId, ra, and dec may be None")
     
     m = hashlib.sha1()
-    
+
     for fiberId, ra, dec in zip(fiberIds, ras, decs):
         m.update("%d %.0f %.0f" % (fiberId, ra, dec))
 

@@ -9,7 +9,7 @@ from pfs.datamodel.pfsObject import PfsObject, makePfsObject
 def main(pfsConfigId, tract, patch, fiberId=None, dataDir=".", objId=None,
          showPfsArm=False, showPfsArmSet=False, showPfsObject=False):
 
-    pfsConfig = PfsConfig(pfsConfigId)
+    pfsConfig = PfsConfig(pfsConfigId, tract, patch)
     pfsConfig.read(dataDir)
 
     if objId is None:
@@ -37,7 +37,7 @@ def main(pfsConfigId, tract, patch, fiberId=None, dataDir=".", objId=None,
 
     #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-    pfsArms = PfsArmSet(visit=1, spectrograph=1)
+    pfsArms = PfsArmSet(visit=1, spectrograph=1, pfsConfigId=pfsConfigId)
     pfsArms.read(dataDir)
 
     if showPfsArm:
@@ -56,7 +56,7 @@ def main(pfsConfigId, tract, patch, fiberId=None, dataDir=".", objId=None,
 
     #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-    pfsObject = makePfsObject(tract, patch, objId, [pfsArms])
+    pfsObject = makePfsObject(objId, [pfsArms])
     pfsObject.write(dataDir)
 
     npfs = PfsObject(tract, patch, objId, visits=[1])
@@ -73,7 +73,7 @@ def main(pfsConfigId, tract, patch, fiberId=None, dataDir=".", objId=None,
 import argparse
 parser = argparse.ArgumentParser(description="Manipulate pfsConfig, pfsArm, and pfsObject files")
 
-parser.add_argument('pfsConfigId', type=str, nargs="?", default="0x741918352327a27",
+parser.add_argument('pfsConfigId', type=str, nargs="?", default="0x788daff233347923",
                     help="Desired pfsConfigId")
 parser.add_argument('--dataDir', type=str, default="examples", help="Directory containing data")
 parser.add_argument('--fiberId', type=int, default=None, help="Desired fiber")
