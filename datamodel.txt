@@ -5,6 +5,11 @@
     http://data.sdss3.org/datamodel/files/BOSS_SPECTRO_REDUX/RUN2D/PLATE4
 )
 
+There are implementations of python classes that represent many of the files in this document, supporting
+reading and writing FITS files that conform to this model.  To use them, add the python directory in this
+package to your $PYTHONPATH and import e.g. pfs.datamodel.pfsConfig
+
+
 I shall use these symbolic names in the discussion:
 
 NFIBER      The number of fibres in a spectrograph (some spectrographs have "missing" fibres)
@@ -80,14 +85,10 @@ catId
 
 pfsConfigId
   An integer uniquely specifying the configuration of the PFI; specifically a SHA-1 of the
-  (fiberId, ra, dec) tuples (with position rounded to the nearest arcsecond) truncated to 64 bits:
-  	    import hashlib
-	    m = hashlib.sha1()
-        
-	    for fiberId, ra, dec in values:
-	        m.update("%d %.0f %.0f" % (fiberId, ra, dec))
+  (fiberId, ra, dec) tuples (with position rounded to the nearest arcsecond) truncated to 64 bits.
 
-	    sha1 = int(m.hexdigest(), 16) & 0xffffffffffffffff
+  See calculate_pfsConfigId() in
+	python/pfs/datamodel/utils.py
 
   We include the standard prefix "0x" in filenames to visually separate SHA-1s from 64-bit objId; this is
   especially important in pfsObject filenames which have both an objId and a hash.
@@ -95,22 +96,19 @@ pfsConfigId
   An alternative to a SHA-1 would be the visit number of the first data taken with this configuration but that
   would have the disadvantage that it would not be available until the data was taken.
 
-  Lab data may choose to set the pfsConfigId to 0x0
+  Lab data may choose to set the pfsConfigId to 0x0.  As a convenience to simulators, if the fiberIds
+  in a pfsConfig file are consecutive integers starting at 1 and all ra/dec values are 0.0 the pfsConfigId
+  is taken to be 0x0
 
 pfsVisitHash
 
   An integer uniquely defining the set of visits contributing to a reduced spectrum;
   this will be calculated as a SHA-1 truncated to 64 bits
-            import hashlib
-            m = hashlib.sha1()
-        
-            for visit in visits:
-                m.update("%d" % (visit))
+  See calculate_pfsVisitHash() in
+	python/pfs/datamodel/utils.py
 
-	    sha1 = int(m.hexdigest(), 16) & 0xffffffffffffffff
-
- As a special case, if the only visit is 0, pfsVisitHash shall be taken to be 0x0 for the convenience
- of simulation code.
+As a special case, if the only visit is 0, pfsVisitHash shall be taken to be 0x0 for the convenience
+of simulation code.
 
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 

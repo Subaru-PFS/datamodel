@@ -8,7 +8,7 @@ def calculate_pfsVisitHash(visits):
     """Calculate and return the 64-bit SHA-1 from a list of visits"""
 
     if len(visits) == 1 and visits[0] == 0:
-        return 0
+        return 0x0
     
     m = hashlib.sha1()
         
@@ -29,6 +29,9 @@ def calculate_pfsConfigId(fiberIds, ras, decs):
             return 0x0
 
         raise RuntimeError("Either all or none of fiberId, ra, and dec may be None")
+
+    if (fiberIds == 1 + np.arange(len(fiberIds))).all() and (ras == 0.0).all() and (decs == 0.0).all():
+        return 0x0    
     
     m = hashlib.sha1()
 
