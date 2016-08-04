@@ -37,46 +37,6 @@ class PfsArm(object):
             raise RuntimeError("pfsConfigId == 0x%08x != pfsConfig.pfsConfigId == 0x%08x" %
                                (self.pfsConfigId, self.pfsConfig.pfsConfigId))
 
-    @staticmethod
-    def readFits(fileName, pfsConfigs=None):
-        dirName = os.path.dirname( fileName )
-        
-        info = PfsArm.getInfo( fileName )
-        visit = info[0]['visit']
-        spectrograph = info[0]['spectrograph']
-        arm = info[0]['arm']
-        pfsArm = PfsArm( visit, spectrograph, arm )
-        
-        pfsArm.read(dirName=dirName, pfsConfigs=pfsConfigs)
-        return pfsArm
-    
-    @staticmethod
-    def getInfo(fileName):
-        """Get information about the image from the filename and its contents
-
-        @param filename    Name of file to inspect
-        @return File properties; list of file properties for each extension
-        """
-        minSpectrograph = 1
-        maxSpectrograph = 4
-        arms = ['b', 'r', 'n', 'm']
-        armsRe = '[b,r,n,m]'
-        path, filename = os.path.split(fileName)
-        matches = re.search("pfsArm-(\d{6})-(\d{1})("+armsRe+").fits", filename)
-        visit, spectrograph, arm = matches.groups()
-        if int(spectrograph) < minSpectrograph or int(spectrograph) > maxSpectrograph:
-            message = 'spectrograph (=',spectrograph,') out of bounds'
-            raise Exception(message)
-        if arm not in arms:
-            message = 'arm (=',arm,') not a valid arm'
-            raise Exception(message)
-
-        info = dict(visit=int(visit, base=10), arm=arm, spectrograph=int(spectrograph))
-        if os.path.exists(filename):
-            header = afwImage.readMetadata(filename)
-            info = self.getInfoFromMetadata(header, info=info)
-        return info, [info]
-
     def read(self, dirName=".", pfsConfigs=None):
         """Read self's pfsArm file from directory dirName
 
@@ -145,12 +105,7 @@ class PfsArm(object):
             print "%d%s 0x%x %d" % \
                (self.spectrograph, self.arm, self.pfsConfigId, self.visit),  \
                 pfsConfig.ra, pfsConfig.dec
-        
-    def writeFits(self, fileName, flags=None):
-        print 'writing <',fileName,'>'
-        dirName, fName = os.path.split(fileName)
-        self.write(dirName=dirName, fileName = fName)
-        
+
     def write(self, dirName=".", fileName=None):
         if not pyfits:
             raise RuntimeError("I failed to import pyfits, so cannot read from disk")
