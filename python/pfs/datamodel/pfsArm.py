@@ -36,6 +36,17 @@ class PfsArm(object):
             raise RuntimeError("pfsConfigId == 0x%08x != pfsConfig.pfsConfigId == 0x%08x" %
                                (self.pfsConfigId, self.pfsConfig.pfsConfigId))
 
+    @staticmethod
+    def readFits(fileName):
+        dirName = os.path.dirname(fileName)
+        visit = 4
+        spectrograph = 2
+        arm = 'r'
+        pfsArm = PfsArm( visit, spectrograph, arm )
+        
+        pfsArm.read(dirName=dirName)
+        return pfsArm
+
     def read(self, dirName=".", pfsConfigs=None):
         """Read self's pfsArm file from directory dirName
 
@@ -103,7 +114,15 @@ class PfsArm(object):
                (self.spectrograph, self.arm, self.pfsConfigId, self.visit),  \
                 pfsConfig.ra, pfsConfig.dec
         
-    def write(self, dirName="."):
+    def writeFits(self, fileName, flags=None):
+        print 'writing <',fileName,'>'
+        dirName, fName = os.path.split(fileName)
+        print 'dirName = <',dirName,'>'
+        print 'self.arm = <',self.arm,'>'
+        print 'self.flux = ',self.flux
+        self.write(dirName=dirName, fileName = fName)
+        
+    def write(self, dirName=".", fileName=None):
         if not pyfits:
             raise RuntimeError("I failed to import pyfits, so cannot read from disk")
 
@@ -144,7 +163,9 @@ class PfsArm(object):
         hdus.append(hdu)
 
         # clobber=True in writeto prints a message, so use open instead
-        fileName = self.fileNameFormat % (self.visit, self.spectrograph, self.arm)
+        if fileName == None:
+            fileName = self.fileNameFormat % (self.visit, self.spectrograph, self.arm)
+        print 'fileName = <',os.path.join(dirName, fileName),'>'
         with open(os.path.join(dirName, fileName), "w") as fd:
             hdus.writeto(fd)            
 
