@@ -122,6 +122,9 @@ which are physically two devices.
 
 N.b. the restriction to filenames of the form 4 letters followed by 8 decimal digits comes from Subaru.
 
+In the case of the HgCdTe devices (category == 'B'), each up-the-ramp read will be in a separate image
+extension.
+
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 Calibration products (i.e. processed flats/biases/darks ready to be used in processing)
