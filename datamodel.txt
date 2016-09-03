@@ -66,6 +66,12 @@ arm
   n: IR
   m: Medium resolution red
 
+cameraNum
+  The number identifying a camera. E.g.
+    1-6:  Autoguider cameras
+    1:    Metrology camera
+  Note that the category distringuishes these two systems (C v. D)
+
 tract
   An integer in the range (0, 99999) specifying an area of the sky
 
@@ -112,7 +118,7 @@ of simulation code.
 
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-Raw Data (from the spectrograph cameras, but also e.g. the metrology camera)
+Raw Data from the spectrograph
 
    "PF%1s%1s%06d%1d%1d.fits" % (site, category, visit, spectrograph, armNum)
 
@@ -121,6 +127,24 @@ extension of size > NCOLUMN*NROW due to extended registers and overclocks, even 
 which are physically two devices.
 
 N.b. the restriction to filenames of the form 4 letters followed by 8 decimal digits comes from Subaru.
+
+-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+Raw Data from the metrology camera and autoguider (AG)
+
+   "PF%1s%1s%06d%02d.fits" % (site, category, visit, cameraNum)
+
+There are many exposures for each visit.  These files will accordingly be multi-extension fits files (MEFs)
+with one extension per read and one file per camera.
+
+The AG data (PF?D files) is a bit different as we only process small windows. The images will be the
+full size of the detectors (1024x1024) and unsigned 16-bit, but with all unprocessed-pixels
+represented as 0 (we will set the keyword BLANK = 0 -- we'd use NaN, except that these files will
+contain integers).  We will use FITS (probably fpack) compression on these files, so the unprocessed
+pixels will only have a negligible effect upon the total image size.
+
+The first (and possible last) AG exposures will be complete, with no masking applied.  An advantage
+of the proposed format is that the masked and unmasked HDUs will be identical.
 
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
