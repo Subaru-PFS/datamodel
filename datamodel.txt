@@ -67,7 +67,7 @@ arm
   m: Medium resolution red
 
 tract
-  An integer in the range (0, 9999) specifying an area of the sky
+  An integer in the range (0, 99999) specifying an area of the sky
 
 patch
   A string of the form "m,n" specifying a region within a tract
@@ -256,7 +256,7 @@ isn't human-friendly;  in particular it doesn't sort in a helpful way.  It seems
 ever have more than 100 visits, but as the pfsVisitHash is unambiguous it seemed safer to only allow for
 larger values of nVisit, but record them only modulo 100.
 
-     "pfsObject-%04d-%s-%3d-%08x-%02d-0x%08x.fits" % (tract, patch, catId, objId, nVisit % 100, pfsVisitHash)
+     "pfsObject-%05d-%s-%3d-%08x-%02d-0x%08x.fits" % (tract, patch, catId, objId, nVisit % 100, pfsVisitHash)
 
 The path would be
    tract/patch/pfsObject-*.fits
@@ -332,7 +332,7 @@ amplitude, width) for emission lines.  Will a continuum + lines model like this 
 evolution stellar spectra?
 
 For now, I propose:
-     "pfsSimObject-%04d-%s-%3d-%08x.fits" % (tract, patch, catId, objId)
+     "pfsSimObject-%05d-%s-%3d-%08x.fits" % (tract, patch, catId, objId)
 
 The tract, patch, catId, objId values will also be available as header keywords.
 
@@ -378,12 +378,12 @@ Note that the wavelength need not be uniformly sampled.
  pfsPSF-000666-1b.fits
 	The 2-D PSF for spectrograph 1's blue arm in visit 666
 
- pfsObject-7621-2,2-001-02468ace-03-0xdeadbeef.fits
+ pfsObject-07621-2,2-001-02468ace-03-0xdeadbeef.fits
 	Combined spectrum for HSC (the "001") object 0x02468ace, located in tract 7621, patch 2,2.
 
 	The pfsVisitHash SHA-1 (calculated from the 3 visits included in this reduction) is 0xdeadbeef.
 
- pfsSimObject-0000-0,0-000-13579bdf.fits
+ pfsSimObject-00000-0,0-000-13579bdf.fits
 	A simulated spectrum (the "000") for object 0x13579bdf, located in tract 0, patch 0,0
 
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
