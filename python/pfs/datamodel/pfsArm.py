@@ -1,5 +1,6 @@
 import collections
 import os
+import re
 import numpy as np
 try:
     import pyfits
@@ -8,6 +9,7 @@ except ImportError:
 import matplotlib.pyplot as plt
 
 from pfs.datamodel.pfsConfig import PfsConfig
+from lsst.obs.pfs.ingest import PfsParseTask
 
 class PfsArm(object):
     """A class corresponding to a single pfsArm file"""
@@ -38,14 +40,45 @@ class PfsArm(object):
 
     @staticmethod
     def readFits(fileName):
-        dirName = os.path.dirname(fileName)
-        visit = 4
-        spectrograph = 2
-        arm = 'r'
+        dirName = os.path.dirname( fileName )
+        
+        info = PfsArm.getInfo( fileName )
+        visit = info[0]['visit']
+        spectrograph = info[0]['spectrograph']
+        arm = info[0]['arm']
         pfsArm = PfsArm( visit, spectrograph, arm )
         
         pfsArm.read(dirName=dirName)
         return pfsArm
+    
+    @staticmethod
+    def getInfo(fileName):
+        """Get information about the image from the filename and its contents
+
+        @param filename    Name of file to inspect
+        @return File properties; list of file properties for each extension
+        """
+        minSpectrograph = 1
+        maxSpectrograph = 4
+        arms = ['b', 'r', 'n', 'm']
+        armsRe = '[b,r,n,m]'
+        path, filename = os.path.split(fileName)
+        matches = re.search("pfsArm-(\d{6})-(\d{1})("+armsRe+").fits", filename)
+        visit, spectrograph, arm = matches.groups()
+        if int(spectrograph) < minSpectrograph or int(spectrograph) > maxSpectrograph:
+            message = 'spectrograph (=',spectrograph,') out of bounds'
+            raise Exception(message)
+        if arm in arms:
+            "do nothing"
+        else:
+            message = 'arm (=',arm,') not a valid arm'
+            raise Exception(message)
+
+        info = dict(visit=int(visit, base=10), arm=arm, spectrograph=int(spectrograph))
+        if os.path.exists(filename):
+            header = afwImage.readMetadata(filename)
+            info = self.getInfoFromMetadata(header, info=info)
+        return info, [info]
 
     def read(self, dirName=".", pfsConfigs=None):
         """Read self's pfsArm file from directory dirName
