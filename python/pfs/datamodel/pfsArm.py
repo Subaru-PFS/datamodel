@@ -85,6 +85,8 @@ class PfsArm(object):
         if not pyfits:
             raise RuntimeError("I failed to import pyfits, so cannot read from disk")
 
+        import pdb; pdb.set_trace()
+
         fileName = PfsArm.fileNameFormat % (self.visit, self.spectrograph, self.arm)
         fd = pyfits.open(os.path.join(dirName, fileName)) 
             
