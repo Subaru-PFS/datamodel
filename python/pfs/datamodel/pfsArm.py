@@ -9,7 +9,6 @@ except ImportError:
 import matplotlib.pyplot as plt
 
 from pfs.datamodel.pfsConfig import PfsConfig
-from lsst.obs.pfs.ingest import PfsParseTask
 
 class PfsArm(object):
     """A class corresponding to a single pfsArm file"""
@@ -39,7 +38,7 @@ class PfsArm(object):
                                (self.pfsConfigId, self.pfsConfig.pfsConfigId))
 
     @staticmethod
-    def readFits(fileName):
+    def readFits(fileName, pfsConfigs=None):
         dirName = os.path.dirname( fileName )
         
         info = PfsArm.getInfo( fileName )
@@ -48,7 +47,7 @@ class PfsArm(object):
         arm = info[0]['arm']
         pfsArm = PfsArm( visit, spectrograph, arm )
         
-        pfsArm.read(dirName=dirName)
+        pfsArm.read(dirName=dirName, pfsConfigs=pfsConfigs)
         return pfsArm
     
     @staticmethod
@@ -68,9 +67,7 @@ class PfsArm(object):
         if int(spectrograph) < minSpectrograph or int(spectrograph) > maxSpectrograph:
             message = 'spectrograph (=',spectrograph,') out of bounds'
             raise Exception(message)
-        if arm in arms:
-            "do nothing"
-        else:
+        if arm not in arms:
             message = 'arm (=',arm,') not a valid arm'
             raise Exception(message)
 
@@ -87,6 +84,8 @@ class PfsArm(object):
         """
         if not pyfits:
             raise RuntimeError("I failed to import pyfits, so cannot read from disk")
+
+        import pdb; pdb.set_trace()
 
         fileName = PfsArm.fileNameFormat % (self.visit, self.spectrograph, self.arm)
         fd = pyfits.open(os.path.join(dirName, fileName)) 
@@ -150,9 +149,6 @@ class PfsArm(object):
     def writeFits(self, fileName, flags=None):
         print 'writing <',fileName,'>'
         dirName, fName = os.path.split(fileName)
-        print 'dirName = <',dirName,'>'
-        print 'self.arm = <',self.arm,'>'
-        print 'self.flux = ',self.flux
         self.write(dirName=dirName, fileName = fName)
         
     def write(self, dirName=".", fileName=None):
