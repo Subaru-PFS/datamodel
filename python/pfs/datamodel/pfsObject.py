@@ -194,7 +194,7 @@ class PfsObject(object):
             hdus.writeto(fd)            
             
     def plot(self, showFlux=None, showFluxTbl=False, showMask=False, showSky=False,
-             showCovar=False, showCovar2=False, showFluxVariance=False):
+             showCovar=False, showCovar2=False, showFluxVariance=False, showPlot=True):
         """Plot some or all of the contents of the PfsObject
 
         Default is to show the flux from the resampled arrays.
@@ -223,7 +223,8 @@ class PfsObject(object):
                 if name in ("flux"):
                     plt.axhline(0, ls=':', color='black')
 
-                plt.show()
+                    if showPlot:
+                        plt.show()
 
             if show["covar"]:
                 for i in range(self.covar.shape[0]):
@@ -232,7 +233,8 @@ class PfsObject(object):
 
                 plt.xlabel(xlabel)
                 plt.title("%s %s" % (title, "covar"))
-                plt.show()
+                if showPlot:
+                    plt.show()
 
             if show["covar2"]:
                 sc = plt.imshow(self.covar2, interpolation='nearest', vmin=0)
@@ -242,7 +244,8 @@ class PfsObject(object):
                 plt.xlabel(lab)
                 plt.ylabel(lab)
                 plt.title("%s %s" % (title, "covar2"))
-                plt.show()
+                if showPlot:
+                    plt.show()
         else:
             for name, data in (["flux", self.fluxTbl.flux],
                                ["fluxVariance", self.fluxTbl.fluxVariance],
@@ -259,7 +262,8 @@ class PfsObject(object):
                     
                 plt.xlabel(xlabel)
                 plt.title("%s fluxTbl.%s" % (title, name))
-                plt.show()
+                if showPlot:
+                    plt.show()
             
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
