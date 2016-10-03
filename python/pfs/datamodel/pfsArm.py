@@ -158,7 +158,8 @@ class PfsArm(object):
 
         return fiberId - 1
 
-    def plot(self, fiberId=1, showFlux=None, showMask=False, showSky=False, showCovar=False):
+    def plot(self, fiberId=1, showFlux=None, showMask=False, showSky=False, showCovar=False,
+             showPlot=True):
         """Plot some or all of the contents of the PfsArm
 
         Default is to show the flux
@@ -184,7 +185,8 @@ class PfsArm(object):
             if name in ("flux"):
                 plt.axhline(0, ls=':', color='black')
 
-            plt.show()
+            if showPlot:
+                plt.show()
 
         if show["covar"]:
             for i in range(self.covar.shape[1]):
@@ -192,7 +194,8 @@ class PfsArm(object):
             plt.legend(loc='best')
 
             plt.title("%s %s" % (title, "covar"))
-            plt.show()
+            if showPlot:
+                plt.show()
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
@@ -235,7 +238,8 @@ class PfsArmSet(object):
     def getFiberIdx(self, fiberId):
         return self.data.values()[0].getFiberIdx(fiberId)
 
-    def plot(self, fiberId=1, showFlux=None, showMask=False, showSky=False, showCovar=False):
+    def plot(self, fiberId=1, showFlux=None, showMask=False, showSky=False, showCovar=False,
+             showPlot=True):
         """Plot some or all of the contents of the PfsArms
 
         Default is to show the flux
@@ -262,7 +266,8 @@ class PfsArmSet(object):
             if name in ("flux"):
                 plt.axhline(0, ls=':', color='black')
 
-            plt.show()
+            if showPlot:
+                plt.show()
 
         if show["covar"]:
             for arm in self.data.values():
@@ -273,4 +278,5 @@ class PfsArmSet(object):
             plt.legend(loc='best')
 
             plt.title("%s %s" % (title, "covar"))
-            plt.show()
+            if showPlot:
+                plt.show()
