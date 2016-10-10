@@ -1,14 +1,11 @@
 import collections
-import os
-import re
 import numpy as np
+import os
 try:
     import pyfits
 except ImportError:
     pyfits = None
-#import matplotlib.pyplot as plt
-
-from pfs.datamodel.pfsConfig import PfsConfig
+import re
 
 class PfsFiberTrace(object):
     """A class corresponding to a single fiberTrace file"""
@@ -18,11 +15,10 @@ class PfsFiberTrace(object):
     flags = dict(NODATA = 0x1,          # this pixel contains no data
                  )
 
-    fileNameFormat = "pfsFiberTrace-%06d-%1d%1s.fits"
+    fileNameFormat = "pfsFiberTrace-%10s-0-%1d%1s.fits"
 
-    def __init__(self, visit, spectrograph, arm):#, pfsConfigId=None, pfsConfig=None):
-        #self.pfsConfigId = pfsConfigId
-        self.visit = visit
+    def __init__(self, calibDate, spectrograph, arm):
+        self.calibDate = calibDate
         self.spectrograph = spectrograph
         self.arm = arm
 
@@ -51,6 +47,7 @@ class PfsFiberTrace(object):
         self.lSigma = 0.
         self.uSigma = 0.
         
+        self.fiberId = []
         self.xCenter = []
         self.yCenter = []
         self.yLow = []
@@ -58,22 +55,17 @@ class PfsFiberTrace(object):
         self.coeffs = []
         self.profiles = []
 
-#        self.pfsConfig = pfsConfig
-#        if self.pfsConfig and self.pfsConfigId != self.pfsConfig.pfsConfigId:
-#            raise RuntimeError("pfsConfigId == 0x%08x != pfsConfig.pfsConfigId == 0x%08x" %
-#                               (self.pfsConfigId, self.pfsConfig.pfsConfigId))
-
     @staticmethod
-    def readFits(fileName):#, pfsConfigs=None):
+    def readFits(fileName, hdu, flags):
         dirName = os.path.dirname( fileName )
         
         info = PfsFiberTrace.getInfo( fileName )
-        visit = info[0]['visit']
+        calibDate = info[0]['calibDate']
         spectrograph = info[0]['spectrograph']
         arm = info[0]['arm']
-        pfsFiberTrace = PfsFiberTrace( visit, spectrograph, arm )
+        pfsFiberTrace = PfsFiberTrace( calibDate, spectrograph, arm )
         
-        pfsFiberTrace.read(dirName=dirName)#, pfsConfigs=pfsConfigs)
+        pfsFiberTrace.read(dirName=dirName)
         return pfsFiberTrace
     
     @staticmethod
@@ -88,8 +80,11 @@ class PfsFiberTrace(object):
         arms = ['b', 'r', 'n', 'm']
         armsRe = '[b,r,n,m]'
         path, filename = os.path.split(fileName)
-        matches = re.search("pfsFiberTrace-(\d{6})-(\d{1})("+armsRe+").fits", filename)
-        visit, spectrograph, arm = matches.groups()
+        matches = re.search("pfsFiberTrace-(\d{4})-(\d{2})-(\d{2})-0-(\d{1})("+armsRe+").fits", filename)
+        if not matches:
+            message = 'pfsFiberTrace.getInfo: Cannot interpret filename <',filename,'>'
+            raise Exception(message)
+        year, month, day, spectrograph, arm = matches.groups()
         if int(spectrograph) < minSpectrograph or int(spectrograph) > maxSpectrograph:
             message = 'spectrograph (=',spectrograph,') out of bounds'
             raise Exception(message)
@@ -97,22 +92,19 @@ class PfsFiberTrace(object):
             message = 'arm (=',arm,') not a valid arm'
             raise Exception(message)
 
-        info = dict(visit=int(visit, base=10), arm=arm, spectrograph=int(spectrograph))
+        calibDate = '%04d-%02d-%02d' % (int(year), int(month), int(day))
+        info = dict(calibDate=calibDate, arm=arm, spectrograph=int(spectrograph))
         if os.path.exists(filename):
             header = afwImage.readMetadata(filename)
             info = self.getInfoFromMetadata(header, info=info)
         return info, [info]
 
-    def read(self, dirName="."):#, pfsConfigs=None):
-        """Read self's pfsFiberTrace file from directory dirName
-
-#        If provided, pfsConfigs is a dict of pfsConfig objects, indexed by pfsConfigId
-        """
-        import pdb; pdb.set_trace()
+    def read(self, dirName="."):
+        """Read self's pfsFiberTrace file from directory dirName"""
         if not pyfits:
             raise RuntimeError("I failed to import pyfits, so cannot read from disk")
 
-        fileName = PfsFiberTrace.fileNameFormat % (self.visit, self.spectrograph, self.arm)
+        fileName = PfsFiberTrace.fileNameFormat % (self.calibDate, self.spectrograph, self.arm)
         fd = pyfits.open(os.path.join(dirName, fileName)) 
         
         prihdr = fd[0].header
@@ -143,15 +135,10 @@ class PfsFiberTrace(object):
 
         for hduName in ["FUNCTION", "PROFILE"]:
             hdu = fd[hduName]
-            print 'reading hdu ',hdu
             hdr, data = hdu.header, hdu.data
-        
-            if False:
-                for k, v in hdr.items():
-                    print "%8s %s" % (k, v)
             
             if hduName == "FUNCTION":
-                print 'data = ',len(data),': ',data
+                self.fiberId = data['FIBERID']
                 self.xCenter = data['XCENTER']
                 self.yCenter = data['YCENTER']
                 self.yLow = data['YLOW']
@@ -163,7 +150,6 @@ class PfsFiberTrace(object):
                 raise RuntimeError("Unexpected HDU %s reading %s" % (hduName, fileName))
         
     def writeFits(self, fileName, flags=None):
-        print 'writing <',fileName,'>'
         dirName, fName = os.path.split(fileName)
         self.write(dirName=dirName, fileName = fName)
         
@@ -201,17 +187,20 @@ class PfsFiberTrace(object):
         hdr.update()
         hdus.append(pyfits.PrimaryHDU(header=hdr))
         
+        coeffArr = np.array(self.coeffs, dtype=np.float32)
         hdu = pyfits.BinTableHDU.from_columns([
+            pyfits.Column(name = 'FIBERID', format = 'J',
+                          array=np.array(self.fiberId, dtype=np.int32)),
             pyfits.Column(name = 'XCENTER', format = 'E',
                           array=np.array(self.xCenter, dtype=np.float32)),
-            pyfits.Column(name = 'YCENTER', format = 'I',
-                          array=np.array(self.yCenter, dtype=np.int16)),
-            pyfits.Column(name = 'YLOW', format = 'I',
-                          array=np.array(self.yLow, dtype=np.int16)),
-            pyfits.Column(name = 'YHIGH', format = 'I',
-                          array=np.array(self.yHigh, dtype=np.int16)),
-            pyfits.Column(name = 'COEFFS', format = 'E',
-                          array=np.array(self.coeffs, dtype=np.float32)),
+            pyfits.Column(name = 'YCENTER', format = 'J',
+                          array=np.array(self.yCenter, dtype=np.int32)),
+            pyfits.Column(name = 'YLOW', format = 'J',
+                          array=np.array(self.yLow, dtype=np.int32)),
+            pyfits.Column(name = 'YHIGH', format = 'J',
+                          array=np.array(self.yHigh, dtype=np.int32)),
+            pyfits.Column(name = 'COEFFS', format = '%dE'%(self.order+1),
+                          array=coeffArr)
         ])
         hdu.name = 'FUNCTION'
         hdus.append(hdu)
@@ -222,8 +211,7 @@ class PfsFiberTrace(object):
 
         # clobber=True in writeto prints a message, so use open instead
         if fileName == None:
-            fileName = self.fileNameFormat % (self.visit, self.spectrograph, self.arm)
-        print 'fileName = <',os.path.join(dirName, fileName),'>'
+            fileName = self.fileNameFormat % (self.calibDate, self.spectrograph, self.arm)
         with open(os.path.join(dirName, fileName), "w") as fd:
             hdus.writeto(fd)            
 
@@ -238,39 +226,18 @@ class PfsFiberTrace(object):
 
 class PfsFiberTraceSet(object):
     """Manipulate a set of pfsFiberTraces corresponding to a single visit"""
-    def __init__(self, visit, spectrograph, arms=['b', 'r', 'n']):#, pfsConfigId=None, pfsConfig=None,
-                 #pfsConfigs={}):
-#        self.pfsConfigs = pfsConfigs
-#        self.pfsConfigId = pfsConfigId
+    def __init__(self, visit, spectrograph, arms=['b', 'r', 'n']):
         self.visit = visit        
         self.spectrograph = spectrograph
         self.arms = arms
-      
-#        if pfsConfig:
-#            if self.pfsConfigId:
-#                if self.pfsConfigId != pfsConfig.pfsConfigId:
-#                    raise RuntimeError("pfsConfigId == 0x%08x != pfsConfig.pfsConfigId == 0x%08x" %
-#                                       (self.pfsConfigId, pfsConfig.pfsConfigId))
-#            else:
-#                self.pfsConfigId = pfsConfig.pfsConfigId
-#
-#            self.pfsConfigs[self.pfsConfigId] = pfsConfig
-#
-#        if self.pfsConfigId in self.pfsConfigs:
-#            self.pfsConfig = self.pfsConfigs[self.pfsConfigId]
-#        else:
-#            self.pfsConfig = None
 
         self.data = collections.OrderedDict()
         for arm in self.arms:
-            self.data[arm] = PfsFiberTrace(visit, spectrograph, arm)#, self.pfsConfigId, self.pfsConfig)
+            self.data[arm] = PfsFiberTrace(visit, spectrograph, arm)
                 
     def read(self, dirName="."):
         for arm in self.arms:
-            self.data[arm].read(dirName)#, pfsConfigs=self.pfsConfigs)
-
-#            if not self.pfsConfig:
-#                self.pfsConfig = self.data[arm].pfsConfig
+            self.data[arm].read(dirName)
 
     def getFiberIdx(self, fiberId):
         return self.data.values()[0].getFiberIdx(fiberId)
