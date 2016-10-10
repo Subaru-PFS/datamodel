@@ -137,6 +137,10 @@ The visit is replaced by visit0, the first visit for which these flats/biases/da
 there will be many files for each (spectrograph, arm) but with different values of visit0.  Note that we
 don't know the upper range of validity when these files are created, so it cannot be encoded in the filename.
 
+Visit0 is usually the last input visit used in preparing the calibration files. The calibration file that is
+used by the pipeline is selected based on a list of valid dates provided to the calibration database; visit0
+is only used to provide a unique filename and a sensible sort order.
+
 Single extension fits files of size NCOLUMN*NROW
 
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
@@ -407,7 +411,7 @@ So the raw CCD data will have
     NCOL = 4416 # NAMP*(AMPCOLS + OVERCOLS)
 
 And the ISR-extracted CCD images will probably be close to:
-    NROW = 4172  # CCDROWS - LEADINROWS
+    NROW = 4176  # CCDROWS - LEADINROWS
     NCOL = 4096  # NAMP*(AMPCOLS - LEADINCOLS)
 This value of NROW is applicable to the pfsArm files.
 
