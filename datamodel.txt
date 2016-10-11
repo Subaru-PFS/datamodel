@@ -141,7 +141,7 @@ Single extension fits files of size NCOLUMN*NROW
 
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-The positions and widths of fiber traces in the 2-D flatfieldimages.
+The positions and widths of fiber traces in the 2-D flat-field images.
 
   "pfsFiberTrace-%06d-%1d%1s.fits" % (visit0, spectrograph, arm)
 
