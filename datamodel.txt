@@ -156,7 +156,7 @@ HDU #2 PROFILE     Spatial profile                             [FLOAT]        NR
 The config parameters for the determination of the trace function and the profile
 will be stored in the PDU. These parameters are:
         FWHM        FWHM of an assumed Gaussian profile         float
-        THRESH      signal threshold                            float
+        THRESH      Signal threshold                            float
         NTERMS      number of terms for Gauss fit
                     (1: fit maximum only,
                      3: fit Gaussian,
@@ -176,7 +176,6 @@ will be stored in the PDU. These parameters are:
         NCUTR       Number of most right pixels to cut          int
         INTERPOL    Method for interpolating the spatial profile, 
                     enum[PISKUNOV, SPLINE3]                     string
-        RDNOISE WHY????
         SWATHLEN    Length of swaths for profile calculation    int
         OSAMPLE     Oversample factor                           int
         MAXITSF     Maximum number of iterations for profile
@@ -196,7 +195,17 @@ The individual trace function parameters per fiber are stored in HDU #1:
         YHIGH       NFIBER*32-bit               int
         COEFFS      (ORDER+1)*NFIBER*32-bit     float
 
-
+The parameters FWHM, THRESH, NTERMS, SATLEVEL, MINLEN, MAXLEN, NLOST, NCUTL, and
+NCUTR are not needed to reconstruct a FiberTraceSet but were used by the tracing
+procedure and are saved here for logging purposes only. Similarly the parameters
+INTERPOL, SWATHLEN, OSAMPLE, MAXITSF, MAXITSIG, LAMBDASF, LAMBDASP, LAMBWING,
+LSIGMA, and USIGMA were used by the profile-fitting algorithm but are not needed
+to reconstruct a FiberTraceSet. FUNC and ORDER in the PDU describe the trace
+function, together with YCENTER, YLOW, YHIGH, and COEFFS for each fiber trace
+in HDU #1. The coefficients were calculated by re-scaling the lower and upper
+limits [YCENTER+YLOW,YCENTER+YHIGH] to [-1,1] and fitting the traced center
+positions in x. The parameter XCENTER is there for convenience only as the
+FiberTrace ID is identified from the pair [XCENTER, YCENTER].
 
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
