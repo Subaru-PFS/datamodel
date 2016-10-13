@@ -47,9 +47,15 @@ class PfsConfig(object):
         hdu = fd["CONFIG"]
         hdr, data = hdu.header, hdu.data
         self.filterNames = []
-        for i in range(5):
-            self.filterNames.append(hdr["FILTER%d" % i])
-    
+        i = -1
+        while True:
+            i += 1
+            key = "FILTER%d" % i
+            if key in hdr:
+                self.filterNames.append(hdr[key])
+            else:
+                break
+                
         if False:
             for k, v in hdr.items():
                 print "%8s %s" % (k, v)
@@ -104,7 +110,7 @@ class PfsConfig(object):
             pyfits.Column(name = 'objId', format = 'K', array=self.objId),
             pyfits.Column(name = 'ra', format = 'E', array=self.ra),
             pyfits.Column(name = 'dec', format = 'E', array=self.dec),
-            pyfits.Column(name = 'fiberMag', format = '5E', array=self.fiberMag),
+            pyfits.Column(name = 'fiberMag', format = '%dE' % len(self.filterNames), array=self.fiberMag),
             pyfits.Column(name = 'MPS centroid', format = '2E', array=self.mpsCen)
         ], hdr)
         hdu.name = 'CONFIG'
