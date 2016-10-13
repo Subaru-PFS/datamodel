@@ -34,6 +34,20 @@ class PfsArm(object):
         
         self.pfsConfig = pfsConfig
 
+    @property
+    def pfsConfig(self):
+        return self._pfsConfig
+
+    @pfsConfig.setter
+    def pfsConfig(self, pfsConfig):
+        self._pfsConfig = pfsConfig
+
+        if pfsConfig is not None:
+            if self.pfsConfigId is None:
+                self.pfsConfigId = pfsConfig.pfsConfigId
+            else:
+                self.checkPfsConfig()        
+
     def read(self, dirName=".", pfsConfigs=None, setPfsConfig=True):
         """Read self's pfsArm file from directory dirName
 
