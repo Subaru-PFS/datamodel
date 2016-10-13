@@ -1,5 +1,6 @@
 import collections
 import os
+import re
 import numpy as np
 try:
     import pyfits
@@ -32,14 +33,26 @@ class PfsArm(object):
         self.covar = []
         
         self.pfsConfig = pfsConfig
-        if self.pfsConfig and self.pfsConfigId != self.pfsConfig.pfsConfigId:
-            raise RuntimeError("pfsConfigId == 0x%08x != pfsConfig.pfsConfigId == 0x%08x" %
-                               (self.pfsConfigId, self.pfsConfig.pfsConfigId))
 
-    def read(self, dirName=".", pfsConfigs=None):
+    @property
+    def pfsConfig(self):
+        return self._pfsConfig
+
+    @pfsConfig.setter
+    def pfsConfig(self, pfsConfig):
+        self._pfsConfig = pfsConfig
+
+        if pfsConfig is not None:
+            if self.pfsConfigId is None:
+                self.pfsConfigId = pfsConfig.pfsConfigId
+            else:
+                self.checkPfsConfig()        
+
+    def read(self, dirName=".", pfsConfigs=None, setPfsConfig=True):
         """Read self's pfsArm file from directory dirName
 
         If provided, pfsConfigs is a dict of pfsConfig objects, indexed by pfsConfigId
+        If setPfsConfig is False (default is True) set the pfsConfig field
         """
         if not pyfits:
             raise RuntimeError("I failed to import pyfits, so cannot read from disk")
@@ -86,24 +99,40 @@ class PfsArm(object):
                                self.visit, data['visit'][0])
             
         self.pfsConfigId = data['pfsConfigId'][0]
-        
-        if pfsConfigs is None:
-            pfsConfigs = {}             # n.b. won't be passed back to caller
-            
-        if self.pfsConfigId not in pfsConfigs:
-            pfsConfigs[self.pfsConfigId] = PfsConfig(self.pfsConfigId)
-            pfsConfigs[self.pfsConfigId].read(dirName)
+        if self.pfsConfigId < 0:
+            self.pfsConfigId = None
 
-        self.pfsConfig = pfsConfigs[self.pfsConfigId]
+        if not setPfsConfig:
+            self.pfsConfig = None
+        else:                           # a good idea, but only if we can find the desired pfsConfig 
+            if pfsConfigs is None:
+                pfsConfigs = {}         # n.b. won't be passed back to caller
 
-        if len(self.flux) != len(self.pfsConfig.ra):
+            if self.pfsConfigId not in pfsConfigs:
+                pfsConfigs[self.pfsConfigId] = PfsConfig(self.pfsConfigId)
+                pfsConfigs[self.pfsConfigId].read(dirName)
+
+            self.pfsConfig = pfsConfigs[self.pfsConfigId]
+
+        self.checkPfsConfig()
+
+    def checkPfsConfig(self):
+        """Check if the PfsConfig is consistent with the PfsArm"""
+        if self.pfsConfig is None:
+            return
+
+        if self.pfsConfigId != self.pfsConfig.pfsConfigId:
+            raise RuntimeError("pfsConfigId == 0x%08x != pfsConfig.pfsConfigId == 0x%08x" %
+                               (self.pfsConfigId, self.pfsConfig.pfsConfigId))
+        #
+        # the case pfsConfigId == 0 is special, and doesn't constrain the number of rows
+        # so there's no point checking it
+        #
+        if self.pfsConfigId != 0 and \
+           self.pfsConfig.ra is not None and self.flux.shape[0] != self.pfsConfig.ra.shape[0]:
             raise RuntimeError("Mismatch between pfsArm and pfsConfig files")
-        if False:
-            print "%d%s 0x%x %d" % \
-               (self.spectrograph, self.arm, self.pfsConfigId, self.visit),  \
-                pfsConfig.ra, pfsConfig.dec
         
-    def write(self, dirName="."):
+    def write(self, dirName=".", fileName=None):
         if not pyfits:
             raise RuntimeError("I failed to import pyfits, so cannot read from disk")
 
@@ -144,7 +173,8 @@ class PfsArm(object):
         hdus.append(hdu)
 
         # clobber=True in writeto prints a message, so use open instead
-        fileName = self.fileNameFormat % (self.visit, self.spectrograph, self.arm)
+        if fileName is None:
+            fileName = self.fileNameFormat % (self.visit, self.spectrograph, self.arm)
         with open(os.path.join(dirName, fileName), "w") as fd:
             hdus.writeto(fd)            
 
@@ -155,7 +185,8 @@ class PfsArm(object):
 
         return fiberId - 1
 
-    def plot(self, fiberId=1, showFlux=None, showMask=False, showSky=False, showCovar=False):
+    def plot(self, fiberId=1, showFlux=None, showMask=False, showSky=False, showCovar=False,
+             showPlot=True):
         """Plot some or all of the contents of the PfsArm
 
         Default is to show the flux
@@ -181,7 +212,8 @@ class PfsArm(object):
             if name in ("flux"):
                 plt.axhline(0, ls=':', color='black')
 
-            plt.show()
+            if showPlot:
+                plt.show()
 
         if show["covar"]:
             for i in range(self.covar.shape[1]):
@@ -189,7 +221,8 @@ class PfsArm(object):
             plt.legend(loc='best')
 
             plt.title("%s %s" % (title, "covar"))
-            plt.show()
+            if showPlot:
+                plt.show()
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
@@ -232,7 +265,8 @@ class PfsArmSet(object):
     def getFiberIdx(self, fiberId):
         return self.data.values()[0].getFiberIdx(fiberId)
 
-    def plot(self, fiberId=1, showFlux=None, showMask=False, showSky=False, showCovar=False):
+    def plot(self, fiberId=1, showFlux=None, showMask=False, showSky=False, showCovar=False,
+             showPlot=True):
         """Plot some or all of the contents of the PfsArms
 
         Default is to show the flux
@@ -259,7 +293,8 @@ class PfsArmSet(object):
             if name in ("flux"):
                 plt.axhline(0, ls=':', color='black')
 
-            plt.show()
+            if showPlot:
+                plt.show()
 
         if show["covar"]:
             for arm in self.data.values():
@@ -270,4 +305,5 @@ class PfsArmSet(object):
             plt.legend(loc='best')
 
             plt.title("%s %s" % (title, "covar"))
-            plt.show()
+            if showPlot:
+                plt.show()

@@ -132,7 +132,7 @@ class PfsObject(object):
         self.visits = data["visit"]
         self.pfsConfigIds = data["pfsConfigId"]
         
-    def write(self, dirName="."):
+    def write(self, dirName=".", fileName=None):
         if not pyfits:
             raise RuntimeError("I failed to import pyfits, so cannot read from disk")
 
@@ -186,15 +186,16 @@ class PfsObject(object):
         hdu.name = "CONFIG"
         hdus.append(hdu)
 
-        fileName = self.fileNameFormat % (self.tract, self.patch, self.catId, self.objId,
-                                          self.nVisit % 100, self.pfsVisitHash)
+        if fileName is None:
+            fileName = self.fileNameFormat % (self.tract, self.patch, self.catId, self.objId,
+                                              self.nVisit % 100, self.pfsVisitHash)
 
         # clobber=True in writeto prints a message, so use open instead
         with open(os.path.join(dirName, fileName), "w") as fd:
             hdus.writeto(fd)            
             
     def plot(self, showFlux=None, showFluxTbl=False, showMask=False, showSky=False,
-             showCovar=False, showCovar2=False, showFluxVariance=False):
+             showCovar=False, showCovar2=False, showFluxVariance=False, showPlot=True):
         """Plot some or all of the contents of the PfsObject
 
         Default is to show the flux from the resampled arrays.
@@ -223,7 +224,8 @@ class PfsObject(object):
                 if name in ("flux"):
                     plt.axhline(0, ls=':', color='black')
 
-                plt.show()
+                    if showPlot:
+                        plt.show()
 
             if show["covar"]:
                 for i in range(self.covar.shape[0]):
@@ -232,7 +234,8 @@ class PfsObject(object):
 
                 plt.xlabel(xlabel)
                 plt.title("%s %s" % (title, "covar"))
-                plt.show()
+                if showPlot:
+                    plt.show()
 
             if show["covar2"]:
                 sc = plt.imshow(self.covar2, interpolation='nearest', vmin=0)
@@ -242,7 +245,8 @@ class PfsObject(object):
                 plt.xlabel(lab)
                 plt.ylabel(lab)
                 plt.title("%s %s" % (title, "covar2"))
-                plt.show()
+                if showPlot:
+                    plt.show()
         else:
             for name, data in (["flux", self.fluxTbl.flux],
                                ["fluxVariance", self.fluxTbl.fluxVariance],
@@ -259,7 +263,8 @@ class PfsObject(object):
                     
                 plt.xlabel(xlabel)
                 plt.title("%s fluxTbl.%s" % (title, name))
-                plt.show()
+                if showPlot:
+                    plt.show()
             
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
