@@ -65,7 +65,7 @@ class PfsConfig(object):
         
         assert self.pfsConfigId == calculate_pfsConfigId(self.fiberId, self.ra, self.dec)        
 
-    def write(self, dirName="."):
+    def write(self, dirName=".", fileName=None):
         if not pyfits:
             raise RuntimeError("I failed to import pyfits, so cannot read from disk")
 
@@ -111,6 +111,7 @@ class PfsConfig(object):
         hdus.append(hdu)
 
         # clobber=True in writeto prints a message, so use open instead
-        fileName = self.fileNameFormat % (self.pfsConfigId)
+        if fileName is None:
+            fileName = self.fileNameFormat % (self.pfsConfigId)
         with open(os.path.join(dirName, fileName), "w") as fd:
             hdus.writeto(fd)            

@@ -145,9 +145,8 @@ class PfsArm(object):
         hdus.append(hdu)
 
         # clobber=True in writeto prints a message, so use open instead
-        if fileName == None:
+        if fileName is None:
             fileName = self.fileNameFormat % (self.visit, self.spectrograph, self.arm)
-        print 'fileName = <',os.path.join(dirName, fileName),'>'
         with open(os.path.join(dirName, fileName), "w") as fd:
             hdus.writeto(fd)            
 

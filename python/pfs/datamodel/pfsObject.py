@@ -132,7 +132,7 @@ class PfsObject(object):
         self.visits = data["visit"]
         self.pfsConfigIds = data["pfsConfigId"]
         
-    def write(self, dirName="."):
+    def write(self, dirName=".", fileName=None):
         if not pyfits:
             raise RuntimeError("I failed to import pyfits, so cannot read from disk")
 
@@ -186,8 +186,9 @@ class PfsObject(object):
         hdu.name = "CONFIG"
         hdus.append(hdu)
 
-        fileName = self.fileNameFormat % (self.tract, self.patch, self.catId, self.objId,
-                                          self.nVisit % 100, self.pfsVisitHash)
+        if fileName is None:
+            fileName = self.fileNameFormat % (self.tract, self.patch, self.catId, self.objId,
+                                              self.nVisit % 100, self.pfsVisitHash)
 
         # clobber=True in writeto prints a message, so use open instead
         with open(os.path.join(dirName, fileName), "w") as fd:
