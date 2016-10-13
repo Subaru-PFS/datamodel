@@ -9,16 +9,10 @@ import re
 
 class PfsFiberTrace(object):
     """A class corresponding to a single fiberTrace file"""
-    #
-    # Flags for MASKs
-    #
-    flags = dict(NODATA = 0x1,          # this pixel contains no data
-                 )
-
     fileNameFormat = "pfsFiberTrace-%10s-0-%1d%1s.fits"
 
-    def __init__(self, calibDate, spectrograph, arm):
-        self.calibDate = calibDate
+    def __init__(self, obsDate, spectrograph, arm):
+        self.obsDate = obsDate
         self.spectrograph = spectrograph
         self.arm = arm
 
@@ -55,56 +49,12 @@ class PfsFiberTrace(object):
         self.coeffs = []
         self.profiles = []
 
-    @staticmethod
-    def readFits(fileName, hdu, flags):
-        dirName = os.path.dirname( fileName )
-        
-        info = PfsFiberTrace.getInfo( fileName )
-        calibDate = info[0]['calibDate']
-        spectrograph = info[0]['spectrograph']
-        arm = info[0]['arm']
-        pfsFiberTrace = PfsFiberTrace( calibDate, spectrograph, arm )
-        
-        pfsFiberTrace.read(dirName=dirName)
-        return pfsFiberTrace
-    
-    @staticmethod
-    def getInfo(fileName):
-        """Get information about the image from the filename and its contents
-
-        @param filename    Name of file to inspect
-        @return File properties; list of file properties for each extension
-        """
-        minSpectrograph = 1
-        maxSpectrograph = 4
-        arms = ['b', 'r', 'n', 'm']
-        armsRe = '[b,r,n,m]'
-        path, filename = os.path.split(fileName)
-        matches = re.search("pfsFiberTrace-(\d{4})-(\d{2})-(\d{2})-0-(\d{1})("+armsRe+").fits", filename)
-        if not matches:
-            message = 'pfsFiberTrace.getInfo: Cannot interpret filename <',filename,'>'
-            raise Exception(message)
-        year, month, day, spectrograph, arm = matches.groups()
-        if int(spectrograph) < minSpectrograph or int(spectrograph) > maxSpectrograph:
-            message = 'spectrograph (=',spectrograph,') out of bounds'
-            raise Exception(message)
-        if arm not in arms:
-            message = 'arm (=',arm,') not a valid arm'
-            raise Exception(message)
-
-        calibDate = '%04d-%02d-%02d' % (int(year), int(month), int(day))
-        info = dict(calibDate=calibDate, arm=arm, spectrograph=int(spectrograph))
-        if os.path.exists(filename):
-            header = afwImage.readMetadata(filename)
-            info = self.getInfoFromMetadata(header, info=info)
-        return info, [info]
-
     def read(self, dirName="."):
         """Read self's pfsFiberTrace file from directory dirName"""
         if not pyfits:
             raise RuntimeError("I failed to import pyfits, so cannot read from disk")
 
-        fileName = PfsFiberTrace.fileNameFormat % (self.calibDate, self.spectrograph, self.arm)
+        fileName = PfsFiberTrace.fileNameFormat % (self.obsDate, self.spectrograph, self.arm)
         fd = pyfits.open(os.path.join(dirName, fileName)) 
         
         prihdr = fd[0].header
@@ -148,10 +98,6 @@ class PfsFiberTrace(object):
                 self.profiles = data
             else:
                 raise RuntimeError("Unexpected HDU %s reading %s" % (hduName, fileName))
-        
-    def writeFits(self, fileName, flags=None):
-        dirName, fName = os.path.split(fileName)
-        self.write(dirName=dirName, fileName = fName)
         
     def write(self, dirName=".", fileName=None):
         if not pyfits:
@@ -210,34 +156,7 @@ class PfsFiberTrace(object):
         hdus.append(hdu)
 
         # clobber=True in writeto prints a message, so use open instead
-        if fileName == None:
-            fileName = self.fileNameFormat % (self.calibDate, self.spectrograph, self.arm)
+        if fileName is None:
+            fileName = self.fileNameFormat % (self.obsDate, self.spectrograph, self.arm)
         with open(os.path.join(dirName, fileName), "w") as fd:
             hdus.writeto(fd)            
-
-    def getFiberIdx(self, fiberId):
-        """Convert a fiberId to a fiber index (checking the range)"""
-        if fiberId <= 0 or fiberId > len(self.lam):
-            raise IndexError("fiberId %d is out of range %d..%d" % (fiberId, 1, len(self.lam)))
-
-        return fiberId - 1
-
-#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-
-class PfsFiberTraceSet(object):
-    """Manipulate a set of pfsFiberTraces corresponding to a single visit"""
-    def __init__(self, visit, spectrograph, arms=['b', 'r', 'n']):
-        self.visit = visit        
-        self.spectrograph = spectrograph
-        self.arms = arms
-
-        self.data = collections.OrderedDict()
-        for arm in self.arms:
-            self.data[arm] = PfsFiberTrace(visit, spectrograph, arm)
-                
-    def read(self, dirName="."):
-        for arm in self.arms:
-            self.data[arm].read(dirName)
-
-    def getFiberIdx(self, fiberId):
-        return self.data.values()[0].getFiberIdx(fiberId)
