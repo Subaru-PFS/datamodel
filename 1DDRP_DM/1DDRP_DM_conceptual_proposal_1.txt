@@ -1,0 +1,178 @@
+  Introduction
+  ============
+
+  This is the Data Model for the output of the 1DDRP (1D Data Reduction Pipeline) for PFS.
+
+  The output of the pipeline, for one spectrum, will consist of one standard FITS file.
+
+  The output file will contain all the parameters needed to reproduce the output data (e.g., software versions, configurations). It will reference all other information needed to reproduce the output data (e.g., name of input files, name of template set).
+
+  All output files will have the same structure (number and order of HDUs, keywords, tables and extensions).
+
+  For each input spectrum, the pipeline first determines its source type (Galaxy, Star or Quasar).
+
+  Each output file will only contain valid information related to the type identified (Galaxy, Star or Quasar). The HDUs, keywords and extensions related to the "other two" types will exist, but won't contain valid data.
+
+
+  Data Model: conceptual description
+  ==================================
+
+  This section describes the data model in an abstract manner, without considering FITS file format specificities.
+
+  I. 1DDRP output strucuture for Galaxies
+  ---------------------------------------
+
+  The output for galaxies will list X redshift candidates, where X is defined by the operator. (X defaults to 3).
+
+  The information in the output will have the following structure:
+
+  1. PDF
+  1.1. Reliability flag
+  1.2. Best Z
+  1.2.1. Value
+  1.2.2. Uncertainty
+  1.2.3. Template
+  1.2.3.1. Name
+  1.2.3.2. Chi^2
+  1.2.4. Lines (multiple)
+  1.2.4.1. Id
+  1.2.4.2. EW
+  1.2.4.2.1. Value
+  1.2.4.2.2. Uncertainty
+  1.2.4.3. Integrated flux
+  1.2.4.3.1. Value
+  1.2.4.3.2. Uncertainty
+  1.2.4.4. Gaussian fitting
+  1.2.4.4.1. SNR
+  1.2.4.4.1.1. Value
+  1.2.4.4.1.2. Uncertainty
+  1.2.4.4.2. FWHM
+  1.2.4.4.2.1. Value
+  1.2.4.4.2.2. Uncertainty
+  1.2.4.4.3. Amplitude
+  1.2.4.4.3.1. Value
+  1.2.4.4.3.2. Uncertainty
+  1.2.4.4.4. Wavelength
+  1.2.4.4.4.1. Value 
+  1.2.4.4.4.2. Uncertainty
+  1.2.5. Z_emission
+  1.2.5.1. Value
+  1.2.5.2. Uncertainty
+  1.2.6. Z_absorption
+  1.2.6.1. Value
+  1.2.6.2. Uncertainty
+  1.3. Other solutions (multiple)
+  1.3.1. Z
+  1.3.1.1. Value
+  1.3.1.2. Uncertainty
+  1.3.2. Template
+  1.3.2.1. Name
+  1.3.2.2. Chi^2
+
+  This structure is illustrated in the accompanying file "1DDRP_Galaxies_diagram.png".
+  
+
+  II. 1DDRP output structure for Stars
+  ------------------------------------
+
+  1. Template
+  1.1. Name
+  1.2. Chi^2
+  1.3. Velocity
+  1.3.1. Value
+  1.3.2. Uncertainty
+
+  This structure is illustrated in the accompanying file "1DDRP_Stars_diagram.png".
+
+
+  III. 1DDRP output structure for Quasars
+  ---------------------------------------
+
+  1. PDF
+  1.1. Reliability flag
+  1.2. Best Z
+  1.2.1. Value
+  1.2.2. Uncertainty
+  1.2.3. Template
+  1.2.3.1. Name
+  1.2.3.2. Chi^2
+  1.2.4. Lines (multiple)
+  1.2.4.1. Id
+  1.2.4.2. EW
+  1.2.4.2.1. Value
+  1.2.4.2.2. Uncertainty
+  1.2.4.3. Integrated flux
+  1.2.4.3.1. Value
+  1.2.4.3.2. Uncertainty
+  1.2.4.4. Gaussian fitting
+  1.2.4.4.1. SNR
+  1.2.4.4.2. FWHM
+  1.2.4.4.3. Amplitude
+  1.2.4.4.4. Wavelength
+  1.3. Other solutions (multiple)
+  1.3.1. Z
+  1.3.1.1. Value
+  1.3.1.2. Uncertainty
+  1.3.2. Template
+  1.3.2.1. Name
+  1.3.2.2. Chi^2
+
+  This structure is illustrated in the accompanying file "1DDRP_Quasars_diagram.png".
+
+
+  Data Model: FITS description
+  ============================
+
+  The 1D output will consist of a single standard FITS (http://fits.gsfc.nasa.gov/fits_standard.html) file.
+  TODO: confirm with PFS that we will (or won't) use FITS bintables.
+
+  HDU: Metadata
+  -------------
+
+  1. Continuum
+     (TODO: specify either bintable or something else, if bintable extension isn't approved by PFS).
+  2. Source type
+     SRC_TYPE, <"Galaxy" | "Star" | "Quasar">
+  2.1. Probabilities
+  2.1.1. PROBSTAR, <float>
+  2.1.2. PROBGALA, <float>
+  2.1.3. PROBQUAS, <float>
+
+  HDU: Galaxies
+  -------------
+
+
+  HDU: Stars
+  ----------
+  
+  1. Empty keywords requested by Galactic Archeology:
+  1.1. TEFF_SPEC, "" <---- TODO: does not conform to 8 chars limit of keywords for FITS standard!
+  1.2. DTEFF_SPEC, "" <---- TODO: does not conform to 8 chars limit of keywords for FITS standard!
+  1.3. TEFF_PHOT, "" <---- TODO: does not conform to 8 chars limit of keywords for FITS standard!
+  1.4. DTEFF_PHOT, "" <---- TODO: does not conform to 8 chars limit of keywords for FITS standard!
+  1.5. LOGG, ""
+  1.6. DLOGG, ""
+  1.7. MICROTURB, "" <---- TODO: does not conform to 8 chars limit of keywords for FITS standard!
+  1.8. DMICROTURB, "" <---- TODO: does not conform to 8 chars limit of keywords for FITS standard!
+  1.9. FEH, ""
+  1.10. DFEH, ""
+  1.11. ALPHAFE, ""
+  1.12. DALPHAFE, ""
+  1.13. MGFE, ""
+  1.14. DMGFE, ""
+  1.15. SIFE, ""
+  1.16. DSIFE, ""
+  1.17. CAFE, ""
+  1.18. DCAFE, ""
+  1.19. TIFE, ""
+  1.20. DTIFE, ""
+
+
+  HDU: Quasars
+  ------------
+
+
+  HDU: Model
+  ----------
+
+  TODO: A fitting of the best template, with the best parameters.
