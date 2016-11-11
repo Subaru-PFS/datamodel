@@ -1,3 +1,2 @@
-setupRequired(obs_pfs)
 setupOptional(pyfits)
 pathPrepend(PYTHONPATH, ${PRODUCT_DIR}/python)
