@@ -129,7 +129,8 @@ class PfsArm(object):
         # so there's no point checking it
         #
         if self.pfsConfigId != 0 and \
-           self.pfsConfig.ra is not None and self.flux.shape[0] != self.pfsConfig.ra.shape[0]:
+           self.pfsConfig.ra is not None and len(self.flux) > 0 and \
+           self.flux.shape[0] != self.pfsConfig.ra.shape[0]:
             raise RuntimeError("Mismatch between pfsArm and pfsConfig files")
         
     def write(self, dirName=".", fileName=None):
