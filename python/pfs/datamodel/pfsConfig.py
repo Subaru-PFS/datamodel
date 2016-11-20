@@ -9,7 +9,7 @@ from pfs.datamodel.utils import calculate_pfsConfigId, calculate_pfsVisitHash
 class PfsConfig(object):
     """A class corresponding to a single pfsConfig file"""
     
-    fileNameFormat = "pfsConfig-0x%08x.fits"
+    fileNameFormat = "pfsConfig-0x%016x.fits"
 
     def __init__(self, pfsConfigId=None, tract=None, patch=None,
                  fiberId=None, ra=None, dec=None, catId=None, objId=None,

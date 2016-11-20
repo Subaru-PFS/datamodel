@@ -15,8 +15,8 @@ def calculate_pfsVisitHash(visits):
     for visit in visits:
         m.update("%d" % (visit))
 
-    # convert to int and truncate to 8 hexadecimal digits
-    sha1 = int(m.hexdigest(), 16) & 0xffffffff
+    # convert to int and truncate to 8 bytes
+    sha1 = int(m.hexdigest(), 16) & 0xffffffffffffffff
     
     return sha1
 
@@ -38,8 +38,8 @@ def calculate_pfsConfigId(fiberIds, ras, decs):
     for fiberId, ra, dec in zip(fiberIds, ras, decs):
         m.update("%d %.0f %.0f" % (fiberId, ra, dec))
 
-    # convert to int and truncate to 8 hexadecimal digits
-    sha1 = int(m.hexdigest(), 16) & 0xffffffff
+    # convert to int and truncate to 8 bytes
+    sha1 = int(m.hexdigest(), 16) & 0xffffffffffffffff
 
     return sha1
 

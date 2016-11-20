@@ -15,7 +15,7 @@ from pfs.datamodel.pfsArm import PfsArm
 class PfsObject(object):
     """A class corresponding to a single pfsObject file"""
     NCOARSE = 10    # number of elements in coarse-grained covariance
-    fileNameFormat = "pfsObject-%05d-%s-%03d-%08x-%02d-0x%08x.fits"
+    fileNameFormat = "pfsObject-%05d-%s-%03d-%016x-%02d-0x%016x.fits"
     
     class FluxTbl(object):
         def __init__(self, lam=None):
@@ -41,7 +41,7 @@ class PfsObject(object):
                 raise RuntimeError("Number of visits provided (== %d) != nVisit (== %d)" % 
                                     (nVisit, self.nVisit))
             if pfsVisitHash and pfsVisitHash != self.pfsVisitHash:
-                raise RuntimeError("pfsVisitHash provided (== 0x%08x) != nVisit (== 0x%08x)" % 
+                raise RuntimeError("pfsVisitHash provided (== 0x%016x) != nVisit (== 0x%016x)" % 
                                    (pfsVisitHash, self.pfsVisitHash))
         else:
             self.nVisit = nVisit if nVisit else 1
@@ -203,7 +203,7 @@ class PfsObject(object):
         If showFluxTbl is true, take the values from the non-resampled (fluxTbl) arrays
         """
         xlabel = "Wavelength (micron)"
-        title = "%d %s 0x%08x %08d" % (self.tract, self.patch, self.pfsVisitHash, self.objId)
+        title = "%d %s 0x%016x %016x" % (self.tract, self.patch, self.pfsVisitHash, self.objId)
 
         show = dict(mask=showMask, sky=showSky,
                     covar=showCovar, covar2=showCovar2, fluxVariance=showFluxVariance)

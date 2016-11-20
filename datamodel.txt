@@ -75,7 +75,7 @@ patch
 objId
   A unique 64-bit object ID for an object.  For example, the HSC object ID from the database.
 
-  objIds are written out using %08x formats (rather than e.g. %08d) as a 64 bit integer is a large number.
+  objIds are written out using %016x formats (rather than e.g. %016d) as a 64 bit integer is a large number.
 
 catId
   A small integer specifying the source of the objId.  Currently only
@@ -215,7 +215,7 @@ FiberTrace ID is identified from the pair [XCENTER, YCENTER].
 
 The state of the PFI and corresponding targetting information
 
-    "pfsConfig-0x%08x.fits" % (pfsConfigId)
+    "pfsConfig-0x%016x.fits" % (pfsConfigId)
 
 The choice of a hex format is because the the pfsConfigId is a SHA-1
 
@@ -318,7 +318,7 @@ isn't human-friendly;  in particular it doesn't sort in a helpful way.  It seems
 ever have more than 100 visits, but as the pfsVisitHash is unambiguous it seemed safer to only allow for
 larger values of nVisit, but record them only modulo 100.
 
-     "pfsObject-%05d-%s-%3d-%08x-%02d-0x%08x.fits" % (tract, patch, catId, objId, nVisit % 100, pfsVisitHash)
+     "pfsObject-%05d-%s-%3d-%016x-%02d-0x%016x.fits" % (tract, patch, catId, objId, nVisit % 100, pfsVisitHash)
 
 The path would be
    tract/patch/pfsObject-*.fits
@@ -394,7 +394,7 @@ amplitude, width) for emission lines.  Will a continuum + lines model like this 
 evolution stellar spectra?
 
 For now, I propose:
-     "pfsSimObject-%05d-%s-%3d-%08x.fits" % (tract, patch, catId, objId)
+     "pfsSimObject-%05d-%s-%3d-%016x.fits" % (tract, patch, catId, objId)
 
 The tract, patch, catId, objId values will also be available as header keywords.
 
