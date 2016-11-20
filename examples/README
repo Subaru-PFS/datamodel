@@ -1,0 +1,22 @@
+ To run these examples you need the spt_ExposureTimeCalculator.  E.g.
+       cd ~/tmp
+       git clone git@github.com:Subaru-PFS/spt_ExposureTimeCalculator
+       cd spt_ExposureTimeCalculator
+       make
+Then:
+       setup datamodel
+(if you don't do this, you'll get the old-but-stable version bundled with the ETC)
+       python run_etc.py @run_etc.defaults --MR_MODE=no  --OUTFILE_SNC=out/etc-t450-lr.dat \
+                                           --EXP_TIME=450 --OUTFILE_SNL=-
+       python run_etc.py @run_etc.defaults --MR_MODE=yes --OUTFILE_SNC=out/etc-t450-mr.dat \
+                                           --EXP_TIME=450 --OUTFILE_SNL=-
+(Note the --MR_MODE and --OUTFILE_SNC arguments;  no/yes and lr/mr).
+
+
+Then:
+       python gen_sim_spec.py @gen_sim_spec.defaults --etcFile=out/etc-t450-lr.dat \
+                                                     --outDir=$DATAMODEL_DIR/examples
+       python gen_sim_spec.py @gen_sim_spec.defaults --etcFile=out/etc-t450-mr.dat \
+                                                     --outDir=$DATAMODEL_DIR/examples
+
+(note the --etcFile specifies first lr then mr)
