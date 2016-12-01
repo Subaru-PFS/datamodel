@@ -12,6 +12,9 @@ matrix:
   fast_finish: true
 notifications:
   email: false
+branches:
+  only:
+    - master
 
 # The actual installation is done under the 'script' so as to consolidate the
 # necessary front-end machinery (intercept log, decide which branch to use).
