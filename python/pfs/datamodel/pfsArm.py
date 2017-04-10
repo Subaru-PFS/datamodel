@@ -31,7 +31,7 @@ class PfsArm(object):
         self.mask = []
         self.sky = []
         self.covar = []
-        
+
         self.pfsConfig = pfsConfig
 
     @property
@@ -46,7 +46,7 @@ class PfsArm(object):
             if self.pfsConfigId is None:
                 self.pfsConfigId = pfsConfig.pfsConfigId
             else:
-                self.checkPfsConfig()        
+                self.checkPfsConfig()
 
     def read(self, dirName=".", pfsConfigs=None, setPfsConfig=True):
         """Read self's pfsArm file from directory dirName
@@ -58,16 +58,16 @@ class PfsArm(object):
             raise RuntimeError("I failed to import pyfits, so cannot read from disk")
 
         fileName = PfsArm.fileNameFormat % (self.visit, self.spectrograph, self.arm)
-        fd = pyfits.open(os.path.join(dirName, fileName)) 
-            
+        fd = pyfits.open(os.path.join(dirName, fileName))
+
         for hduName in ["WAVELENGTH", "FLUX", "COVAR", "MASK", "SKY"]:
             hdu = fd[hduName]
             hdr, data = hdu.header, hdu.data
-        
+
             if False:
                 for k, v in hdr.items():
                     print "%8s %s" % (k, v)
-            
+
             if data.ndim == 2:
                 if hduName == "WAVELENGTH":
                     self.lam = data
@@ -84,27 +84,27 @@ class PfsArm(object):
                     raise RuntimeError("Unexpected HDU %s reading %s" % (hduName, fileName))
 
                 self.covar = data
-                
+
             #print hdr["EXTNAME"], hdr["XTENSION"], data.dtype, data.shape
-            
+
         hdu = fd["CONFIG"]
         hdr, data = hdu.header, hdu.data
-        
+
         assert 'pfsConfigId' in data.names
         assert 'visit' in data.names
         assert len(data['visit']) == 1   # only one row in the table
-        
+
         if data['visit'][0] != self.visit:
             raise RuntimeError("Filename corresponds to visit %d, but config gives %d" %
                                self.visit, data['visit'][0])
-            
+
         self.pfsConfigId = data['pfsConfigId'][0]
         if self.pfsConfigId < 0:
             self.pfsConfigId = None
 
         if not setPfsConfig:
             self.pfsConfig = None
-        else:                           # a good idea, but only if we can find the desired pfsConfig 
+        else:                           # a good idea, but only if we can find the desired pfsConfig
             if pfsConfigs is None:
                 pfsConfigs = {}         # n.b. won't be passed back to caller
 
@@ -132,7 +132,7 @@ class PfsArm(object):
            self.pfsConfig.ra is not None and len(self.flux) > 0 and \
            self.flux.shape[0] != self.pfsConfig.ra.shape[0]:
             raise RuntimeError("Mismatch between pfsArm and pfsConfig files")
-        
+
     def write(self, dirName=".", fileName=None):
         if not pyfits:
             raise RuntimeError("I failed to import pyfits, so cannot read from disk")
@@ -146,7 +146,7 @@ class PfsArm(object):
         hdu = pyfits.ImageHDU(self.flux)
         hdu.name = "FLUX"
         hdus.append(hdu)
-        
+
         hdu = pyfits.ImageHDU(self.covar)
         hdu.name = "COVAR"
         hdus.append(hdu)
@@ -177,7 +177,7 @@ class PfsArm(object):
         if fileName is None:
             fileName = self.fileNameFormat % (self.visit, self.spectrograph, self.arm)
         with open(os.path.join(dirName, fileName), "w") as fd:
-            hdus.writeto(fd)            
+            hdus.writeto(fd)
 
     def getFiberIdx(self, fiberId):
         """Convert a fiberId to a fiber index (checking the range)"""
@@ -196,10 +196,10 @@ class PfsArm(object):
         show.update(flux = not sum(show.values()) if showFlux is None else showFlux)
 
         fiberIdx = self.getFiberIdx(fiberId)
-        
+
         xlabel = "Wavelength (micron)"
         title = "%06d %d%s fiber %d" % (self.visit, self.spectrograph, self.arm, fiberId)
-        
+
         for name, data in (["flux", self.flux],
                            ["mask", self.mask],
                            ["sky", self.sky]):
@@ -233,10 +233,10 @@ class PfsArmSet(object):
                  pfsConfigs={}):
         self.pfsConfigs = pfsConfigs
         self.pfsConfigId = pfsConfigId
-        self.visit = visit        
+        self.visit = visit
         self.spectrograph = spectrograph
         self.arms = arms
-      
+
         if pfsConfig:
             if self.pfsConfigId:
                 if self.pfsConfigId != pfsConfig.pfsConfigId:
@@ -255,7 +255,7 @@ class PfsArmSet(object):
         self.data = collections.OrderedDict()
         for arm in self.arms:
             self.data[arm] = PfsArm(visit, spectrograph, arm, self.pfsConfigId, self.pfsConfig)
-                
+
     def read(self, dirName="."):
         for arm in self.arms:
             self.data[arm].read(dirName, pfsConfigs=self.pfsConfigs)
@@ -300,7 +300,7 @@ class PfsArmSet(object):
         if show["covar"]:
             for arm in self.data.values():
                 for i in range(arm.covar[fiberIdx].shape[0]):
-                    plt.plot(arm.lam[fiberIdx], arm.covar[fiberIdx][i], 
+                    plt.plot(arm.lam[fiberIdx], arm.covar[fiberIdx][i],
                              label="%s covar[%d]" % (arm.arm, i))
             plt.xlabel(xlabel)
             plt.legend(loc='best')
