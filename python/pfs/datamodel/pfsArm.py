@@ -93,10 +93,6 @@ class PfsArm(object):
             hdu = fd[hduName]
             hdr, data = hdu.header, hdu.data
 
-            if False:
-                for k, v in hdr.items():
-                    print "%8s %s" % (k, v)
-
             if data.ndim == 2:
                 if hduName == "WAVELENGTH":
                     self.lam = data
@@ -114,11 +110,9 @@ class PfsArm(object):
 
                 self.covar = data
 
-            #print hdr["EXTNAME"], hdr["XTENSION"], data.dtype, data.shape
-
         hdu = fd["CONFIG"]
-        hdr, data = hdu.header, hdu.data
 
+        data = hdu.data
         assert 'pfsConfigId' in data.names
         assert 'visit' in data.names
         assert len(data['visit']) == 1   # only one row in the table
