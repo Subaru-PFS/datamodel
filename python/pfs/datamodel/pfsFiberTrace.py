@@ -152,6 +152,15 @@ class PfsFiberTrace(object):
         hdu.header["INHERIT"] = True
         hdus.append(hdu)
 
+        profileShape = self.profiles[0].shape
+        for iProfile in range(1,len(self.profiles)):
+            if ((self.profiles[iProfile].shape[0] != profileShape[0]) or
+                (self.profiles[iProfile].shape[1] != profileShape[1])):
+                raise RuntimeError("self.profiles[%d].shape=[%d, %d] != self.profiles[0].shape[%d, %d], try changing findAndTraceApertures.config.xLow/xHigh"
+                                   % (iProfile, self.profiles[iProfile].shape[0],
+                                      self.profiles[iProfile].shape[1],
+                                      profileShape[0], profileShape[1]))
+
         hdu = pyfits.ImageHDU(self.profiles)
         hdu.name = "PROFILE"
         hdu.header["INHERIT"] = True
