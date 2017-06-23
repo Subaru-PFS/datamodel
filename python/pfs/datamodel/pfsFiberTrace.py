@@ -40,7 +40,7 @@ class PfsFiberTrace(object):
         self.lambdaWing = 0.
         self.lSigma = 0.
         self.uSigma = 0.
-        
+
         self.fiberId = []
         self.xCenter = []
         self.yCenter = []
@@ -55,8 +55,8 @@ class PfsFiberTrace(object):
             raise RuntimeError("I failed to import pyfits, so cannot read from disk")
 
         fileName = PfsFiberTrace.fileNameFormat % (self.obsDate, self.spectrograph, self.arm)
-        fd = pyfits.open(os.path.join(dirName, fileName)) 
-        
+        fd = pyfits.open(os.path.join(dirName, fileName))
+
         prihdr = fd[0].header
         self.fwhm = prihdr['FWHM']
         self.threshold = prihdr['THRESH']
@@ -86,7 +86,7 @@ class PfsFiberTrace(object):
         for hduName in ["FUNCTION", "PROFILE"]:
             hdu = fd[hduName]
             hdr, data = hdu.header, hdu.data
-            
+
             if hduName == "FUNCTION":
                 self.fiberId = data['FIBERID']
                 self.xCenter = data['XCENTER']
@@ -98,7 +98,7 @@ class PfsFiberTrace(object):
                 self.profiles = data
             else:
                 raise RuntimeError("Unexpected HDU %s reading %s" % (hduName, fileName))
-        
+
     def write(self, dirName=".", fileName=None):
         if not pyfits:
             raise RuntimeError("I failed to import pyfits, so cannot read from disk")
@@ -132,7 +132,7 @@ class PfsFiberTrace(object):
         hdr['USIGMA'] = self.uSigma
         hdr.update()
         hdus.append(pyfits.PrimaryHDU(header=hdr))
-        
+
         coeffArr = np.array(self.coeffs, dtype=np.float32)
         hdu = pyfits.BinTableHDU.from_columns([
             pyfits.Column(name = 'FIBERID', format = 'J',
@@ -159,4 +159,4 @@ class PfsFiberTrace(object):
         if fileName is None:
             fileName = self.fileNameFormat % (self.obsDate, self.spectrograph, self.arm)
         with open(os.path.join(dirName, fileName), "w") as fd:
-            hdus.writeto(fd)            
+            hdus.writeto(fd)

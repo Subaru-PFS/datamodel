@@ -8,7 +8,7 @@ from pfs.datamodel.utils import calculate_pfsConfigId, calculate_pfsVisitHash
 
 class PfsConfig(object):
     """A class corresponding to a single pfsConfig file"""
-    
+
     fileNameFormat = "pfsConfig-0x%08x.fits"
 
     def __init__(self, pfsConfigId=None, tract=None, patch=None,
@@ -17,7 +17,7 @@ class PfsConfig(object):
         self.pfsConfigId = pfsConfigId
         self.tract = tract
         self.patch = patch
-        
+
         self.fiberId = fiberId
         self.ra = ra
         self.dec = dec
@@ -38,7 +38,7 @@ class PfsConfig(object):
 
     def read(self, dirName="."):
         """Read self's pfsConfig file from directory dirName"""
-        
+
         if not pyfits:
             raise RuntimeError("I failed to import pyfits, so cannot read from disk")
 
@@ -55,11 +55,11 @@ class PfsConfig(object):
                 self.filterNames.append(hdr[key])
             else:
                 break
-                
+
         if False:
             for k, v in hdr.items():
                 print "%8s %s" % (k, v)
-            
+
         self.fiberId = data['fiberId']
         self.tract = data['tract']
         self.patch = data['patch']
@@ -68,8 +68,8 @@ class PfsConfig(object):
         self.dec = data['dec']
         self.fiberMag = data['fiberMag']
         self.mpsCentroid = data['mps centroid']
-        
-        assert self.pfsConfigId == calculate_pfsConfigId(self.fiberId, self.ra, self.dec)        
+
+        assert self.pfsConfigId == calculate_pfsConfigId(self.fiberId, self.ra, self.dec)
 
     def write(self, dirName=".", fileName=None):
         if not pyfits:
@@ -101,7 +101,7 @@ class PfsConfig(object):
         for i, b in enumerate(self.filterNames):
             hdr["FILTER%d" % i] = b
         hdr.update(INHERIT=True)
-        
+
         hdu = pyfits.BinTableHDU.from_columns([
             pyfits.Column(name = 'fiberId', format = 'J', array=self.fiberId),
             pyfits.Column(name = 'catId', format = 'J', array=self.catId),
@@ -120,4 +120,4 @@ class PfsConfig(object):
         if fileName is None:
             fileName = self.fileNameFormat % (self.pfsConfigId)
         with open(os.path.join(dirName, fileName), "w") as fd:
-            hdus.writeto(fd)            
+            hdus.writeto(fd)

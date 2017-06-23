@@ -16,7 +16,7 @@ class PfsObject(object):
     """A class corresponding to a single pfsObject file"""
     NCOARSE = 10    # number of elements in coarse-grained covariance
     fileNameFormat = "pfsObject-%05d-%s-%03d-%08x-%02d-0x%08x.fits"
-    
+
     class FluxTbl(object):
         def __init__(self, lam=None):
             if lam is None:
@@ -30,7 +30,7 @@ class PfsObject(object):
                 self.fluxVariance = np.zeros_like(lam)
                 self.mask = np.zeros_like(lam, dtype=np.int32)
 
-    def __init__(self, tract, patch, objId, catId=0, visits=[], pfsConfigIds=[], 
+    def __init__(self, tract, patch, objId, catId=0, visits=[], pfsConfigIds=[],
                  nVisit=None, pfsVisitHash=0x0):
         if visits:
             self.visits = visits
@@ -38,21 +38,21 @@ class PfsObject(object):
             self.pfsVisitHash = calculate_pfsVisitHash(visits)
 
             if nVisit and nVisit != self.nVisit:
-                raise RuntimeError("Number of visits provided (== %d) != nVisit (== %d)" % 
+                raise RuntimeError("Number of visits provided (== %d) != nVisit (== %d)" %
                                     (nVisit, self.nVisit))
             if pfsVisitHash and pfsVisitHash != self.pfsVisitHash:
-                raise RuntimeError("pfsVisitHash provided (== 0x%08x) != nVisit (== 0x%08x)" % 
+                raise RuntimeError("pfsVisitHash provided (== 0x%08x) != nVisit (== 0x%08x)" %
                                    (pfsVisitHash, self.pfsVisitHash))
         else:
             self.nVisit = nVisit if nVisit else 1
             self.visits = None
             self.pfsVisitHash = pfsVisitHash
-            
+
         if pfsConfigIds:
             self.pfsConfigIds = pfsConfigIds
         else:
             self.pfsConfigIds = None
-            
+
         self.tract = tract
         self.patch = patch
         self.catId = catId
@@ -63,19 +63,19 @@ class PfsObject(object):
         self.fluxTbl = self.FluxTbl(None)
         self.mask = None
         self.sky = None
-        
+
         self.covar = None
         self.covar2 = None
-            
+
     def read(self, dirName="."):
         """Read self's pfsObject file from directory dirName"""
 
         if not pyfits:
             raise RuntimeError("I failed to import pyfits, so cannot read from disk")
-            
+
         fileName = self.fileNameFormat % (self.tract, self.patch, self.catId, self.objId,
                                           self.nVisit % 100, self.pfsVisitHash)
-        
+
         fd = pyfits.open(os.path.join(dirName, fileName))
 
         phdr = fd[0].header
@@ -87,29 +87,29 @@ class PfsObject(object):
                             ]:
             if value != phdr[name]:
                 raise RuntimeError("Header keyword %s is %s; expected %s" % (name, phdr[name], value))
-        
+
         for hduName in ["FLUX", "FLUXTBL", "COVAR", "COVAR2", "MASK", "SKY"]:
             hdu = fd[hduName]
             hdr, data = hdu.header, hdu.data
-            
+
             if hdu.data is None:
                 continue
-                
+
             if self.lam is None:
                 self.lam = 1 + np.arange(data.shape[-1], dtype=float)
                 self.lam = hdr["CRVAL1"] + (self.lam - hdr["CRPIX1"])*hdr["CD1_1"]
-        
+
             if False:
                 for k, v in hdr.items():
                     print "%8s %s" % (k, v)
-            
+
             if data.ndim == 1:
                 if hduName == "FLUX":
                     self.flux = data
                 elif hduName == "FLUXTBL":
                     self.fluxTbl.lam = data["lambda"]
-                    self.fluxTbl.flux = data["flux"] 
-                    self.fluxTbl.fluxVariance = data["fluxVariance"] 
+                    self.fluxTbl.flux = data["flux"]
+                    self.fluxTbl.fluxVariance = data["fluxVariance"]
                     self.fluxTbl.mask = data["mask"]
                 elif hduName == "MASK":
                     self.mask = data
@@ -125,13 +125,13 @@ class PfsObject(object):
                     self.covar = data
                 else:
                     self.covar2 = data
-        
+
         hdu = fd["CONFIG"]
         hdr, data = hdu.header, hdu.data
-        
+
         self.visits = data["visit"]
         self.pfsConfigIds = data["pfsConfigId"]
-        
+
     def write(self, dirName=".", fileName=None):
         if not pyfits:
             raise RuntimeError("I failed to import pyfits, so cannot read from disk")
@@ -146,7 +146,7 @@ class PfsObject(object):
                    pfsVHash=self.pfsVisitHash,
         )
         hdus.append(pyfits.PrimaryHDU(header=hdr))
-            
+
         for hduName, data in [("FLUX", self.flux),
                               ("FLUXTBL", self.fluxTbl),
                               ("COVAR", self.covar),
@@ -171,7 +171,7 @@ class PfsObject(object):
                                                   ])
             else:
                 hdu = pyfits.ImageHDU(data, hdr)
-                
+
             hdu.name = hduName
             hdus.append(hdu)
         #
@@ -192,8 +192,8 @@ class PfsObject(object):
 
         # clobber=True in writeto prints a message, so use open instead
         with open(os.path.join(dirName, fileName), "w") as fd:
-            hdus.writeto(fd)            
-            
+            hdus.writeto(fd)
+
     def plot(self, showFlux=None, showFluxTbl=False, showMask=False, showSky=False,
              showCovar=False, showCovar2=False, showFluxVariance=False, showPlot=True):
         """Plot some or all of the contents of the PfsObject
@@ -260,12 +260,12 @@ class PfsObject(object):
                 if name in ("flux"):
                     plt.plot(self.lam, self.flux, label="flux")
                     plt.legend(loc='best')
-                    
+
                 plt.xlabel(xlabel)
                 plt.title("%s fluxTbl.%s" % (title, name))
                 if showPlot:
                     plt.show()
-            
+
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 def makePfsObject(objId, pfsArms, catId=0, lambdaMin=350, lambdaMax=1260, dLambda=0.1):
@@ -282,7 +282,7 @@ def makePfsObject(objId, pfsArms, catId=0, lambdaMin=350, lambdaMax=1260, dLambd
             if len(fiberIdx):
                 fiberIdx = fiberIdx[0]
             else:
-                raise RuntimeError("Object 0x%x is not present in pfsArm file for " 
+                raise RuntimeError("Object 0x%x is not present in pfsArm file for "
                                    "visit %d, spectrograph %d%s" %
                                     (objId, aset.visit, arm.spectrograph, arm.arm))
 
@@ -320,19 +320,19 @@ def makePfsObject(objId, pfsArms, catId=0, lambdaMin=350, lambdaMax=1260, dLambd
             if len(fiberIdx):
                 fiberIdx = fiberIdx[0]
             else:
-                raise RuntimeError("Object 0x%x is not present in pfsArm file for " 
+                raise RuntimeError("Object 0x%x is not present in pfsArm file for "
                                    "visit %d, spectrograph %d%s" %
                                     (objId, visit, arm.spectrograph, arm.arm))
             #
             # how to interpolate
             #
-            kwargs = dict(kind='linear', 
+            kwargs = dict(kind='linear',
                           bounds_error=False,
                           fill_value=0,
                           copy=True,
                           # assume_sorted=True
                           )
-            
+
             armFlux[visit][arm.arm] = interp1d(arm.lam[fiberIdx], arm.flux[fiberIdx],
                                                **kwargs)(pfsObject.lam)
             armSky[visit][arm.arm] = interp1d(arm.lam[fiberIdx], arm.sky[fiberIdx],
@@ -362,14 +362,14 @@ def makePfsObject(objId, pfsArms, catId=0, lambdaMin=350, lambdaMax=1260, dLambd
             pfsObject.sky += w*armSky[visit][arm]
             pfsObject.mask |= np.where(w > 0, armMask[visit][arm], 0)
             weights += w
-            
+
     noData = (weights == 0)
     pfsObject.flux /= np.where(noData, 1, weights)
     pfsObject.flux[noData] = np.nan
 
     pfsObject.sky /= np.where(noData, 1, weights)
     pfsObject.sky[noData] = np.nan
-    
+
     pfsObject.mask[noData] = PfsArm.flags["NODATA"]
 
     with np.errstate(divide='ignore'):
@@ -383,7 +383,7 @@ def makePfsObject(objId, pfsArms, catId=0, lambdaMin=350, lambdaMax=1260, dLambd
     #
     C = np.zeros((pfsObject.NCOARSE, pfsObject.NCOARSE))
     pfsObject.covar2 = C
-    
+
     binsize = len(pfsObject.lam)//pfsObject.NCOARSE
     idx = (np.arange(len(pfsObject.lam))/binsize).astype(int)
 
@@ -403,7 +403,7 @@ def makePfsObject(objId, pfsArms, catId=0, lambdaMin=350, lambdaMax=1260, dLambd
 
     fluxTbl = collections.OrderedDict()
     fiberIdx = np.where(arms.values()[0].pfsConfig.objId == objId)[0][0]  # we checked existence above
-    
+
     if not overlaps:
         for armStr in arms:
             fluxTbl[armStr] = PfsObject.FluxTbl(arms[armStr].lam[fiberIdx])
@@ -411,7 +411,7 @@ def makePfsObject(objId, pfsArms, catId=0, lambdaMin=350, lambdaMax=1260, dLambd
         #
         # how to interpolate
         #
-        kwargs = dict(kind='linear', 
+        kwargs = dict(kind='linear',
                       bounds_error=False,
                       copy=True,
                       # assume_sorted=True
@@ -423,7 +423,7 @@ def makePfsObject(objId, pfsArms, catId=0, lambdaMin=350, lambdaMax=1260, dLambd
             #
             # Set an array to the values where the covariance is less in a1 than a2
             #
-            # Because the covariances are a bit noisy where the arms cross, and 
+            # Because the covariances are a bit noisy where the arms cross, and
             # because the interpolation giving var2 can smooth things, use all
             # the points to the left of the last acceptable value
             useA1 = arms[a1].covar[fiberIdx][0] < var2
@@ -435,7 +435,7 @@ def makePfsObject(objId, pfsArms, catId=0, lambdaMin=350, lambdaMax=1260, dLambd
             if firstLam:
                 useA1 = np.logical_and(useA1, arms[a1].lam[fiberIdx] >= firstLam)
                 firstLam = None
-                
+
             fluxTbl[a1] = PfsObject.FluxTbl(arms[a1].lam[fiberIdx][useA1])
             #
             # set firstLam for the next overlap
@@ -450,7 +450,7 @@ def makePfsObject(objId, pfsArms, catId=0, lambdaMin=350, lambdaMax=1260, dLambd
         if firstLam:
             useA1 = np.logical_and(useA1, arms[a1].lam[fiberIdx] >= firstLam)
             firstLam = None
-                
+
         fluxTbl[a1] = PfsObject.FluxTbl(arms[a1].lam[fiberIdx][useA1])
     #
     # OK, we have the range of wavelengths that we want to use,
@@ -468,12 +468,12 @@ def makePfsObject(objId, pfsArms, catId=0, lambdaMin=350, lambdaMax=1260, dLambd
             #
             # how to interpolate
             #
-            kwargs = dict(kind='linear', 
+            kwargs = dict(kind='linear',
                           bounds_error=False,
                           copy=True,
                           # assume_sorted=True
                           )
-            
+
             armFlux[arm] = interp1d(arm.lam[fiberIdx], arm.flux[fiberIdx],
                                                fill_value=0, **kwargs)(fluxTbl[armStr].lam)
             armVariance[arm] = interp1d(arm.lam[fiberIdx], arm.covar[fiberIdx][0],
@@ -493,7 +493,7 @@ def makePfsObject(objId, pfsArms, catId=0, lambdaMin=350, lambdaMax=1260, dLambd
             fluxTbl[armStr].mask |= np.where(w > 0, armMask[arm], 0)
 
             weights += w
-                
+
         noData = (weights == 0)
         fluxTbl[armStr].flux /= np.where(noData, 1, weights)
         fluxTbl[armStr].flux[noData] = np.nan
@@ -507,7 +507,7 @@ def makePfsObject(objId, pfsArms, catId=0, lambdaMin=350, lambdaMax=1260, dLambd
     nPoint = np.sum(len(ft.flux) for ft in fluxTbl.values())
     lam = np.empty(nPoint, dtype=np.float32)
     pfsObject.fluxTbl = PfsObject.FluxTbl(lam)
-    
+
     i0 = 0
     for ft in fluxTbl.values():
         i1 = i0 + len(ft.lam)
