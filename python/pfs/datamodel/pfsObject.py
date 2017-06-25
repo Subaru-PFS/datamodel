@@ -1,16 +1,16 @@
 import collections
 import os
-import sys
+
+import matplotlib.pyplot as plt
 import numpy as np
 try:
     import pyfits
 except ImportError:
     pyfits = None
 from scipy.interpolate import interp1d
-import matplotlib.pyplot as plt
 
-from pfs.datamodel.utils import calculate_pfsVisitHash
 from pfs.datamodel.pfsArm import PfsArm
+from pfs.datamodel.utils import calculate_pfsVisitHash
 
 class PfsObject(object):
     """A class corresponding to a single pfsObject file"""

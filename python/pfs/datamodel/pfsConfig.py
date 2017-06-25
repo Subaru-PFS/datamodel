@@ -1,10 +1,11 @@
 import os
+
 try:
     import pyfits
 except ImportError:
     pyfits = None
 
-from pfs.datamodel.utils import calculate_pfsConfigId, calculate_pfsVisitHash
+from pfs.datamodel.utils import calculate_pfsConfigId
 
 class PfsConfig(object):
     """A class corresponding to a single pfsConfig file"""

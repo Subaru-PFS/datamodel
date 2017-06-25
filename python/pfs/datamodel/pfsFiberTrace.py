@@ -1,11 +1,10 @@
-import collections
-import numpy as np
 import os
+
+import numpy as np
 try:
     import pyfits
 except ImportError:
     pyfits = None
-import re
 
 class PfsFiberTrace(object):
     """A class corresponding to a single fiberTrace file"""
