@@ -105,6 +105,7 @@ class PfsFiberTrace(object):
         hdus = pyfits.HDUList()
 
         hdr = pyfits.Header()
+        hdr['OBSTYPE'] = "FIBERTRACE"
         hdr['FWHM'] = self.fwhm
         hdr['THRESH'] = self.threshold
         hdr['NTERMS'] = self.nTerms
@@ -148,10 +149,12 @@ class PfsFiberTrace(object):
                           array=coeffArr)
         ])
         hdu.name = 'FUNCTION'
+        hdu.header["INHERIT"] = True
         hdus.append(hdu)
 
         hdu = pyfits.ImageHDU(self.profiles)
         hdu.name = "PROFILE"
+        hdu.header["INHERIT"] = True
         hdus.append(hdu)
 
         # clobber=True in writeto prints a message, so use open instead
