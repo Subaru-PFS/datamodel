@@ -8,7 +8,7 @@ except ImportError:
 
 class PfsFiberTrace(object):
     """A class corresponding to a single fiberTrace file"""
-    fileNameFormat = "pfsFiberTrace-%10s-0-%1d%1s.fits"
+    fileNameFormat = "pfsFiberTrace-%10s-0-%1s%1d.fits"
 
     def __init__(self, obsDate, spectrograph, arm):
         self.obsDate = obsDate
@@ -53,9 +53,9 @@ class PfsFiberTrace(object):
         if not pyfits:
             raise RuntimeError("I failed to import pyfits, so cannot read from disk")
 
-        fileName = PfsFiberTrace.fileNameFormat % (self.obsDate, self.spectrograph, self.arm)
-        fd = pyfits.open(os.path.join(dirName, fileName))
-
+        fileName = PfsFiberTrace.fileNameFormat % (self.obsDate, self.arm, self.spectrograph)
+        fd = pyfits.open(os.path.join(dirName, fileName)) 
+        
         prihdr = fd[0].header
         self.fwhm = prihdr['FWHM']
         self.threshold = prihdr['THRESH']
@@ -159,6 +159,6 @@ class PfsFiberTrace(object):
 
         # clobber=True in writeto prints a message, so use open instead
         if fileName is None:
-            fileName = self.fileNameFormat % (self.obsDate, self.spectrograph, self.arm)
+            fileName = self.fileNameFormat % (self.obsDate, self.arm, self.spectrograph)
         with open(os.path.join(dirName, fileName), "w") as fd:
             hdus.writeto(fd)

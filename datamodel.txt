@@ -1,7 +1,7 @@
 			A Datamodel for PFS
 			===================
 
-(The cognoscenti will recognise similarities to the SDSS model,
+(The cognoscenti will recognise certain similarities to the SDSS model,
     http://data.sdss3.org/datamodel/files/BOSS_SPECTRO_REDUX/RUN2D/PLATE4
 )
 
@@ -122,19 +122,22 @@ which are physically two devices.
 
 N.b. the restriction to filenames of the form 4 letters followed by 8 decimal digits comes from Subaru.
 
+Note that the order of the last two numbers is "spectrograph, armNum" whereas in all other filenames
+we use the order "arm, spectrograph" but now arm is a string (e.g. r2, n4).
+
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 Calibration products (i.e. processed flats/biases/darks ready to be used in processing)
 
-   "pfsFlat-%06d-%1d%1s.fits" % (visit0, spectrograph, arm)
-   "pfsBias-%06d-%1d%1s.fits" % (visit0, spectrograph, arm)
-   "pfsDark-%06d-%1d%1s.fits" % (visit0, spectrograph, arm)
+   "pfsFlat-%06d-%1s%1d.fits" % (visit0, arm, spectrograph)
+   "pfsBias-%06d-%1s%1d.fits" % (visit0, arm, spectrograph)
+   "pfsDark-%06d-%1s%1d.fits" % (visit0, arm, spectrograph)
 
 (While theoretically we don't need to distinguish between the r and m chips, it's simpler to be
 consistent, so we will have 16, not 12, biases/darks for the complete spectrograph)
 
 The visit is replaced by visit0, the first visit for which these flats/biases/darks are valid; in general
-there will be many files for each (spectrograph, arm) but with different values of visit0.  Note that we
+there will be many files for each (arm, spectrograph) but with different values of visit0.  Note that we
 don't know the upper range of validity when these files are created, so it cannot be encoded in the filename.
 
 Visit0 is usually the last input visit used in preparing the calibration files. The calibration file that is
@@ -147,7 +150,7 @@ Single extension fits files of size NCOLUMN*NROW
 
 The positions and widths of fiber traces in the 2-D flat-field images.
 
-  "pfsFiberTrace-%06d-%1d%1s.fits" % (visit0, spectrograph, arm)
+  "pfsFiberTrace-%06d-%1s%1d.fits" % (visit0, arm, spectrograph)
 
 Note that visit0 is defined under "Calibration products"
 
@@ -245,7 +248,7 @@ names of the filters in the fiberMag entry.
 
 Reduced but not combined single spectra from a single exposure (flux and wavelength calibrated)
 
-   "pfsArm-%06d-%1d%1s.fits" % (visit, spectrograph, arm)
+   "pfsArm-%06d-%1s%1d.fits" % (visit, arm, spectrograph)
 
 N.b. visit numbers are only unique at a site, but we don't preserve this in derived product names.  There will
 keywords in the header to disambiguate this.
@@ -283,7 +286,7 @@ of the fiber traces.
 
 The sky model for a single exposure
 
-   "pfsSky-%06d-%1d%1s.fits" % (visit, spectrograph, arm)
+   "pfsSky-%06d-%1s%1d.fits" % (visit, arm, spectrograph)
 
 Format: TBD
 
@@ -291,7 +294,7 @@ Format: TBD
 
 The PSF for a single exposure
 
-   "pfsPSF-%06d-%1d%1s.fits" % (visit, spectrograph, arm)
+   "pfsPSF-%06d-%1s%1d.fits" % (visit, arm, spectrograph)
 
 Format: TBD
 
@@ -424,20 +427,20 @@ Note that the wavelength need not be uniformly sampled.
  pfsConfig-0xad349fe2.fits
 	The fiber and targetting information for the PFI configuration with hash 0xad349fe2
 
- pfsFlat-000333-2m.fits
+ pfsFlat-000333-m2.fits
 	Flat for spectrograph 2, medium resolution arm, valid for 333 <= visit < ??
- pfsBias-000333-1r.fits
+ pfsBias-000333-r1.fits
 	Bias for spectrograph 1, red arm
- pfsBias-000333-1m.fits
+ pfsBias-000333-m1.fits
 	Bias for spectrograph 1, medium resolution arm (identical to pfsBias-000333-1r.fits)
- pfsDark-000333-3b.fits
+ pfsDark-000333-b3.fits
 	Dark for spectrograph 3, blue arm
- pfsFiberTrace-000333-2n.fits
+ pfsFiberTrace-000333-n2.fits
 	Fiber traces for spectrograph 2, IR arm
 
- pfsArm-000666-1b.fits
+ pfsArm-000666-b1.fits
 	Extracted spectra for visit 666, from spectrograph 1's blue arm
- pfsPSF-000666-1b.fits
+ pfsPSF-000666-b1.fits
 	The 2-D PSF for spectrograph 1's blue arm in visit 666
 
  pfsObject-07621-2,2-001-02468ace-03-0xdeadbeef.fits
@@ -509,8 +512,6 @@ The ISR-extracted H4RG images will be no bigger than
 	Reruns in directory tree, and also headers of course
 
 	DB of bad visits
-
-	Define format of pfsFiberTrace files
 
 	Define format of pfsPSF files.  Choosing a better name is probably hopeless 
 

@@ -73,7 +73,7 @@ def main(pfsConfigId, tract, patch, fiberId=None, dataDir=".", objId=None,
 import argparse
 parser = argparse.ArgumentParser(description="Manipulate pfsConfig, pfsArm, and pfsObject files")
 
-parser.add_argument('pfsConfigId', type=str, nargs="?", default="0x788daff233347923",
+parser.add_argument('pfsConfigId', type=str, nargs="?", default="0x52327a27",
                     help="Desired pfsConfigId")
 parser.add_argument('--dataDir', type=str, default="examples", help="Directory containing data")
 parser.add_argument('--fiberId', type=int, default=None, help="Desired fiber")

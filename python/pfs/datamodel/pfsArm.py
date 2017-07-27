@@ -18,7 +18,7 @@ class PfsArm(object):
     flags = dict(NODATA = 0x1,          # this pixel contains no data
                  )
 
-    fileNameFormat = "pfsArm-%06d-%1d%1s.fits"
+    fileNameFormat = "pfsArm-%06d-%1s%1d.fits"
 
     def __init__(self, visit, spectrograph, arm, pfsConfigId=None, pfsConfig=None):
         self.pfsConfigId = pfsConfigId
@@ -57,9 +57,9 @@ class PfsArm(object):
         if not pyfits:
             raise RuntimeError("I failed to import pyfits, so cannot read from disk")
 
-        fileName = PfsArm.fileNameFormat % (self.visit, self.spectrograph, self.arm)
-        fd = pyfits.open(os.path.join(dirName, fileName))
-
+        fileName = PfsArm.fileNameFormat % (self.visit, self.arm, self.spectrograph)
+        fd = pyfits.open(os.path.join(dirName, fileName)) 
+            
         for hduName in ["WAVELENGTH", "FLUX", "COVAR", "MASK", "SKY"]:
             hdu = fd[hduName]
             hdr, data = hdu.header, hdu.data
@@ -175,7 +175,7 @@ class PfsArm(object):
 
         # clobber=True in writeto prints a message, so use open instead
         if fileName is None:
-            fileName = self.fileNameFormat % (self.visit, self.spectrograph, self.arm)
+            fileName = self.fileNameFormat % (self.visit, self.arm, self.spectrograph)
         with open(os.path.join(dirName, fileName), "w") as fd:
             hdus.writeto(fd)
 
