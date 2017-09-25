@@ -110,6 +110,13 @@ pfsVisitHash
 As a special case, if the only visit is 0, pfsVisitHash shall be taken to be 0x0 for the convenience
 of simulation code.
 
+MaskedImage
+
+  A data type which consists of three images:
+     A floating point image
+     An integer mask image
+     A floating point variance image
+
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 Raw Data (from the spectrograph cameras, but also e.g. the metrology camera)
@@ -154,65 +161,36 @@ The positions and widths of fiber traces in the 2-D flat-field images.
 
 Note that visit0 is defined under "Calibration products"
 
-The file will have 3 HDUs:
+Each fiber trace is represented as a MaskedImage, with the "image" consisting of the amplitude of the trace,
+and a bit FIBERTRACE set in the "mask" to identify which pixels belong to the trace.
+
+In the pfsFiberTrace file, these fibre profiles are stored as a subimage of a single large MaskedImage, packed
+from left to right and all with the same number of rows (n.b. because of trace curvature and overlap this
+MaskedImage may have more then the number of columns in a flat-fielded data image).  The image/mask/variance
+are stored in 3 HDUs, followed by an HDU describing where fibre traces appear in the flat-fielded images (this
+information is also used to pack/unpack the traces into the image/mask/variance HDUs).  FiberTraces which
+could not be traced in the Quartz image will have zero widths.
 
 HDU #0 PDU
-HDU #1 FUNCTION    Information about the trace function	       [BINARY FITS TABLE]
-HDU #2 PROFILE     Spatial profile                             [FLOAT]        NROW*WIDTH*NFIBER
+HDU #1 IMAGE      Image representing the FiberTrace profiles     [FLOAT]               NROW*sum_i(NCOL_i)
+HDU #2 MASK       Mask  representing the FiberTrace profiles     [INT32]               NROW*sum_i(NCOL_i)
+HDU #3 VARIANCE   Variance representing the FiberTrace profiles  [FLOAT]               NROW*sum_i(NCOL_i)
+HDU #4 ID_BOX     Fiber ID and bounding boxes                    [BINARY FITS TABLE]   NFIBER*5
 
-The config parameters for the determination of the trace function and the profile
-will be stored in the PDU. These parameters are:
-        FWHM        FWHM of an assumed Gaussian profile         float
-        THRESH      Signal threshold                            float
-        NTERMS      number of terms for Gauss fit
-                    (1: fit maximum only,
-                     3: fit Gaussian,
-                     4: fit Gaussian + constant,
-                     5: fit Gaussian + slope)                   int
-        SATLEVEL    Saturation level                            float
-        MINLEN      Minimum length of FiberTrace                int
-        MAXLEN      Maximum length of FiberTrace                int
-        NLOST       Number of consecutive times the
-                    trace is lost before aborting               int
-        FUNC        Trace function
-                    enum[POLYNOMIAL]                            string (only POLYNOMIAL is currently implemented)
-        ORDER       Trace function order                        int
-        XLOW        Aperture width left of center < 0.          float
-        XHIGH       Aperture width right of center > 0.         float
-        NCUTL       Number of most left pixels to cut           int
-        NCUTR       Number of most right pixels to cut          int
-        INTERPOL    Method for interpolating the spatial profile, 
-                    enum[PISKUNOV, SPLINE3]                     string
-        SWATHLEN    Length of swaths for profile calculation    int
-        OSAMPLE     Oversample factor                           int
-        MAXITSF     Maximum number of iterations for profile
-                    interpolation                               int
-        MAXITSIG    Maximum number of rejection iterations      int
-        LAMBDASF    Spectrum smoothing factor                   float
-        LAMBDASP    Profile smoothing factor                    float
-        LAMBWING    Wing smoothing factor                       float
-        LSIGMA      Lower sigma rejection threshold             float
-        USIGMA      Upper sigma rejection threshold             float
+The PDU has keys to define which data were used to construct the FiberTrace:
+   SPECTROGRAPH   Which spectrograph
+   ARM            The arm of the spectrograph
+   VISIT%03d      Visits which were used
+I.e. if only visit 5830 were used, the r1 file would have ARM='r', SPECTROGRAPH=1, VISIT000=5394
 
-The individual trace function parameters per fiber are stored in HDU #1:
+The individual parameters per fiber are stored in HDU #4:
         FIBERID     NFIBER*32-bit               int
-        XCENTER     NFIBER*32-bit               float
-        YCENTER     NFIBER*32-bit               int
-        YLOW        NFIBER*32-bit               int
-        YHIGH       NFIBER*32-bit               int
-        COEFFS      (ORDER+1)*NFIBER*32-bit     float
-
-The parameters FWHM, THRESH, NTERMS, SATLEVEL, MINLEN, MAXLEN, NLOST, NCUTL, and
-NCUTR are not needed to reconstruct a FiberTraceSet but were used by the tracing
-procedure and are saved here for logging purposes only. Similarly the parameters
-INTERPOL, SWATHLEN, OSAMPLE, MAXITSF, MAXITSIG, LAMBDASF, LAMBDASP, LAMBWING,
-LSIGMA, and USIGMA were used by the profile-fitting algorithm but are not needed
-to reconstruct a FiberTraceSet. FUNC and ORDER in the PDU describe the trace
-function, together with YCENTER, YLOW, YHIGH, and COEFFS for each fiber trace
-in HDU #1. The coefficients were calculated by re-scaling the lower and upper
-limits [YCENTER+YLOW,YCENTER+YHIGH] to [-1,1] and fitting the traced center
-positions in x. The parameter XCENTER is there for convenience only as the
-FiberTrace ID is identified from the pair [XCENTER, YCENTER].
+        MINX        NFIBER*32-bit               int
+        MAXX        NFIBER*32-bit               int
+        MINY        NFIBER*32-bit               int
+        MAXY        NFIBER*32-bit               int
+where the bounding box of the trace is defined by the lower left and upper right corners (MINX, MINY) and
+(MAXX, MAXY) respectively.
 
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
@@ -346,7 +324,7 @@ The PDU must contain at least the keywords
 	tract		tract		INT
 	patch		patch		STRING
 	catId		catId           INT
-	objId		objId		INT    
+	objId		objId		INT
         pfsVHash	pfsVisitHash	INT
 (N.b. the keywords are case-insensitive).  Other HDUs should specify INHERIT=T.
 
@@ -513,7 +491,7 @@ The ISR-extracted H4RG images will be no bigger than
 
 	DB of bad visits
 
-	Define format of pfsPSF files.  Choosing a better name is probably hopeless 
+	Define format of pfsPSF files.  Choosing a better name is probably hopeless
 
 	Need a DB (as well as the butler) to map visit to visit0 for calibration products
 
