@@ -18,6 +18,7 @@ class PfsFiberTrace(object):
         self.obsDate = obsDate
         self.spectrograph = spectrograph
         self.arm = arm
+        self.metadata = None
 
         self.fiberId = []
         self.traces = []
@@ -29,7 +30,9 @@ class PfsFiberTrace(object):
 
         fileName = PfsFiberTrace.fileNameFormat % (self.obsDate, self.arm, self.spectrograph)
 
-        allTracesMI = afwImage.MaskedImageF(os.path.join(dirName, fileName))
+        self.metadata = dafBase.PropertySet()
+        allTracesMI = afwImage.MaskedImageF(os.path.join(dirName, fileName), self.metadata)
+
         with pyfits.open(os.path.join(dirName, fileName)) as fd:
             hdu = fd["ID_BOX"]
             self.fiberId = hdu.data['FIBERID']
@@ -53,14 +56,10 @@ class PfsFiberTrace(object):
             self.traces.append(trace)
             x0 += bbox.getWidth()
 
-    def write(self, dirName=".", fileName=None):
+    def write(self, dirName=".", fileName=None, metadata=None):
         if not pyfits:
-            raise RuntimeError("I failed to import pyfits, so cannot read from disk")
+            raise RuntimeError("I failed to import pyfits, so cannot write to disk")
 
-        hdr = dafBase.PropertySet()
-        hdr.add('OBSTYPE', 'FIBERTRACE')
-
-        # clobber=True in writeto prints a message, so use open instead
         if fileName is None:
             fileName = self.fileNameFormat % (self.obsDate, self.arm, self.spectrograph)
         fullFileName = os.path.join(dirName, fileName)
@@ -98,7 +97,20 @@ class PfsFiberTrace(object):
                         trace.Factory(trace, afwGeom.BoxI(origin, trace.getDimensions()), afwImage.LOCAL)
 
             x0 += trace.getWidth()
+        #
+        # Time to actually write the data
+        #
+        if metadata is None:
+            hdr = dafBase.PropertySet()
+        else:
+            hdr = metadata
 
+        hdr.add('OBSTYPE', 'FIBERTRACE')
+
+        # Write fits file from MaskedImage
+        allTracesMI.writeFits(fullFileName, hdr)
+
+        # append the additional HDUs
         hdu = pyfits.BinTableHDU.from_columns([
             pyfits.Column(name = 'FIBERID', format = 'J', array=np.array(self.fiberId, dtype=np.int32)),
             pyfits.Column(name = 'MINX', format = 'J', array=np.array(minX, dtype=np.int32)),
@@ -106,11 +118,12 @@ class PfsFiberTrace(object):
             pyfits.Column(name = 'MAXX', format = 'J', array=np.array(maxX, dtype=np.int32)),
             pyfits.Column(name = 'MAXY', format = 'J', array=np.array(maxY, dtype=np.int32)),
         ])
+
         hdu.name = "ID_BOX"
         hdu.header["INHERIT"] = True
 
-        # Write fits file from MaskedImage and then append the additional HDUs
-        allTracesMI.writeFits(fullFileName, hdr)
+        # clobber=True in writeto prints a message, so use open instead
+        
         with pyfits.open(fullFileName, "update") as fd:
             fd[1].name = "IMAGE"
             fd[2].name = "MASK"

@@ -177,6 +177,12 @@ HDU #2 MASK       Mask  representing the FiberTrace profiles     [INT32]        
 HDU #3 VARIANCE   Variance representing the FiberTrace profiles  [FLOAT]               NROW*sum_i(NCOL_i)
 HDU #4 ID_BOX     Fiber ID and bounding boxes                    [BINARY FITS TABLE]   NFIBER*5
 
+The PDU has keys to define which data were used to construct the FiberTrace:
+   SPECTROGRAPH   Which spectrograph
+   ARM            The arm of the spectrograph
+   VISIT%03d      Visits which were used
+I.e. if only visit 5830 were used, the r1 file would have ARM='r', SPECTROGRAPH=1, VISIT000=5394
+
 The individual parameters per fiber are stored in HDU #4:
         FIBERID     NFIBER*32-bit               int
         MINX        NFIBER*32-bit               int
