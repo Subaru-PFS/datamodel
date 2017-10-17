@@ -122,7 +122,7 @@ class PfsArm(object):
             return
 
         if self.pfsConfigId != self.pfsConfig.pfsConfigId:
-            raise RuntimeError("pfsConfigId == 0x%08x != pfsConfig.pfsConfigId == 0x%08x" %
+            raise RuntimeError("pfsConfigId == 0x%016x != pfsConfig.pfsConfigId == 0x%016x" %
                                (self.pfsConfigId, self.pfsConfig.pfsConfigId))
         #
         # the case pfsConfigId == 0 is special, and doesn't constrain the number of rows
@@ -191,44 +191,64 @@ class PfsArm(object):
 
         return fiberIdxArr[0]
 
-    def plot(self, fiberId=1, showFlux=None, showMask=False, showSky=False, showCovar=False,
-             showPlot=True):
+    def plot(self, fiberId=None, showFlux=None, showMask=False, showSky=False, showCovar=False,
+             showPlot=True, labelFibers=True, title=None):
         """Plot some or all of the contents of the PfsArm
+
+        If fiberId is None all fibres are shown; otherwise it can be a list or a single fiberId
 
         Default is to show the flux
         """
+
+        if fiberId is None:
+            if self.pfsConfig is None:
+                fiberIds = range(1, len(self.flux)+1)
+            else:
+                fiberIds = self.pfsConfig.fiberId
+        else:
+            try:
+                fiberId[0]
+                fiberIds = fiberId
+            except TypeError:
+                fiberIds = [fiberId]
+
         show = dict(mask=showMask, sky=showSky, covar=showCovar)
         show.update(flux = not sum(show.values()) if showFlux is None else showFlux)
 
-        fiberIdx = self.getFiberIdx(fiberId)
+        xlabel = "Wavelength (nm)"
+        if title is None:
+            title = "%06d %d%s" % (self.visit, self.spectrograph, self.arm)
+            if fiberId is not None:     # i.e. don't show all of them
+                title += " fiber %s" % (", ".join(str(fid) for fid in fiberIds))
 
-        xlabel = "Wavelength (micron)"
-        title = "%06d %d%s fiber %d" % (self.visit, self.spectrograph, self.arm, fiberId)
+        for fiberId in fiberIds:
+            fiberIdx = self.getFiberIdx(fiberId)
+            for name, data in (["flux", self.flux],
+                               ["mask", self.mask],
+                               ["sky", self.sky]):
+                if not show[name]:
+                    continue
 
-        for name, data in (["flux", self.flux],
-                           ["mask", self.mask],
-                           ["sky", self.sky]):
-            if not show[name]:
-                continue
+                plt.plot(self.lam[fiberIdx], data[fiberIdx], label=fiberId if labelFibers else None)
 
-            plt.plot(self.lam[fiberIdx], data[fiberIdx])
-            plt.xlabel(xlabel)
-            plt.title("%s %s" % (title, name))
+                plt.xlabel(xlabel)
+                plt.title("%s %s" % (title, name))
 
-            if name in ("flux"):
-                plt.axhline(0, ls=':', color='black')
+                if name in ("flux"):
+                    plt.axhline(0, ls=':', color='black')
 
-            if showPlot:
-                plt.show()
+                    if showPlot:
+                        plt.show()
 
-        if show["covar"]:
-            for i in range(self.covar.shape[1]):
-                plt.plot(self.lam[fiberIdx], self.covar[fiberIdx][i], label="covar[%d]" % (i))
-            plt.legend(loc='best')
+            if show["covar"]:
+                for i in range(self.covar.shape[1]):
+                    plt.plot(self.lam[fiberIdx], self.covar[fiberIdx][i], label="covar[%d]" % (i))
 
-            plt.title("%s %s" % (title, "covar"))
-            if showPlot:
-                plt.show()
+                plt.legend(loc='best')
+                plt.title("%s %s" % (title, "covar"))
+                    
+                if showPlot:
+                    plt.show()
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
@@ -282,7 +302,7 @@ class PfsArmSet(object):
 
         fiberIdx = self.getFiberIdx(fiberId)
 
-        xlabel = "Wavelength (micron)"
+        xlabel = "Wavelength (nm)"
         title = "%06d %d fiber %d" % (self.visit, self.spectrograph, fiberId)
 
         for name in ["flux", "mask", "sky"]:
@@ -290,7 +310,7 @@ class PfsArmSet(object):
                 continue
 
             for arm in self.data.values():
-                plt.plot(arm.lam[fiberIdx], getattr(arm, name)[fiberIdx], label=arm.arm,)
+                plt.plot(arm.lam[fiberIdx], getattr(arm, name)[fiberIdx], label=arm.arm, labelFibers=False)
 
             plt.title("%s %s" % (title, name))
             plt.xlabel(xlabel)
