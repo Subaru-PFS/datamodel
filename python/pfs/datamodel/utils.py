@@ -30,7 +30,7 @@ def calculate_pfsConfigId(fiberIds, ras, decs):
 
         raise RuntimeError("Either all or none of fiberId, ra, and dec may be None")
 
-    if (fiberIds == 1 + np.arange(len(fiberIds))).all() and (ras == 0.0).all() and (decs == 0.0).all():
+    if (ras == 0.0).all() and (decs == 0.0).all(): # don't check fiberIds as this may be lab data
         return 0x0
 
     m = hashlib.sha1()
