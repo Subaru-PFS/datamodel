@@ -180,11 +180,16 @@ class PfsArm(object):
             hdus.writeto(fd)
 
     def getFiberIdx(self, fiberId):
-        """Convert a fiberId to a fiber index (checking the range)"""
-        if fiberId <= 0 or fiberId > len(self.lam):
-            raise IndexError("fiberId %d is out of range %d..%d" % (fiberId, 1, len(self.lam)))
+        """Convert a fiberId to a fiber index"""
 
-        return fiberId - 1
+        if self.pfsConfig is None:      # we don't know the fiberIds
+            return fiberId - 1
+
+        fiberIdxArr = np.where(self.pfsConfig.fiberId == fiberId)[0]
+        if len(fiberIdxArr) == 0:
+            raise IndexError("fiberId %d is not present in pfsArm" % (fiberId))
+
+        return fiberIdxArr[0]
 
     def plot(self, fiberId=1, showFlux=None, showMask=False, showSky=False, showCovar=False,
              showPlot=True):
