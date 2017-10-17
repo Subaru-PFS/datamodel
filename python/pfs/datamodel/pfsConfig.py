@@ -1,3 +1,4 @@
+import numpy as np
 import os
 
 try:
@@ -10,7 +11,7 @@ from pfs.datamodel.utils import calculate_pfsConfigId
 class PfsConfig(object):
     """A class corresponding to a single pfsConfig file"""
 
-    fileNameFormat = "pfsConfig-0x%08x.fits"
+    fileNameFormat = "pfsConfig-0x%016x.fits"
 
     def __init__(self, pfsConfigId=None, tract=None, patch=None,
                  fiberId=None, ra=None, dec=None, catId=None, objId=None,
@@ -77,8 +78,11 @@ class PfsConfig(object):
             raise RuntimeError("I failed to import pyfits, so cannot read from disk")
 
         for name in ["fiberId", "ra", "dec"]:
-            if getattr(self, name) is None:
-                raise RuntimeError("I cannot write a pfsConfig file unless %s is provided" % name)
+            if getattr(self, name, None) is None:
+                if name == "fiberId" or self.pfsConfigId != 0x0:
+                    raise RuntimeError("I cannot write a pfsConfig file unless %s is provided" % name)
+
+                setattr(self, name, np.zeros_like(self.fiberId, dtype=np.float32))
 
         # even if set in __init__ it might be invalid by now
         _pfsConfigId = calculate_pfsConfigId(self.fiberId, self.ra, self.dec)
@@ -87,7 +91,7 @@ class PfsConfig(object):
             self.pfsConfigId = _pfsConfigId
         else:
             if self.pfsConfigId != _pfsConfigId:
-                raise RuntimeError("Mismatch between pfsConfigId == 0x%08x and fiberId/ra/dec -> 0x%08x" %
+                raise RuntimeError("Mismatch between pfsConfigId == 0x%016x and fiberId/ra/dec -> 0x%016x" %
                                    (self.pfsConfigId, _pfsConfigId))
 
         hdus = pyfits.HDUList()
