@@ -1,3 +1,4 @@
+from __future__ import print_function
 import collections
 import os
 
@@ -80,7 +81,7 @@ class PfsArm(object):
 
             if False:
                 for k, v in hdr.items():
-                    print "%8s %s" % (k, v)
+                    print("%8s %s" % (k, v))
 
             if data.ndim == 2:
                 if hduName == "WAVELENGTH":
