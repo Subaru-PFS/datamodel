@@ -214,15 +214,17 @@ class PfsArm(object):
         return fiberIdxArr[0]
 
     def plot(self, fiberId=None, showFlux=None, showMask=False, showSky=False, showCovar=False,
-             showPlot=True, labelFibers=True, title=None):
+             usePixels=False, ignorePixelMask=0x0, showPlot=True, labelFibers=True, title=None):
         """Plot some or all of the contents of the PfsArm
 
+        Ignore pixels with (mask & ignorePixelMask) != 0
+        
         If fiberId is None all fibres are shown; otherwise it can be a list or a single fiberId
 
         Default is to show the flux
         """
 
-        if fiberId is None:
+        if fiberId in ([], None):
             if self.pfsConfig is None:
                 fiberIds = range(1, len(self.flux)+1)
             else:
@@ -237,7 +239,11 @@ class PfsArm(object):
         show = dict(mask=showMask, sky=showSky, covar=showCovar)
         show.update(flux = not sum(show.values()) if showFlux is None else showFlux)
 
-        xlabel = "Wavelength (nm)"
+        if usePixels:
+            pixelArr = np.arange(len(self.lam[0]))
+            xlabel = "Pixel"
+        else:
+            xlabel = "Wavelength (nm)"
         if title is None:
             title = "%06d %d%s" % (self.visit, self.spectrograph, self.arm)
             if fiberId is not None:     # i.e. don't show all of them
@@ -251,26 +257,28 @@ class PfsArm(object):
                 if not show[name]:
                     continue
 
-                plt.plot(self.lam[fiberIdx], data[fiberIdx], label=fiberId if labelFibers else None)
+                good = (self.mask[fiberIdx] & ignorePixelMask) == 0
+                if sum(good) == 0:
+                    continue
 
-                plt.xlabel(xlabel)
-                plt.title("%s %s" % (title, name))
-
-                if name in ("flux"):
-                    plt.axhline(0, ls=':', color='black')
-
-                    if showPlot:
-                        plt.show()
+                plt.plot((pixelArr if usePixels else self.lam[fiberIdx])[good],
+                         data[fiberIdx][good], label=fiberId if labelFibers else None)
 
             if show["covar"]:
                 for i in range(self.covar.shape[1]):
                     plt.plot(self.lam[fiberIdx], self.covar[fiberIdx][i], label="covar[%d]" % (i))
 
-                plt.legend(loc='best')
-                plt.title("%s %s" % (title, "covar"))
-                    
-                if showPlot:
-                    plt.show()
+        if show["covar"]:
+            plt.legend(loc='best')
+            plt.title("%s %s" % (title, "covar"))
+        else:
+            plt.xlabel(xlabel)
+            plt.title("%s %s" % (title, "flux"))
+
+            plt.axhline(0, ls=':', color='black')
+                
+        if showPlot:
+            plt.show()
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
