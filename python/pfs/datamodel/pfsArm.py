@@ -8,6 +8,8 @@ except ImportError:
     pyfits = None
 import matplotlib.pyplot as plt
 
+import lsst.daf.base as dafBase
+import lsst.afw.image as afwImage
 from pfs.datamodel.pfsConfig import PfsConfig
 
 class PfsArm(object):
@@ -25,6 +27,8 @@ class PfsArm(object):
         self.visit = visit
         self.spectrograph = spectrograph
         self.arm = arm
+
+        self._metadata = {}             # metadata describing e.g. the mask plane bits
 
         self.lam = []                   # arrays for each fibre
         self.flux = []
@@ -58,8 +62,18 @@ class PfsArm(object):
             raise RuntimeError("I failed to import pyfits, so cannot read from disk")
 
         fileName = PfsArm.fileNameFormat % (self.visit, self.arm, self.spectrograph)
-        fd = pyfits.open(os.path.join(dirName, fileName)) 
-            
+        fd = pyfits.open(os.path.join(dirName, fileName))
+        #
+        # Unpack the mask bits (which start with "MP_") from the header
+        #
+        hdr = fd[0].header
+
+        md = dafBase.PropertySet()
+        for k, v in hdr.items():
+            md.set(k, v)
+
+        self._metadata = afwImage.Mask.parseMaskPlaneMetadata(md)
+                    
         for hduName in ["WAVELENGTH", "FLUX", "COVAR", "MASK", "SKY"]:
             hdu = fd[hduName]
             hdr, data = hdu.header, hdu.data
@@ -140,6 +154,14 @@ class PfsArm(object):
         hdus = pyfits.HDUList()
 
         hdr = pyfits.Header()
+
+        for k in sorted(self._metadata):
+            if len(k) <= 8:
+                kk = k
+            else:
+                kk = "HIERARCH " + k    # avoid warning
+            hdr[kk] = self._metadata[k]
+
         hdr.update()
         hdus.append(pyfits.PrimaryHDU(header=hdr))
 
