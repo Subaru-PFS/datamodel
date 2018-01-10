@@ -1,3 +1,4 @@
+from __future__ import print_function
 import matplotlib.pyplot as plt
 
 from pfs.datamodel.pfsConfig import PfsConfig
@@ -21,19 +22,19 @@ def main(pfsConfigId, tract, patch, fiberId=None, dataDir=".", objId=None,
         try:
             _fiberId = np.where(pfsConfig.objId == objId)[0][0]
         except IndexError:
-            print >> sys.stderr, "Unable to find objId %08x in configuration with pfsConfigId 0x%08x" % \
-                (objId, pfsConfigId)
+            print("Unable to find objId %08x in configuration with pfsConfigId 0x%08x" % \
+                (objId, pfsConfigId), file=sys.stderr)
             return
         _fiberId += 1                   # 1-indexed
         if fiberId is not None and fiberId != _fiberId:
-            print >> sys.stderr, "fiberId %d doesn't match objId %08x's fiber %d" % \
-                (fiberId, objId, _fiberId)
+            print("fiberId %d doesn't match objId %08x's fiber %d" % \
+                (fiberId, objId, _fiberId), file=sys.stderr)
             return
         fiberId = _fiberId
         
     objId = pfsConfig.objId[fiberId - 1]
 
-    print "fiberId = %d,  objId = 0x%x" % (fiberId, objId)
+    print("fiberId = %d,  objId = 0x%x" % (fiberId, objId))
 
     #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 

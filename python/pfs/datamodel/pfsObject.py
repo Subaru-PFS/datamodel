@@ -1,3 +1,4 @@
+from __future__ import print_function
 import collections
 import os
 
@@ -101,7 +102,7 @@ class PfsObject(object):
 
             if False:
                 for k, v in hdr.items():
-                    print "%8s %s" % (k, v)
+                    print("%8s %s" % (k, v))
 
             if data.ndim == 1:
                 if hduName == "FLUX":
