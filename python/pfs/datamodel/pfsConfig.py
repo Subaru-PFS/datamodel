@@ -61,7 +61,7 @@ class PfsConfig(object):
                 break
 
         if False:
-            for k, v in list(hdr.items()):
+            for k, v in hdr.items():
                 print("%8s %s" % (k, v))
 
         self.fiberId = data['fiberId']

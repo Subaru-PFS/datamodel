@@ -104,7 +104,7 @@ class PfsObject(object):
                 self.lam = hdr["CRVAL1"] + (self.lam - hdr["CRPIX1"])*hdr["CD1_1"]
 
             if False:
-                for k, v in list(hdr.items()):
+                for k, v in hdr.items():
                     print("%8s %s" % (k, v))
 
             if data.ndim == 1:
@@ -281,7 +281,7 @@ def makePfsObject(objId, pfsArms, catId=0, lambdaMin=350, lambdaMax=1260, dLambd
     #
     pfsConfig = None
     for aset in pfsArms:
-        for arm in list(aset.data.values()):
+        for arm in aset.data.values():
             fiberIdx = np.where(arm.pfsConfig.objId == objId)[0]
             if len(fiberIdx):
                 fiberIdx = fiberIdx[0]
@@ -318,7 +318,7 @@ def makePfsObject(objId, pfsArms, catId=0, lambdaMin=350, lambdaMax=1260, dLambd
         armMask[visit] = {}
         armSky[visit] = {}
 
-        for arm in list(aset.data.values()):
+        for arm in aset.data.values():
             pfsObject.pfsConfigIds.append(arm.pfsConfigId)
             fiberIdx = np.where(arm.pfsConfig.objId == objId)[0]
             if len(fiberIdx):
@@ -508,12 +508,12 @@ def makePfsObject(objId, pfsArms, catId=0, lambdaMin=350, lambdaMax=1260, dLambd
     # The PfsObject.FluxTbl isn't actually quite what we need, as it's N separate FluxTbl
     # objects rather than one covering all the arms.  Fix this
     #
-    nPoint = np.sum(len(ft.flux) for ft in list(fluxTbl.values()))
+    nPoint = np.sum(len(ft.flux) for ft in fluxTbl.values())
     lam = np.empty(nPoint, dtype=np.float32)
     pfsObject.fluxTbl = PfsObject.FluxTbl(lam)
 
     i0 = 0
-    for ft in list(fluxTbl.values()):
+    for ft in fluxTbl.values():
         i1 = i0 + len(ft.lam)
         pfsObject.fluxTbl.lam[i0:i1] = ft.lam
         pfsObject.fluxTbl.flux[i0:i1] = ft.flux
