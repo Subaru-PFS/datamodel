@@ -1,4 +1,5 @@
 from __future__ import print_function
+from builtins import object
 import numpy as np
 import os
 
@@ -60,7 +61,7 @@ class PfsConfig(object):
                 break
 
         if False:
-            for k, v in hdr.items():
+            for k, v in list(hdr.items()):
                 print("%8s %s" % (k, v))
 
         self.fiberId = data['fiberId']

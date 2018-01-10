@@ -1,4 +1,7 @@
 from __future__ import print_function
+from builtins import str
+from builtins import range
+from builtins import object
 import collections
 import os
 
@@ -66,7 +69,7 @@ class PfsArm(object):
             hdr, data = hdu.header, hdu.data
 
             if False:
-                for k, v in hdr.items():
+                for k, v in list(hdr.items()):
                     print("%8s %s" % (k, v))
 
             if data.ndim == 2:
@@ -203,7 +206,7 @@ class PfsArm(object):
 
         if fiberId is None:
             if self.pfsConfig is None:
-                fiberIds = range(1, len(self.flux)+1)
+                fiberIds = list(range(1, len(self.flux)+1))
             else:
                 fiberIds = self.pfsConfig.fiberId
         else:
@@ -290,7 +293,7 @@ class PfsArmSet(object):
                 self.pfsConfig = self.data[arm].pfsConfig
 
     def getFiberIdx(self, fiberId):
-        return self.data.values()[0].getFiberIdx(fiberId)
+        return list(self.data.values())[0].getFiberIdx(fiberId)
 
     def plot(self, fiberId=1, showFlux=None, showMask=False, showSky=False, showCovar=False,
              showPlot=True):
@@ -310,7 +313,7 @@ class PfsArmSet(object):
             if not show[name]:
                 continue
 
-            for arm in self.data.values():
+            for arm in list(self.data.values()):
                 plt.plot(arm.lam[fiberIdx], getattr(arm, name)[fiberIdx], label=arm.arm, labelFibers=False)
 
             plt.title("%s %s" % (title, name))
@@ -324,7 +327,7 @@ class PfsArmSet(object):
                 plt.show()
 
         if show["covar"]:
-            for arm in self.data.values():
+            for arm in list(self.data.values()):
                 for i in range(arm.covar[fiberIdx].shape[0]):
                     plt.plot(arm.lam[fiberIdx], arm.covar[fiberIdx][i],
                              label="%s covar[%d]" % (arm.arm, i))

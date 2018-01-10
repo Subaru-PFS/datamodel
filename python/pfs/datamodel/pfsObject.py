@@ -1,4 +1,8 @@
 from __future__ import print_function
+from __future__ import division
+from builtins import range
+from past.utils import old_div
+from builtins import object
 import collections
 import os
 
@@ -101,7 +105,7 @@ class PfsObject(object):
                 self.lam = hdr["CRVAL1"] + (self.lam - hdr["CRPIX1"])*hdr["CD1_1"]
 
             if False:
-                for k, v in hdr.items():
+                for k, v in list(hdr.items()):
                     print("%8s %s" % (k, v))
 
             if data.ndim == 1:
@@ -278,7 +282,7 @@ def makePfsObject(objId, pfsArms, catId=0, lambdaMin=350, lambdaMax=1260, dLambd
     #
     pfsConfig = None
     for aset in pfsArms:
-        for arm in aset.data.values():
+        for arm in list(aset.data.values()):
             fiberIdx = np.where(arm.pfsConfig.objId == objId)[0]
             if len(fiberIdx):
                 fiberIdx = fiberIdx[0]
@@ -298,7 +302,7 @@ def makePfsObject(objId, pfsArms, catId=0, lambdaMin=350, lambdaMax=1260, dLambd
     pfsObject = PfsObject(tract, patch, objId, catId, visits=visits)
     pfsObject.pfsConfigIds = []         # we'll set them from the pfsArm files
 
-    pfsObject.lam = lambdaMin + dLambda*np.arange(int((lambdaMax - lambdaMin)/dLambda),
+    pfsObject.lam = lambdaMin + dLambda*np.arange(int(old_div((lambdaMax - lambdaMin),dLambda)),
                                                   dtype=np.float32)
     #
     # Start by interpolating all the data onto the single uniform sampling
@@ -315,7 +319,7 @@ def makePfsObject(objId, pfsArms, catId=0, lambdaMin=350, lambdaMax=1260, dLambd
         armMask[visit] = {}
         armSky[visit] = {}
 
-        for arm in aset.data.values():
+        for arm in list(aset.data.values()):
             pfsObject.pfsConfigIds.append(arm.pfsConfigId)
             fiberIdx = np.where(arm.pfsConfig.objId == objId)[0]
             if len(fiberIdx):
@@ -358,7 +362,7 @@ def makePfsObject(objId, pfsArms, catId=0, lambdaMin=350, lambdaMax=1260, dLambd
     for aset in pfsArms:
         visit = aset.visit
         for arm in aset.data:
-            w = 1/armVariance[visit][arm]
+            w = old_div(1,armVariance[visit][arm])
             pfsObject.flux += w*armFlux[visit][arm]
             pfsObject.sky += w*armSky[visit][arm]
             pfsObject.mask |= np.where(w > 0, armMask[visit][arm], 0)
@@ -374,7 +378,7 @@ def makePfsObject(objId, pfsArms, catId=0, lambdaMin=350, lambdaMax=1260, dLambd
     pfsObject.mask[noData] = PfsArm.flags["NODATA"]
 
     with np.errstate(divide='ignore'):
-        pfsObject.covar[0] = np.where(weights == 0, np.inf, 1/weights)
+        pfsObject.covar[0] = np.where(weights == 0, np.inf, old_div(1,weights))
         pfsObject.covar[1] = np.where(weights == 0, np.inf, 0)
         pfsObject.covar[2] = np.where(weights == 0, np.inf, 0)
     #
@@ -386,12 +390,12 @@ def makePfsObject(objId, pfsArms, catId=0, lambdaMin=350, lambdaMax=1260, dLambd
     pfsObject.covar2 = C
 
     binsize = len(pfsObject.lam)//pfsObject.NCOARSE
-    idx = (np.arange(len(pfsObject.lam))/binsize).astype(int)
+    idx = (old_div(np.arange(len(pfsObject.lam)),binsize)).astype(int)
 
     goodData = np.logical_not(noData)
     for j in range(pfsObject.NCOARSE):
         x = pfsObject.covar[0][np.logical_and(goodData, idx == j)]
-        C[j, j] = x.sum()/np.sqrt(len(x))
+        C[j, j] = old_div(x.sum(),np.sqrt(len(x)))
     #
     # Now the best-estimate flux at the native resolution of the pfsArm files
     #
@@ -403,7 +407,7 @@ def makePfsObject(objId, pfsArms, catId=0, lambdaMin=350, lambdaMax=1260, dLambd
         overlaps.append(('r', 'n'))
 
     fluxTbl = collections.OrderedDict()
-    fiberIdx = np.where(arms.values()[0].pfsConfig.objId == objId)[0][0]  # we checked existence above
+    fiberIdx = np.where(list(arms.values())[0].pfsConfig.objId == objId)[0][0]  # we checked existence above
 
     if not overlaps:
         for armStr in arms:
@@ -489,7 +493,7 @@ def makePfsObject(objId, pfsArms, catId=0, lambdaMin=350, lambdaMax=1260, dLambd
         #
         for aset in pfsArms:
             visit = aset.visit
-            w = 1/armVariance[arm]
+            w = old_div(1,armVariance[arm])
             fluxTbl[armStr].flux += w*armFlux[arm]
             fluxTbl[armStr].mask |= np.where(w > 0, armMask[arm], 0)
 
@@ -500,17 +504,17 @@ def makePfsObject(objId, pfsArms, catId=0, lambdaMin=350, lambdaMax=1260, dLambd
         fluxTbl[armStr].flux[noData] = np.nan
 
         with np.errstate(divide='ignore'):
-            fluxTbl[armStr].fluxVariance = np.where(weights == 0, np.inf, 1/weights)
+            fluxTbl[armStr].fluxVariance = np.where(weights == 0, np.inf, old_div(1,weights))
     #
     # The PfsObject.FluxTbl isn't actually quite what we need, as it's N separate FluxTbl
     # objects rather than one covering all the arms.  Fix this
     #
-    nPoint = np.sum(len(ft.flux) for ft in fluxTbl.values())
+    nPoint = np.sum(len(ft.flux) for ft in list(fluxTbl.values()))
     lam = np.empty(nPoint, dtype=np.float32)
     pfsObject.fluxTbl = PfsObject.FluxTbl(lam)
 
     i0 = 0
-    for ft in fluxTbl.values():
+    for ft in list(fluxTbl.values()):
         i1 = i0 + len(ft.lam)
         pfsObject.fluxTbl.lam[i0:i1] = ft.lam
         pfsObject.fluxTbl.flux[i0:i1] = ft.flux
