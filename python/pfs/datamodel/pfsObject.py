@@ -1,7 +1,6 @@
 from __future__ import print_function
 from __future__ import division
 from builtins import range
-from past.utils import old_div
 from builtins import object
 import collections
 import os
@@ -302,7 +301,7 @@ def makePfsObject(objId, pfsArms, catId=0, lambdaMin=350, lambdaMax=1260, dLambd
     pfsObject = PfsObject(tract, patch, objId, catId, visits=visits)
     pfsObject.pfsConfigIds = []         # we'll set them from the pfsArm files
 
-    pfsObject.lam = lambdaMin + dLambda*np.arange(int(old_div((lambdaMax - lambdaMin),dLambda)),
+    pfsObject.lam = lambdaMin + dLambda*np.arange(int((lambdaMax - lambdaMin)/dLambda)),
                                                   dtype=np.float32)
     #
     # Start by interpolating all the data onto the single uniform sampling
@@ -362,7 +361,7 @@ def makePfsObject(objId, pfsArms, catId=0, lambdaMin=350, lambdaMax=1260, dLambd
     for aset in pfsArms:
         visit = aset.visit
         for arm in aset.data:
-            w = old_div(1,armVariance[visit][arm])
+            w = 1/armVariance[visit][arm]
             pfsObject.flux += w*armFlux[visit][arm]
             pfsObject.sky += w*armSky[visit][arm]
             pfsObject.mask |= np.where(w > 0, armMask[visit][arm], 0)
@@ -378,7 +377,7 @@ def makePfsObject(objId, pfsArms, catId=0, lambdaMin=350, lambdaMax=1260, dLambd
     pfsObject.mask[noData] = PfsArm.flags["NODATA"]
 
     with np.errstate(divide='ignore'):
-        pfsObject.covar[0] = np.where(weights == 0, np.inf, old_div(1,weights))
+        pfsObject.covar[0] = np.where(weights == 0, np.inf, 1/weights)
         pfsObject.covar[1] = np.where(weights == 0, np.inf, 0)
         pfsObject.covar[2] = np.where(weights == 0, np.inf, 0)
     #
@@ -390,12 +389,12 @@ def makePfsObject(objId, pfsArms, catId=0, lambdaMin=350, lambdaMax=1260, dLambd
     pfsObject.covar2 = C
 
     binsize = len(pfsObject.lam)//pfsObject.NCOARSE
-    idx = (old_div(np.arange(len(pfsObject.lam)),binsize)).astype(int)
+    idx = (np.arange(len(pfsObject.lam))//binsize).astype(int)
 
     goodData = np.logical_not(noData)
     for j in range(pfsObject.NCOARSE):
         x = pfsObject.covar[0][np.logical_and(goodData, idx == j)]
-        C[j, j] = old_div(x.sum(),np.sqrt(len(x)))
+        C[j, j] = x.sum()/np.sqrt(len(x))
     #
     # Now the best-estimate flux at the native resolution of the pfsArm files
     #
@@ -493,7 +492,7 @@ def makePfsObject(objId, pfsArms, catId=0, lambdaMin=350, lambdaMax=1260, dLambd
         #
         for aset in pfsArms:
             visit = aset.visit
-            w = old_div(1,armVariance[arm])
+            w = 1/armVariance[arm]
             fluxTbl[armStr].flux += w*armFlux[arm]
             fluxTbl[armStr].mask |= np.where(w > 0, armMask[arm], 0)
 
@@ -504,7 +503,7 @@ def makePfsObject(objId, pfsArms, catId=0, lambdaMin=350, lambdaMax=1260, dLambd
         fluxTbl[armStr].flux[noData] = np.nan
 
         with np.errstate(divide='ignore'):
-            fluxTbl[armStr].fluxVariance = np.where(weights == 0, np.inf, old_div(1,weights))
+            fluxTbl[armStr].fluxVariance = np.where(weights == 0, np.inf, 1/weights)
     #
     # The PfsObject.FluxTbl isn't actually quite what we need, as it's N separate FluxTbl
     # objects rather than one covering all the arms.  Fix this
