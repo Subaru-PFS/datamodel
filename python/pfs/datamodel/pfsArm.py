@@ -230,7 +230,7 @@ class PfsArm(object):
 
         if fiberId in ([], None):
             if self.pfsConfig is None:
-                fiberIds = range(1, len(self.flux)+1)
+                fiberIds = list(range(1, len(self.flux)+1))
             else:
                 fiberIds = self.pfsConfig.fiberId
         else:
@@ -323,7 +323,7 @@ class PfsArmSet(object):
                 self.pfsConfig = self.data[arm].pfsConfig
 
     def getFiberIdx(self, fiberId):
-        return self.data.values()[0].getFiberIdx(fiberId)
+        return list(self.data.values())[0].getFiberIdx(fiberId)
 
     def plot(self, fiberId=1, showFlux=None, showMask=False, showSky=False, showCovar=False,
              showPlot=True):

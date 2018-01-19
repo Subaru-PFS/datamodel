@@ -1,7 +1,6 @@
 from __future__ import print_function
 from __future__ import division
 from builtins import range
-from past.utils import old_div
 from builtins import object
 import collections
 import os
@@ -302,8 +301,7 @@ def makePfsObject(objId, pfsArms, catId=0, lambdaMin=350, lambdaMax=1260, dLambd
     pfsObject = PfsObject(tract, patch, objId, catId, visits=visits)
     pfsObject.pfsConfigIds = []         # we'll set them from the pfsArm files
 
-    pfsObject.lam = lambdaMin + dLambda*np.arange(int((lambdaMax - lambdaMin)/dLambda),
-                                                  dtype=np.float32)
+    pfsObject.lam = lambdaMin + dLambda*np.arange(int((lambdaMax - lambdaMin)/dLambda), dtype=np.float32)
     #
     # Start by interpolating all the data onto the single uniform sampling
     #
@@ -390,7 +388,7 @@ def makePfsObject(objId, pfsArms, catId=0, lambdaMin=350, lambdaMax=1260, dLambd
     pfsObject.covar2 = C
 
     binsize = len(pfsObject.lam)//pfsObject.NCOARSE
-    idx = (np.arange(len(pfsObject.lam))/binsize).astype(int)
+    idx = (np.arange(len(pfsObject.lam))//binsize).astype(int)
 
     goodData = np.logical_not(noData)
     for j in range(pfsObject.NCOARSE):
@@ -407,7 +405,7 @@ def makePfsObject(objId, pfsArms, catId=0, lambdaMin=350, lambdaMax=1260, dLambd
         overlaps.append(('r', 'n'))
 
     fluxTbl = collections.OrderedDict()
-    fiberIdx = np.where(arms.values()[0].pfsConfig.objId == objId)[0][0]  # we checked existence above
+    fiberIdx = np.where(list(arms.values())[0].pfsConfig.objId == objId)[0][0]  # we checked existence above
 
     if not overlaps:
         for armStr in arms:
