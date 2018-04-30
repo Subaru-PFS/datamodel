@@ -1,2 +1,5 @@
 *.pyc
 .DS_Store
+.sconf_temp
+.sconsign.dblite
+python/lsst/datamodel/version.py
