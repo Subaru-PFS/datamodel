@@ -16,11 +16,11 @@ class PfsFiberTrace(object):
     """A class corresponding to a single fiberTrace file"""
     fileNameFormat = "pfsFiberTrace-%10s-0-%1s%1d.fits"
 
-    def __init__(self, obsDate, spectrograph, arm):
+    def __init__(self, obsDate, spectrograph, arm, metadata=None):
         self.obsDate = obsDate
         self.spectrograph = spectrograph
         self.arm = arm
-        self.metadata = None
+        self.metadata = metadata
 
         self.fiberId = []
         self.traces = []
