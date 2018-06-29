@@ -359,36 +359,40 @@ the medium arm, and to omit the data from the blue and IR arms.
 
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-Simulations
+Simulations: pfsSimObject
 
-We need to specify a format for the spectra going into the simulator.  At first glance we could adopt the
-pfsObject file, along with a pfsConfig file to map them to the sky.  This would work, but there is a problem
-with resolution, in particular emission lines.  Also, the resolution of the pfsObject files for
-medium-resolution spectra may be different from that for low-resolution (extra-galactic) spectra (and the
-simulators are probably not interested in covariances and masks)
+Simulated objects have no associated sky location or observations, thus no pfsConfig, tract, visits,
+etc. pfsSimObjects require a pfsConfig to associate them into a field with sky coordinates.
 
-The PSF of an extracted emission line is not the same as the marginal shape of the fibre spot, and I don't
-think that the simulators want to know the details of the spectrograph anyway!  This leads us to going to
-higher resolution, and this would be possible (e.g. R ~ 1e4?).  An alternative would be to provide the
-continuum spectrum as an array, possibly even at PFS's resolution and an additional table of (lambda,
-amplitude, width) for emission lines.  Will a continuum + lines model like this work for the Galactic
-evolution stellar spectra?
+We need to specify a format for the spectra going into the simulator.  At first glance we could
+adopt the pfsObject file, along with a pfsConfig file to map them to the sky.  This would work, but
+there is a problem with resolution, in particular for emission lines.  Also, the resolution of the
+pfsObject files for medium-resolution spectra may be different from that for low-resolution
+(extra-galactic) spectra (and the simulators are probably not interested in covariances and masks).
 
-For now, I propose:
-     "pfsSimObject-%05d-%s-%3d-%08x.fits" % (tract, patch, catId, objId)
+The PSF of an extracted emission line is not the same as the marginal shape of the fibre spot, and I
+don't think that the simulators want to know the details of the spectrograph anyway!  This leads us
+to going to higher resolution, and this would be possible (e.g. R ~ 1e4?).  A extension of would be
+to provide the continuum spectrum as an array, possibly even at PFS's resolution, along with an
+additional table of (lambda, amplitude, width) for emission lines.  Will a continuum + lines model
+like this work for the Galactic evolution stellar spectra?
 
-The tract, patch, catId, objId values will also be available as header keywords.
+So pfsSimObjects are much simpler than pfsObject files:
+     "pfsSimObject-%3d-0x%08x.fits" % (catId, objId)
 
-The file will have two HDUs:
+The file will have three or four HDUs:
 
-HDU #0 PDU
-HDU #1             Flux in units of nJy     	   	       [FLOAT]        NSIMROW
-HDU #2 WAVELENGTH  Wavelength solution in nm (vacuum)	       [FLOAT] 	      NSIMROW
-
-The simulation team will also need to provide a matching pfsConfig file, and may well choose to set
-   tract, patch = 0, "0,0"
-The catId/objId is only needed to allow the set of pfsSimObject files and a pfsConfig file to specify a
-set of simulated exposures.
+HDU #0 PHDU, which muct contain at least the following cards:
+	catId		catId           INT
+	objId		objId		INT
+HDU #1 LAM         Wavelength solution in nm (vacuum)	       [FLOAT] 	      NSIMROW
+HDU #2 FLUX        Flux in units of nJy     	   	       [FLOAT]        NSIMROW
+HDU #3 EMISSION_LINES [Optional] Characteristics of emission lines:
+        NAME         STRING
+        LAMBDA       FLOAT
+        AMPLITUDE    FLOAT
+        WIDTH        FLOAT
+        [ add columns if we need ]
 
 Note that the wavelength need not be uniformly sampled.
 
@@ -426,8 +430,8 @@ Note that the wavelength need not be uniformly sampled.
 
 	The pfsVisitHash SHA-1 (calculated from the 3 visits included in this reduction) is 0xdeadbeef.
 
- pfsSimObject-00000-0,0-000-13579bdf.fits
-	A simulated spectrum (the "000") for object 0x13579bdf, located in tract 0, patch 0,0
+ pfsSimObject-000-0x13579bdf.fits
+	A simulated spectrum for object 0x13579bdf in catalog 000.
 
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
