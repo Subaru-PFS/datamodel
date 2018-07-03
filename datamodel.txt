@@ -362,20 +362,23 @@ the medium arm, and to omit the data from the blue and IR arms.
 Simulations: pfsSimObject
 
 Simulated objects have no associated sky location or observations, thus no pfsConfig, tract, visits,
-etc. pfsSimObjects require a pfsConfig to associate them into a field with sky coordinates.
+etc: pfsSimObjects require a pfsConfig to associate them into a field with sky coordinates.
 
 We need to specify a format for the spectra going into the simulator.  At first glance we could
 adopt the pfsObject file, along with a pfsConfig file to map them to the sky.  This would work, but
-there is a problem with resolution, in particular for emission lines.  Also, the resolution of the
-pfsObject files for medium-resolution spectra may be different from that for low-resolution
-(extra-galactic) spectra (and the simulators are probably not interested in covariances and masks).
+for some simulations there could be a problem with resolution, in particular for emission lines.
+Also, the resolution of the pfsObject files for medium-resolution spectra may be different from that
+for low-resolution (extra-galactic) spectra (and the simulators are probably not interested in
+covariances and masks).
 
 The PSF of an extracted emission line is not the same as the marginal shape of the fibre spot, and I
 don't think that the simulators want to know the details of the spectrograph anyway!  This leads us
 to going to higher resolution, and this would be possible (e.g. R ~ 1e4?).  A extension of would be
 to provide the continuum spectrum as an array, possibly even at PFS's resolution, along with an
-additional table of (lambda, amplitude, width) for emission lines.  Will a continuum + lines model
-like this work for the Galactic evolution stellar spectra?
+additional table of (lambda, amplitude, width) for emission lines.
+
+The recommendation is to provide well (4x at worst?) oversampled spectra and to leave out the optional
+EMISSION_LINES table. If there is a table, the simulator will add the lines.
 
 So pfsSimObjects are much simpler than pfsObject files:
      "pfsSimObject-%3d-0x%08x.fits" % (catId, objId)
@@ -385,8 +388,15 @@ The file will have three or four HDUs:
 HDU #0 PHDU, which muct contain at least the following cards:
 	catId		catId           INT
 	objId		objId		INT
+
+        [ plus object properties/model parameters. ]
+
 HDU #1 LAM         Wavelength solution in nm (vacuum)	       [FLOAT] 	      NSIMROW
+       Requires INHERIT=T card.
+
 HDU #2 FLUX        Flux in units of nJy     	   	       [FLOAT]        NSIMROW
+       Requires INHERIT=T card.
+
 HDU #3 EMISSION_LINES [Optional] Characteristics of emission lines:
         NAME         STRING
         LAMBDA       FLOAT
@@ -394,7 +404,12 @@ HDU #3 EMISSION_LINES [Optional] Characteristics of emission lines:
         WIDTH        FLOAT
         [ add columns if we need ]
 
-Note that the wavelength need not be uniformly sampled.
+Note that the wavelength need not be uniformly sampled. If the FLUX HDU has CTYPE1/CD1_1/CDELT1
+those will be used, at least for CTYPE1 in 'WAVE-LOG' and 'WAVE'. If the FLUX vector does not match
+the evaluation of the WCS cards in base-10, an error will be thrown. [ The FLUX HDU might get the
+WCS cards from the PHDU, due to the INHERIT=T card. ]
+
+Note also that the 'WAVE-LOG' CTYPE is base-e. For base-10, adjust CD1_1 and CDELT1.
 
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
