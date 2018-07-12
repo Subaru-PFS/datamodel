@@ -392,10 +392,7 @@ HDU #0 PHDU, which muct contain at least the following cards:
         [ plus object properties/model parameters. ]
 
 HDU #1 LAM         Wavelength solution in nm (vacuum)	       [FLOAT] 	      NSIMROW
-       Requires INHERIT=T card.
-
 HDU #2 FLUX        Flux in units of nJy     	   	       [FLOAT]        NSIMROW
-       Requires INHERIT=T card.
 
 HDU #3 EMISSION_LINES [Optional] Characteristics of emission lines:
         NAME         STRING
