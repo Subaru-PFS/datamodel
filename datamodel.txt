@@ -401,12 +401,15 @@ HDU #3 EMISSION_LINES [Optional] Characteristics of emission lines:
         WIDTH        FLOAT
         [ add columns if we need ]
 
-Note that the wavelength need not be uniformly sampled. If the FLUX HDU has CTYPE1/CD1_1/CDELT1
-those will be used, at least for CTYPE1 in 'WAVE-LOG' and 'WAVE'. If the FLUX vector does not match
-the evaluation of the WCS cards in base-10, an error will be thrown. [ The FLUX HDU might get the
-WCS cards from the PHDU, due to the INHERIT=T card. ]
+Note that the wavelength need not be uniformly sampled. On the other
+hand, if the FLUX HDU has CTYPE1/CRVAL1/CDELT1 those will be used, at
+least for CTYPE1 in 'WAVE-LOG' and 'WAVE'. If the LAM vector does not
+match the evaluation of the WCS cards, an error will be thrown.
 
-Note also that the 'WAVE-LOG' CTYPE is base-e. For base-10, adjust CD1_1 and CDELT1.
+Note also that per the Spectral Coordinates WCS paper, the 'WAVE-LOG'
+CTYPE is base-e. For base-10, adjust CRVAL1 and CDELT1. Or better, use
+the PfsSimObject.setData() or PfsSimObject.read() routines to finalize
+the object.
 
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
