@@ -24,7 +24,7 @@ class PfsSimObject(object):
         self.wcs = None
 
     def __str__(self):
-        return f"pfsSimObject(catId={self.catId}, objId=0x{self.objId}:%08x) loaded={self.lam is not None}"
+        return f"pfsSimObject(catId={self.catId}, objId=0x{self.objId:08x}) loaded={self.lam is not None}"
 
     @property
     def fileName(self):
