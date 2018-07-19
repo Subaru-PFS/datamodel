@@ -12,8 +12,6 @@ except ImportError:
     pyfits = None
 import matplotlib.pyplot as plt
 
-import lsst.daf.base as dafBase
-import lsst.afw.image as afwImage
 from pfs.datamodel.pfsConfig import PfsConfig
 
 class PfsArm(object):
@@ -72,12 +70,17 @@ class PfsArm(object):
         #
         hdr = fd[0].header
 
-        md = dafBase.PropertySet()
-        for k, v in hdr.items():
-            md.set(k, v)
+        try:
+            import lsst.daf.base as dafBase
+            import lsst.afw.image as afwImage
+        except ImportError:
+            pass
+        else:
+            md = dafBase.PropertySet()
+            for k, v in hdr.items():
+                md.set(k, v)
+            self._metadata = afwImage.Mask.parseMaskPlaneMetadata(md)
 
-        self._metadata = afwImage.Mask.parseMaskPlaneMetadata(md)
-                    
         for hduName in ["WAVELENGTH", "FLUX", "COVAR", "MASK", "SKY"]:
             hdu = fd[hduName]
             hdr, data = hdu.header, hdu.data
