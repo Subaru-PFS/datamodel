@@ -14,13 +14,14 @@ import lsst.daf.base as dafBase
 
 class PfsFiberTrace(object):
     """A class corresponding to a single fiberTrace file"""
-    fileNameFormat = "pfsFiberTrace-%10s-0-%1s%1d.fits"
+    fileNameFormat = "pfsFiberTrace-%10s-%06d-%1s%1d.fits"
 
-    def __init__(self, obsDate, spectrograph, arm):
+    def __init__(self, obsDate, spectrograph, arm, visit0, metadata=None):
         self.obsDate = obsDate
         self.spectrograph = spectrograph
         self.arm = arm
-        self.metadata = None
+        self.visit0 = visit0
+        self.metadata = metadata
 
         self.fiberId = []
         self.traces = []
@@ -30,7 +31,7 @@ class PfsFiberTrace(object):
         if not pyfits:
             raise RuntimeError("I failed to import pyfits, so cannot read from disk")
 
-        fileName = PfsFiberTrace.fileNameFormat % (self.obsDate, self.arm, self.spectrograph)
+        fileName = PfsFiberTrace.fileNameFormat % (self.obsDate, self.visit0, self.arm, self.spectrograph)
 
         self.metadata = dafBase.PropertySet()
         allTracesMI = afwImage.MaskedImageF(os.path.join(dirName, fileName), self.metadata)
@@ -63,7 +64,7 @@ class PfsFiberTrace(object):
             raise RuntimeError("I failed to import pyfits, so cannot write to disk")
 
         if fileName is None:
-            fileName = self.fileNameFormat % (self.obsDate, self.arm, self.spectrograph)
+            fileName = self.fileNameFormat % (self.obsDate, self.visit0, self.arm, self.spectrograph)
         fullFileName = os.path.join(dirName, fileName)
         #
         # We'll pack all the traces into a single masked image, so figure out how large it needs to be
