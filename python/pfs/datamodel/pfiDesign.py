@@ -1,24 +1,25 @@
-from __future__ import print_function
-from builtins import object
 import numpy as np
 import os
 
 try:
-    import pyfits
+    import astropy.io.fits as pyfits
 except ImportError:
-    pyfits = None
+    try:
+        import pyfits
+    except ImportError:
+        pyfits = None
 
-from pfs.datamodel.utils import calculate_pfsConfigId
+from pfs.datamodel.utils import calculate_pfiDesignId
 
-class PfsConfig(object):
-    """A class corresponding to a single pfsConfig file"""
+class PfiDesign(object):
+    """A class corresponding to a single pfiDesign file"""
 
-    fileNameFormat = "pfsConfig-0x%016x.fits"
+    fileNameFormat = "pfiDesign-0x%08x.fits"
 
-    def __init__(self, pfsConfigId=None, tract=None, patch=None,
+    def __init__(self, pfiDesignId=None, tract=None, patch=None,
                  fiberId=None, ra=None, dec=None, catId=None, objId=None,
-                 fiberMag=None, mpsCen=None, filterNames=["g", "r", "i", "z", "y"]):
-        self.pfsConfigId = pfsConfigId
+                 fiberMag=None, filterNames=["g", "r", "i", "z", "y"]):
+        self.pfiDesignId = pfiDesignId
         self.tract = tract
         self.patch = patch
 
@@ -29,26 +30,25 @@ class PfsConfig(object):
         self.objId = objId
         self.fiberMag = fiberMag
         self.filterNames = filterNames
-        self.mpsCen = mpsCen
 
-        _pfsConfigId = calculate_pfsConfigId(self.fiberId, self.ra, self.dec)
+        _pfiDesignId = calculate_pfiDesignId(self.fiberId, self.ra, self.dec)
 
-        if self.pfsConfigId is None:
-            self.pfsConfigId = _pfsConfigId
-        elif _pfsConfigId != 0x0:
-            if self.pfsConfigId != _pfsConfigId:
-                raise RuntimeError("Mismatch between pfsConfigId == 0x%08x and fiberId/ra/dec -> 0x%08x" %
-                                   (self.pfsConfigId, _pfsConfigId))
+        if self.pfiDesignId is None:
+            self.pfiDesignId = _pfiDesignId
+        elif _pfiDesignId != 0x0:
+            if self.pfiDesignId != _pfiDesignId:
+                raise RuntimeError("Mismatch between pfiDesignId == 0x%08x and fiberId/ra/dec -> 0x%08x" %
+                                   (self.pfiDesignId, _pfiDesignId))
 
     def read(self, dirName="."):
-        """Read self's pfsConfig file from directory dirName"""
+        """Read self's pfiDesign file from directory dirName"""
 
         if not pyfits:
             raise RuntimeError("I failed to import pyfits, so cannot read from disk")
 
-        fd = pyfits.open(os.path.join(dirName, self.fileNameFormat % self.pfsConfigId))
+        fd = pyfits.open(os.path.join(dirName, self.fileNameFormat % self.pfiDesignId))
 
-        hdu = fd["CONFIG"]
+        hdu = fd["DESIGN"]
         hdr, data = hdu.header, hdu.data
         self.filterNames = []
         i = -1
@@ -71,9 +71,8 @@ class PfsConfig(object):
         self.ra = data['ra']
         self.dec = data['dec']
         self.fiberMag = data['fiberMag']
-        self.mpsCentroid = data['mps centroid']
 
-        assert self.pfsConfigId == calculate_pfsConfigId(self.fiberId, self.ra, self.dec)
+        assert self.pfiDesignId == calculate_pfiDesignId(self.fiberId, self.ra, self.dec)
 
     def write(self, dirName=".", fileName=None):
         if not pyfits:
@@ -81,20 +80,20 @@ class PfsConfig(object):
 
         for name in ["fiberId", "ra", "dec"]:
             if getattr(self, name, None) is None:
-                if name == "fiberId" or self.pfsConfigId != 0x0:
-                    raise RuntimeError("I cannot write a pfsConfig file unless %s is provided" % name)
+                if name == "fiberId" or self.pfiDesignId != 0x0:
+                    raise RuntimeError("I cannot write a pfiDesign file unless %s is provided" % name)
 
                 setattr(self, name, np.zeros_like(self.fiberId, dtype=np.float32))
 
         # even if set in __init__ it might be invalid by now
-        _pfsConfigId = calculate_pfsConfigId(self.fiberId, self.ra, self.dec)
+        _pfiDesignId = calculate_pfiDesignId(self.fiberId, self.ra, self.dec)
 
-        if self.pfsConfigId is None:
-            self.pfsConfigId = _pfsConfigId
+        if self.pfiDesignId is None:
+            self.pfiDesignId = _pfiDesignId
         else:
-            if self.pfsConfigId != _pfsConfigId:
-                raise RuntimeError("Mismatch between pfsConfigId == 0x%016x and fiberId/ra/dec -> 0x%016x" %
-                                   (self.pfsConfigId, _pfsConfigId))
+            if self.pfiDesignId != _pfiDesignId:
+                raise RuntimeError("Mismatch between pfiDesignId == 0x%016x and fiberId/ra/dec -> 0x%016x" %
+                                   (self.pfiDesignId, _pfiDesignId))
 
         hdus = pyfits.HDUList()
 
@@ -103,7 +102,7 @@ class PfsConfig(object):
         hdr.update()
         hdus.append(hdu)
 
-        # catId, objId, ra, dec, fiber flux, MPS centroid
+        # catId, objId, ra, dec, fiber flux
         hdr = pyfits.Header()
         for i, b in enumerate(self.filterNames):
             hdr["FILTER%d" % i] = b
@@ -118,13 +117,12 @@ class PfsConfig(object):
             pyfits.Column(name = 'ra', format = 'E', array=self.ra),
             pyfits.Column(name = 'dec', format = 'E', array=self.dec),
             pyfits.Column(name = 'fiberMag', format = '%dE' % len(self.filterNames), array=self.fiberMag),
-            pyfits.Column(name = 'MPS centroid', format = '2E', array=self.mpsCen)
         ], hdr)
-        hdu.name = 'CONFIG'
+        hdu.name = 'DESIGN'
         hdus.append(hdu)
 
         # clobber=True in writeto prints a message, so use open instead
         if fileName is None:
-            fileName = self.fileNameFormat % (self.pfsConfigId)
+            fileName = self.fileNameFormat % (self.pfiDesignId)
         with open(os.path.join(dirName, fileName), "w") as fd:
             hdus.writeto(fd)

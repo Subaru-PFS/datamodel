@@ -22,7 +22,7 @@ def calculate_pfsVisitHash(visits):
 
     return sha1
 
-def calculate_pfsConfigId(fiberIds, ras, decs):
+def calculate_pfiDesignId(fiberIds, ras, decs):
     """Calculate and return the 64-bit SHA-1 from a set of lists of
     fiberId, ra, and dec"""
 
