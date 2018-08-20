@@ -217,16 +217,13 @@ lists fiberId, catId, objId, ra, dec, fiber flux, ... for each object. The types
 
 N.b. fiberIds start at 1.
 
-
-N.b. "MCS centroid, ..." is a placeholder for state of the PFI
-
 The HDU1 header should contain a set of 5 keywords FILTERN (FILTER0...FILTER4) giving the
 names of the filters in the fiberMag entry.
 
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 After the cobras on the PFI have been moved to the requested
-positions, a `pfiDesign` file is frozen into a `pfiConfig` file, which
+positions, a `pfiDesign` is frozen into a `pfiConfig` file, which
 is effectively the same thing but with the final cobra positions
 added. One reason for having two files is that the final positions
 will not perfectly match the design positions.
@@ -234,26 +231,31 @@ will not perfectly match the design positions.
 Another is that we will know when the cobras have been moved, and we
 can record the first PFS visitId for which the PFI has been configured
 according to the `pfiDesign`. This is referred to as the pfiConfig's
-"visit0". From this, the filename is:
+`visit0`. From this, the filename is:
 
     "pfiConfig-%06d-0x%08x.fits" (visit0, pfiDesignId)
 
-We completely denormalize the design information, and include the
-pfiDesign FITS cards and the DESIGN HDU.
+Finally, we are likely to have multiple `pfiConfig` files with the same
+`pfiConfigId` but different `visit0`. That will indicate that the field
+has been revisited, either for more integration or to acquire
+calibration frames.
 
-We add a second HDU, describing as much MCS and PFI info as we find
+We completely denormalize the design information, and include the
+`pfiDesign` FITS cards and the DESIGN HDU.
+
+We add a second HDU, containing as much MCS and PFI info as we find
 useful. Starting with:
 
 HDU #2 CONFIG
   fiberId     32-bit int, matching one line in the pfiDesign file
-  pfiTransformId 64-bit int, indicating the version of the transforms.
   pfiX, pfiY  32-bit floats, giving the final position in PFI mm.
   mcsX, mcsY  32-bit floats, giving the final position in MCS pixels.
+  fpsTransformId 64-bit int, indicating the version of the transforms.
   fpsFlags    32-bit int,
 
-The "pfsTransformId" is a placeholder until we figure it out.  Ideally
+The "fpsTransformId" is a placeholder until we figure it out.  Ideally
 pfiX,Y could be calculated externally, using mcsX,Y, and the
-pfiTransformId.
+fpsTransformId.
 
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
