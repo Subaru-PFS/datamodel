@@ -83,11 +83,11 @@ catId
     1: HSC
   are defined.
 
-pfsConfigId
+pfiDesignId
   An integer uniquely specifying the configuration of the PFI; specifically a SHA-1 of the
   (fiberId, ra, dec) tuples (with position rounded to the nearest arcsecond) truncated to 64 bits.
 
-  See calculate_pfsConfigId() in
+  See calculate_pfiConfigId() in
 	python/pfs/datamodel/utils.py
 
   We include the standard prefix "0x" in filenames to visually separate SHA-1s from 64-bit objId; this is
@@ -96,8 +96,8 @@ pfsConfigId
   An alternative to a SHA-1 would be the visit number of the first data taken with this configuration but that
   would have the disadvantage that it would not be available until the data was taken.
 
-  Lab data may choose to set the pfsConfigId to 0x0.  As a convenience to simulators, if the fiberIds
-  in a pfsConfig file are consecutive integers starting at 1 and all ra/dec values are 0.0 the pfsConfigId
+  Lab data may choose to set the pfiConfigId to 0x0.  As a convenience to simulators, if the fiberIds
+  in a pfiConfig file are consecutive integers starting at 1 and all ra/dec values are 0.0 the pfiConfigId
   is taken to be 0x0
 
 pfsVisitHash
@@ -194,18 +194,18 @@ where the bounding box of the trace is defined by the lower left and upper right
 
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-The state of the PFI and corresponding targetting information
+The targetting information for a pointing is:
 
-    "pfsConfig-0x%08x.fits" % (pfsConfigId)
+    "pfiDesign-0x%08x.fits" % (pfiDesignId)  # XXX should this be 16 digits?
 
-The choice of a hex format is because the the pfsConfigId is a SHA-1
+The choice of a hex format is because the the pfiConfigId is a SHA-1
 
 Format:
 
 HDU #0 PDU
-HDU #1          Fits binary table
+HDU #1 DESIGN       Fits binary table
 
-lists fiberId, catId, objId, ra, dec, fiber flux, MCS centroid, ... for each object. The types should be:
+lists fiberId, catId, objId, ra, dec, fiber flux, ... for each object. The types should be:
       fiberId        32-bit int
       catId          32-bit int
       tract	     32-bit int
@@ -214,13 +214,46 @@ lists fiberId, catId, objId, ra, dec, fiber flux, MCS centroid, ... for each obj
       ra             32-bit float
       dec            32-bit float
       fiberMag       5*32-bit float
-      MCS centroid   pair of 32-bit floats
 
 N.b. fiberIds start at 1.
+
+
 N.b. "MCS centroid, ..." is a placeholder for state of the PFI
 
 The HDU1 header should contain a set of 5 keywords FILTERN (FILTER0...FILTER4) giving the
 names of the filters in the fiberMag entry.
+
+-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+After the cobras on the PFI have been moved to the requested
+positions, a `pfiDesign` file is frozen into a `pfiConfig` file, which
+is effectively the same thing but with the final cobra positions
+added. One reason for having two files is that the final positions
+will not perfectly match the design positions.
+
+Another is that we will know when the cobras have been moved, and we
+can record the first PFS visitId for which the PFI has been configured
+according to the `pfiDesign`. This is referred to as the pfiConfig's
+"visit0". From this, the filename is:
+
+    "pfiConfig-%06d-0x%08x.fits" (visit0, pfiDesignId)
+
+We completely denormalize the design information, and include the
+pfiDesign FITS cards and the DESIGN HDU.
+
+We add a second HDU, describing as much MCS and PFI info as we find
+useful. Starting with:
+
+HDU #2 CONFIG
+  fiberId     32-bit int, matching one line in the pfiDesign file
+  pfiTransformId 64-bit int, indicating the version of the transforms.
+  pfiX, pfiY  32-bit floats, giving the final position in PFI mm.
+  mcsX, mcsY  32-bit floats, giving the final position in MCS pixels.
+  fpsFlags    32-bit int,
+
+The "pfsTransformId" is a placeholder until we figure it out.  Ideally
+pfiX,Y could be calculated externally, using mcsX,Y, and the
+pfiTransformId.
 
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
