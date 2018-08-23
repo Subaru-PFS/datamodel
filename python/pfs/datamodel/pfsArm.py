@@ -64,52 +64,52 @@ class PfsArm(object):
             raise RuntimeError("I failed to import pyfits, so cannot read from disk")
 
         fileName = PfsArm.fileNameFormat % (self.visit, self.arm, self.spectrograph)
-        fd = pyfits.open(os.path.join(dirName, fileName))
-        #
-        # Unpack the mask bits (which start with "MP_") from the header
-        #
-        hdr = fd[0].header
+        with pyfits.open(os.path.join(dirName, fileName)) as fd:
+            #
+            # Unpack the mask bits (which start with "MP_") from the header
+            #
+            hdr = fd[0].header
 
-        try:
-            import lsst.daf.base as dafBase
-            import lsst.afw.image as afwImage
-        except ImportError:
-            pass
-        else:
-            md = dafBase.PropertySet()
-            for k, v in hdr.items():
-                md.set(k, v)
-            self._metadata = afwImage.Mask.parseMaskPlaneMetadata(md)
-
-        for hduName in ["WAVELENGTH", "FLUX", "COVAR", "MASK", "SKY"]:
-            hdu = fd[hduName]
-            hdr, data = hdu.header, hdu.data
-
-            if False:
-                for k, v in hdr.items():
-                    print("%8s %s" % (k, v))
-
-            if data.ndim == 2:
-                if hduName == "WAVELENGTH":
-                    self.lam = data
-                elif hduName == "FLUX":
-                    self.flux = data
-                elif hduName == "MASK":
-                    self.mask = data
-                elif hduName == "SKY":
-                    self.sky = data
-                else:
-                    raise RuntimeError("Unexpected HDU %s reading %s" % (hduName, fileName))
+            try:
+                import lsst.daf.base as dafBase
+                import lsst.afw.image as afwImage
+            except ImportError:
+                pass
             else:
-                if hduName != "COVAR":
-                    raise RuntimeError("Unexpected HDU %s reading %s" % (hduName, fileName))
+                md = dafBase.PropertySet()
+                for k, v in hdr.items():
+                    md.set(k, v)
+                self._metadata = afwImage.Mask.parseMaskPlaneMetadata(md)
 
-                self.covar = data
+            for hduName in ["WAVELENGTH", "FLUX", "COVAR", "MASK", "SKY"]:
+                hdu = fd[hduName]
+                hdr, data = hdu.header, hdu.data
 
-            #print hdr["EXTNAME"], hdr["XTENSION"], data.dtype, data.shape
+                if False:
+                    for k, v in hdr.items():
+                        print("%8s %s" % (k, v))
 
-        hdu = fd["CONFIG"]
-        hdr, data = hdu.header, hdu.data
+                if data.ndim == 2:
+                    if hduName == "WAVELENGTH":
+                        self.lam = data
+                    elif hduName == "FLUX":
+                        self.flux = data
+                    elif hduName == "MASK":
+                        self.mask = data
+                    elif hduName == "SKY":
+                        self.sky = data
+                    else:
+                        raise RuntimeError("Unexpected HDU %s reading %s" % (hduName, fileName))
+                else:
+                    if hduName != "COVAR":
+                        raise RuntimeError("Unexpected HDU %s reading %s" % (hduName, fileName))
+
+                    self.covar = data
+
+                #print hdr["EXTNAME"], hdr["XTENSION"], data.dtype, data.shape
+
+            hdu = fd["CONFIG"]
+            hdr, data = hdu.header, hdu.data
 
         assert 'pfsConfigId' in data.names
         assert 'visit' in data.names
