@@ -40,16 +40,27 @@ class PfiDesign(object):
                 raise RuntimeError("Mismatch between pfiDesignId == 0x%08x and fiberId/ra/dec -> 0x%08x" %
                                    (self.pfiDesignId, _pfiDesignId))
 
-    def read(self, dirName="."):
-        """Read self's pfiDesign file from directory dirName"""
+    def read(self, dirName=".", fileName=None):
+        """Read self's pfiDesign file from directory dirName
+
+        Args
+        ----
+        dirName : str
+          the directory to search in
+        fileName : str
+          if set, the (non-path) filename to read. This is used
+          when reading a pfiConfig file.
+        """
 
         if not pyfits:
             raise RuntimeError("I failed to import pyfits, so cannot read from disk")
 
-        fd = pyfits.open(os.path.join(dirName, self.fileNameFormat % self.pfiDesignId))
+        if fileName is None:
+            fileName = self.fileNameFormat % self.pfiDesignId
 
-        hdu = fd["DESIGN"]
-        hdr, data = hdu.header, hdu.data
+        fd = pyfits.open(os.path.join(dirName, fileName))
+        hdr, data = fd["DESIGN"].header, fd["DESIGN"].data
+
         self.filterNames = []
         i = -1
         while True:
@@ -92,7 +103,7 @@ class PfiDesign(object):
             self.pfiDesignId = _pfiDesignId
         else:
             if self.pfiDesignId != _pfiDesignId:
-                raise RuntimeError("Mismatch between pfiDesignId == 0x%016x and fiberId/ra/dec -> 0x%016x" %
+                raise RuntimeError("Mismatch between pfiDesignId == 0x%08x and fiberId/ra/dec -> 0x%08x" %
                                    (self.pfiDesignId, _pfiDesignId))
 
         hdus = pyfits.HDUList()
