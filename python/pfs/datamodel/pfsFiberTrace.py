@@ -11,6 +11,8 @@ except ImportError:
 import lsst.afw.geom as afwGeom
 import lsst.afw.image as afwImage
 import lsst.daf.base as dafBase
+import lsst.afw.fits as afwFits
+
 
 class PfsFiberTrace(object):
     """A class corresponding to a single fiberTrace file"""
@@ -33,8 +35,9 @@ class PfsFiberTrace(object):
 
         fileName = PfsFiberTrace.fileNameFormat % (self.obsDate, self.visit0, self.arm, self.spectrograph)
 
-        self.metadata = dafBase.PropertySet()
-        allTracesMI = afwImage.MaskedImageF(os.path.join(dirName, fileName), self.metadata)
+        self.metadata = afwFits.readMetadata(os.path.join(dirName, fileName), 0, True)
+        self.metadata.remove("COMMENT")  # Added by FITS writer, not stripped (!)
+        allTracesMI = afwImage.MaskedImageF(os.path.join(dirName, fileName))
 
         with pyfits.open(os.path.join(dirName, fileName)) as fd:
             hdu = fd["ID_BOX"]
