@@ -24,6 +24,7 @@ branches:
 # necessary front-end machinery (intercept log, decide which branch to use).
 install:
   - cd $HOME
+  - echo curl -Lf https://api.github.com/repos/Subaru-PFS/pfs_pipe2d/tarball/${TRAVIS_PULL_REQUEST_BRANCH:-$TRAVIS_BRANCH} || curl -Lf https://api.github.com/repos/Subaru-PFS/pfs_pipe2d/tarball/master
   - ( curl -Lf https://api.github.com/repos/Subaru-PFS/pfs_pipe2d/tarball/${TRAVIS_PULL_REQUEST_BRANCH:-$TRAVIS_BRANCH} || curl -Lf https://api.github.com/repos/Subaru-PFS/pfs_pipe2d/tarball/master ) > pfs_pipe2d.tar.gz
   - tar xvzf pfs_pipe2d.tar.gz
   - ln -s $(tar -tzf pfs_pipe2d.tar.gz | head -1 | cut -f1 -d"/") pfs_pipe2d
