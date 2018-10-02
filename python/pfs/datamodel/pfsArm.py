@@ -10,7 +10,6 @@ try:
     import pyfits
 except ImportError:
     pyfits = None
-import matplotlib.pyplot as plt
 
 from pfs.datamodel.pfsConfig import PfsConfig
 
@@ -224,11 +223,12 @@ class PfsArm(object):
         """Plot some or all of the contents of the PfsArm
 
         Ignore pixels with (mask & ignorePixelMask) != 0
-        
+
         If fiberId is None all fibres are shown; otherwise it can be a list or a single fiberId
 
         Default is to show the flux
         """
+        import matplotlib.pyplot as plt
 
         if fiberId in ([], None):
             if self.pfsConfig is None:
@@ -282,7 +282,7 @@ class PfsArm(object):
             plt.title("%s %s" % (title, "flux"))
 
             plt.axhline(0, ls=':', color='black')
-                
+
         if showPlot:
             plt.show()
 
@@ -334,6 +334,7 @@ class PfsArmSet(object):
 
         Default is to show the flux
         """
+        import matplotlib.pyplot as plt
         show = dict(mask=showMask, sky=showSky, covar=showCovar)
         show.update(flux=not sum(show.values()) if showFlux is None else showFlux)
 
