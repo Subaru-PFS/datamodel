@@ -14,12 +14,13 @@ import matplotlib.pyplot as plt
 
 from pfs.datamodel.pfsConfig import PfsConfig
 
+
 class PfsArm(object):
     """A class corresponding to a single pfsArm file"""
     #
     # Flags for MASKs
     #
-    flags = dict(NODATA = 0x1,          # this pixel contains no data
+    flags = dict(NODATA=0x1,          # this pixel contains no data
                  )
 
     fileNameFormat = "pfsArm-%06d-%1s%1d.fits"
@@ -106,8 +107,6 @@ class PfsArm(object):
 
                     self.covar = data
 
-                #print hdr["EXTNAME"], hdr["XTENSION"], data.dtype, data.shape
-
             hdu = fd["CONFIG"]
             hdr, data = hdu.header, hdu.data
 
@@ -193,9 +192,9 @@ class PfsArm(object):
         hdus.append(hdu)
 
         hdu = pyfits.BinTableHDU.from_columns([
-            pyfits.Column(name = 'pfsConfigId', format = 'K',
+            pyfits.Column(name='pfsConfigId', format='K',
                           array=np.array([self.pfsConfigId], dtype=np.int64)),
-            pyfits.Column(name = 'visit', format = 'J',
+            pyfits.Column(name='visit', format='J',
                           array=np.array([self.visit], dtype=np.int32))
         ])
 
@@ -244,7 +243,7 @@ class PfsArm(object):
                 fiberIds = [fiberId]
 
         show = dict(mask=showMask, sky=showSky, covar=showCovar)
-        show.update(flux = not sum(show.values()) if showFlux is None else showFlux)
+        show.update(flux=not sum(show.values()) if showFlux is None else showFlux)
 
         if usePixels:
             pixelArr = np.arange(len(self.lam[0]))
@@ -287,7 +286,8 @@ class PfsArm(object):
         if showPlot:
             plt.show()
 
-#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+# -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
 
 class PfsArmSet(object):
     """Manipulate a set of pfsArms corresponding to a single visit"""
@@ -335,7 +335,7 @@ class PfsArmSet(object):
         Default is to show the flux
         """
         show = dict(mask=showMask, sky=showSky, covar=showCovar)
-        show.update(flux = not sum(show.values()) if showFlux is None else showFlux)
+        show.update(flux=not sum(show.values()) if showFlux is None else showFlux)
 
         fiberIdx = self.getFiberIdx(fiberId)
 
