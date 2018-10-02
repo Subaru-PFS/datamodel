@@ -5,7 +5,6 @@ from builtins import object
 import collections
 import os
 
-import matplotlib.pyplot as plt
 import numpy as np
 try:
     import pyfits
@@ -207,6 +206,7 @@ class PfsObject(object):
 
         If showFluxTbl is true, take the values from the non-resampled (fluxTbl) arrays
         """
+        import matplotlib.pyplot as plt
         xlabel = "Wavelength (micron)"
         title = "%d %s 0x%08x %08d" % (self.tract, self.patch, self.pfsVisitHash, self.objId)
 
