@@ -16,6 +16,7 @@ from scipy.interpolate import interp1d
 from pfs.datamodel.pfsArm import PfsArm
 from pfs.datamodel.utils import calculate_pfsVisitHash
 
+
 class PfsObject(object):
     """A class corresponding to a single pfsObject file"""
     NCOARSE = 10    # number of elements in coarse-grained covariance
@@ -43,7 +44,7 @@ class PfsObject(object):
 
             if nVisit and nVisit != self.nVisit:
                 raise RuntimeError("Number of visits provided (== %d) != nVisit (== %d)" %
-                                    (nVisit, self.nVisit))
+                                   (nVisit, self.nVisit))
             if pfsVisitHash and pfsVisitHash != self.pfsVisitHash:
                 raise RuntimeError("pfsVisitHash provided (== 0x%08x) != nVisit (== 0x%08x)" %
                                    (pfsVisitHash, self.pfsVisitHash))
@@ -148,7 +149,7 @@ class PfsObject(object):
                    catId=self.catId,
                    objId=self.objId,
                    pfsVHash=self.pfsVisitHash,
-        )
+                   )
         hdus.append(pyfits.PrimaryHDU(header=hdr))
 
         for hduName, data in [("FLUX", self.flux),
@@ -185,7 +186,7 @@ class PfsObject(object):
                                                              array=self.visits),
                                                pyfits.Column('pfsConfigId', 'K',
                                                              array=self.pfsConfigIds),
-                                              ], nrows=self.nVisit)
+                                               ], nrows=self.nVisit)
         hdr.update(INHERIT=True)
         hdu.name = "CONFIG"
         hdus.append(hdu)
@@ -211,7 +212,7 @@ class PfsObject(object):
 
         show = dict(mask=showMask, sky=showSky,
                     covar=showCovar, covar2=showCovar2, fluxVariance=showFluxVariance)
-        show.update(flux = not sum(show.values()) if showFlux is None else showFlux)
+        show.update(flux=not sum(show.values()) if showFlux is None else showFlux)
         show.update(fluxTbl=showFluxTbl)
 
         if not show["fluxTbl"]:
@@ -258,7 +259,7 @@ class PfsObject(object):
                 if not show[name]:
                     continue
 
-                plt.plot(self.fluxTbl.lam, data, alpha=0.3 if name=='flux' else 1.0,
+                plt.plot(self.fluxTbl.lam, data, alpha=0.3 if name == 'flux' else 1.0,
                          label="fluxTbl.%s" % name)
 
                 if name in ("flux"):
@@ -270,12 +271,12 @@ class PfsObject(object):
                 if showPlot:
                     plt.show()
 
-#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+# -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
 
 def makePfsObject(objId, pfsArms, catId=0, lambdaMin=350, lambdaMax=1260, dLambda=0.1):
     """Create a PfsObject from a list of PfsArmSet objects"""
     visits = [aset.visit for aset in pfsArms]
-    nVisit = len(pfsArms)
     #
     # Check that all the pfsArmSets are consistent
     #
@@ -288,7 +289,7 @@ def makePfsObject(objId, pfsArms, catId=0, lambdaMin=350, lambdaMax=1260, dLambd
             else:
                 raise RuntimeError("Object 0x%x is not present in pfsArm file for "
                                    "visit %d, spectrograph %d%s" %
-                                    (objId, aset.visit, arm.spectrograph, arm.arm))
+                                   (objId, aset.visit, arm.spectrograph, arm.arm))
 
         if pfsConfig:
             assert (pfsConfig.tract, pfsConfig.patch) == (aset.pfsConfig.tract, aset.pfsConfig.patch)
@@ -297,7 +298,8 @@ def makePfsObject(objId, pfsArms, catId=0, lambdaMin=350, lambdaMax=1260, dLambd
             tract = pfsConfig.tract[fiberIdx]
             patch = pfsConfig.patch[fiberIdx]
 
-    pfsVisitHash = calculate_pfsVisitHash(visits)
+    if False:
+        pfsVisitHash = calculate_pfsVisitHash(visits)  # noqa: F841 (never used)
     pfsObject = PfsObject(tract, patch, objId, catId, visits=visits)
     pfsObject.pfsConfigIds = []         # we'll set them from the pfsArm files
 
@@ -325,7 +327,7 @@ def makePfsObject(objId, pfsArms, catId=0, lambdaMin=350, lambdaMax=1260, dLambd
             else:
                 raise RuntimeError("Object 0x%x is not present in pfsArm file for "
                                    "visit %d, spectrograph %d%s" %
-                                    (objId, visit, arm.spectrograph, arm.arm))
+                                   (objId, visit, arm.spectrograph, arm.arm))
             #
             # how to interpolate
             #
@@ -339,10 +341,10 @@ def makePfsObject(objId, pfsArms, catId=0, lambdaMin=350, lambdaMax=1260, dLambd
             armFlux[visit][arm.arm] = interp1d(arm.lam[fiberIdx], arm.flux[fiberIdx],
                                                **kwargs)(pfsObject.lam)
             armSky[visit][arm.arm] = interp1d(arm.lam[fiberIdx], arm.sky[fiberIdx],
-                                               **kwargs)(pfsObject.lam)
+                                              **kwargs)(pfsObject.lam)
             kwargs.update(fill_value=np.inf)
             armVariance[visit][arm.arm] = interp1d(arm.lam[fiberIdx], arm.covar[fiberIdx][0],
-                                               **kwargs)(pfsObject.lam)
+                                                   **kwargs)(pfsObject.lam)
             kwargs.update(fill_value=PfsArm.flags["NODATA"], kind='nearest')
             armMask[visit][arm.arm] = interp1d(arm.lam[fiberIdx], arm.mask[fiberIdx],
                                                **kwargs)(pfsObject.lam)
@@ -478,11 +480,11 @@ def makePfsObject(objId, pfsArms, catId=0, lambdaMin=350, lambdaMax=1260, dLambd
                           )
 
             armFlux[arm] = interp1d(arm.lam[fiberIdx], arm.flux[fiberIdx],
-                                               fill_value=0, **kwargs)(fluxTbl[armStr].lam)
+                                    fill_value=0, **kwargs)(fluxTbl[armStr].lam)
             armVariance[arm] = interp1d(arm.lam[fiberIdx], arm.covar[fiberIdx][0],
-                                               fill_value=np.inf, **kwargs)(fluxTbl[armStr].lam)
+                                        fill_value=np.inf, **kwargs)(fluxTbl[armStr].lam)
             kwargs.update(fill_value=PfsArm.flags["NODATA"], kind='nearest')
-            armMask[arm] = interp1d(arm.lam[fiberIdx], arm.mask[fiberIdx],**kwargs)(fluxTbl[armStr].lam)
+            armMask[arm] = interp1d(arm.lam[fiberIdx], arm.mask[fiberIdx], **kwargs)(fluxTbl[armStr].lam)
             armMask[arm] = armMask[arm].astype(arm.mask[fiberIdx].dtype)
 
         weights = np.zeros_like(fluxTbl[armStr].lam)
