@@ -34,9 +34,9 @@ class PfsObject(object):
                 self.fluxVariance = np.zeros_like(lam)
                 self.mask = np.zeros_like(lam, dtype=np.int32)
 
-    def __init__(self, tract, patch, objId, catId=0, visits=[], pfsConfigIds=[],
+    def __init__(self, tract, patch, objId, catId=0, visits=None, pfsConfigIds=None,
                  nVisit=None, pfsVisitHash=0x0):
-        if visits:
+        if visits is not None:
             self.visits = visits
             self.nVisit = len(visits)
             self.pfsVisitHash = calculate_pfsVisitHash(visits)
@@ -52,10 +52,7 @@ class PfsObject(object):
             self.visits = None
             self.pfsVisitHash = pfsVisitHash
 
-        if pfsConfigIds:
-            self.pfsConfigIds = pfsConfigIds
-        else:
-            self.pfsConfigIds = None
+        self.pfsConfigIds = pfsConfigIds
 
         self.tract = tract
         self.patch = patch
