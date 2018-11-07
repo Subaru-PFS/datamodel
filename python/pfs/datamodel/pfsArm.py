@@ -291,13 +291,13 @@ class PfsArm(object):
 
 class PfsArmSet(object):
     """Manipulate a set of pfsArms corresponding to a single visit"""
-    def __init__(self, visit, spectrograph, arms=['b', 'r', 'n'], pfsConfigId=None, pfsConfig=None,
+    def __init__(self, visit, spectrograph, arms=('b', 'r', 'n'), pfsConfigId=None, pfsConfig=None,
                  pfsConfigs={}):
         self.pfsConfigs = pfsConfigs
         self.pfsConfigId = pfsConfigId
         self.visit = visit
         self.spectrograph = spectrograph
-        self.arms = arms
+        self.arms = list(arms)
 
         if pfsConfig:
             if self.pfsConfigId:
