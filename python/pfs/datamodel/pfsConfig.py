@@ -17,7 +17,7 @@ class PfsConfig(object):
 
     def __init__(self, pfsConfigId=None, tract=None, patch=None,
                  fiberId=None, ra=None, dec=None, catId=None, objId=None,
-                 fiberMag=None, mpsCen=None, filterNames=None):
+                 fiberMag=None, mpsCen=None, filterNames=("g", "r", "i", "z", "y")):
         self.pfsConfigId = pfsConfigId
         self.tract = tract
         self.patch = patch
@@ -28,7 +28,7 @@ class PfsConfig(object):
         self.catId = catId
         self.objId = objId
         self.fiberMag = fiberMag
-        self.filterNames = filterNames if filterNames is not None else ["g", "r", "i", "z", "y"]
+        self.filterNames = list(filterNames)
         self.mpsCen = mpsCen
 
         _pfsConfigId = calculate_pfsConfigId(self.fiberId, self.ra, self.dec)

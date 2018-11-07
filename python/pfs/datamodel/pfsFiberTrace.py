@@ -55,10 +55,10 @@ class PfsFiberTrace(object):
 
             # bboxAllTMI: BBox in allTracesMI
             bboxAllTMI = afwGeom.BoxI(afwGeom.PointI(x0, bbox.getMinY()), bbox.getDimensions())
-
+            
             trace = allTracesMI[bboxAllTMI].clone()
             trace.setXY0(bbox.getBegin())
-
+            
             self.traces.append(trace)
             x0 += bbox.getWidth()
 
@@ -129,7 +129,7 @@ class PfsFiberTrace(object):
         hdu.header["INHERIT"] = True
 
         # clobber=True in writeto prints a message, so use open instead
-
+        
         with pyfits.open(fullFileName, "update") as fd:
             fd[1].name = "IMAGE"
             fd[2].name = "MASK"
