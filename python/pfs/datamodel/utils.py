@@ -1,8 +1,6 @@
 #
 # A couple of useful functions to calculate PFS's SHA-1s
 #
-from builtins import zip
-from builtins import range
 import hashlib
 import numpy as np
 

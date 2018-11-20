@@ -1,7 +1,3 @@
-from __future__ import print_function
-from __future__ import division
-from builtins import range
-from builtins import object
 import collections
 import os
 
@@ -16,12 +12,12 @@ from pfs.datamodel.pfsArm import PfsArm
 from pfs.datamodel.utils import calculate_pfsVisitHash
 
 
-class PfsObject(object):
+class PfsObject:
     """A class corresponding to a single pfsObject file"""
     NCOARSE = 10    # number of elements in coarse-grained covariance
     fileNameFormat = "pfsObject-%05d-%s-%03d-%08x-%02d-0x%08x.fits"
 
-    class FluxTbl(object):
+    class FluxTbl:
         def __init__(self, lam=None):
             if lam is None:
                 self.lam = None

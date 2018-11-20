@@ -1,5 +1,3 @@
-from __future__ import print_function
-from builtins import object
 import numpy as np
 import os
 
@@ -10,7 +8,7 @@ except ImportError:
 
 from pfs.datamodel.utils import calculate_pfsConfigId
 
-class PfsConfig(object):
+class PfsConfig:
     """A class corresponding to a single pfsConfig file"""
 
     fileNameFormat = "pfsConfig-0x%016x.fits"

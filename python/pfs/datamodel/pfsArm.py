@@ -1,7 +1,3 @@
-from __future__ import print_function
-from builtins import str
-from builtins import range
-from builtins import object
 import collections
 import os
 
@@ -14,7 +10,7 @@ except ImportError:
 from pfs.datamodel.pfsConfig import PfsConfig
 
 
-class PfsArm(object):
+class PfsArm:
     """A class corresponding to a single pfsArm file"""
     #
     # Flags for MASKs
