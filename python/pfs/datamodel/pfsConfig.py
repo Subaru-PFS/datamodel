@@ -1,128 +1,245 @@
 import numpy as np
 import os
+import enum
 
 try:
     import pyfits
 except ImportError:
     pyfits = None
 
-from pfs.datamodel.utils import calculate_pfsConfigId
+
+@enum.unique
+class TargetType(enum.IntEnum):
+    """Enumerated options for what a fiber is targeting
+
+    * ``SCIENCE``: the fiber is intended to be on a science target.
+    * ``SKY``: the fiber is intended to be on blank sky, and used for sky
+      subtraction.
+    * ``FLUXSTD``: the fiber is intended to be on a flux standard, and used for
+      flux calibration.
+    * ``BROKEN``: the fiber is broken, and any flux should be ignored.
+    * ``BLOCKED``: the fiber is hidden behind its spot, and any flux should be
+      ignored.
+    """
+    SCIENCE = 1
+    SKY = 2
+    FLUXSTD = 3
+    BROKEN = 4
+    BLOCKED = 5
+
 
 class PfsConfig:
-    """A class corresponding to a single pfsConfig file"""
+    """The configuration of the PFS top-end for one or more observations
 
-    fileNameFormat = "pfsConfig-0x%016x.fits"
+    Parameters
+    ----------
+    pfiDesignId : `int`
+        PFI design identifier, specifies the intended top-end configuration.
+    expId : `int`
+        Exposure identifier.
+    fiberId : `numpy.ndarary` of `int32`
+        Fiber identifier for each fiber.
+    tract : `numpy.ndarray` of `int32`
+        Tract index for each fiber.
+    patch : `numpy.ndarray` of `str`
+        Patch indices for each fiber, typically two integers separated by a
+        comma, e.g,. "5,6".
+    ra : `numpy.ndarray` of `float64`
+        Right Ascension for each fiber, degrees.
+    dec : `numpy.ndarray` of `float64`
+        Declination for each fiber, degrees.
+    catId : `numpy.ndarray` of `int32`
+        Catalog identifier for each fiber.
+    objId : `numpy.ndarray` of `int64`
+        Object identifier for each fiber. Specifies the object within the
+        catalog.
+    targetType : `numpy.ndarray` of `int`
+        Type of target for each fiber. Values must be convertible to
+        `TargetType` (which limits the range of values).
+    fiberMag : `list` of `numpy.ndarray` of `float`
+        Array of fiber magnitudes for each fiber.
+    filterNames : `list` of `list` of `str`
+        List of filters used to measure the fiber magnitudes for each filter.
+    pfiCenter : `numpy.ndarray` of `float`
+        Actual position (2-vector) of each fiber on the PFI, microns.
+    pfiNominal : `numpy.ndarray` of `float`
+        Intended target position (2-vector) of each fiber on the PFI, microns.
+    """
 
-    def __init__(self, pfsConfigId=None, tract=None, patch=None,
-                 fiberId=None, ra=None, dec=None, catId=None, objId=None,
-                 fiberMag=None, mpsCen=None, filterNames=("g", "r", "i", "z", "y")):
-        self.pfsConfigId = pfsConfigId
-        self.tract = tract
-        self.patch = patch
+    fileNameFormat = "pfsConfig-0x%016x-%06d.fits"
+
+    def __init__(self, pfiDesignId, expId, fiberId, tract, patch, ra, dec, catId, objId,
+                 targetType, fiberMag, filterNames, pfiCenter, pfiNominal):
+        if len(set([
+            len(fiberId),
+            len(tract),
+            len(patch),
+            len(ra),
+            len(dec),
+            len(catId),
+            len(objId),
+            len(targetType),
+            len(fiberMag),
+            len(filterNames),
+            len(pfiCenter),
+            len(pfiNominal),
+        ])) != 1:
+            raise RuntimeError("Inconsistent lengths: fiberId %d, tract %d, patch %d, ra %d, dec %d, "
+                               "catId %d, objId %d, targetType %d, fiberMag %d, filterNames %d, "
+                               "pfiCenter %d, pfiNominal %d" %
+                               (len(fiberId), len(tract), len(patch), len(ra), len(dec),
+                                len(catId), len(objId), len(targetType), len(fiberMag), len(filterNames),
+                                len(pfiCenter), len(pfiNominal)))
+        for ii, tt in enumerate(targetType):
+            try:
+                TargetType(tt)
+            except ValueError as exc:
+                raise ValueError("targetType[%d] = %d is not a recognized TargetType" % (ii, tt)) from exc
+        for ii, (mag, names) in enumerate(zip(fiberMag, filterNames)):
+            if len(mag) != len(names):
+                raise RuntimeError("Inconsistent lengths between fiberMag (%d) and filterNames (%d) "
+                                   "for fiberId=%d" % (len(mag), len(names), fiberId[ii]))
+        if pfiCenter.shape != (len(fiberId), 2):
+            raise RuntimeError("Wrong shape for pfiCenter: %s vs (%d,2)" % (pfiCenter.shape, len(fiberId)))
+        if pfiNominal.shape != (len(fiberId), 2):
+            raise RuntimeError("Wrong shape for pfiNominal: %s vs (%d,2)" % (pfiNominal.shape, len(fiberId)))
+
+        self.pfiDesignId = pfiDesignId
+        self.expId = expId
 
         self.fiberId = fiberId
+        self.tract = tract
+        self.patch = patch
         self.ra = ra
         self.dec = dec
         self.catId = catId
         self.objId = objId
+        self.targetType = targetType
         self.fiberMag = fiberMag
-        self.filterNames = list(filterNames)
-        self.mpsCen = mpsCen
+        self.filterNames = filterNames
+        self.pfiCenter = pfiCenter
+        self.pfiNominal = pfiNominal
 
-        _pfsConfigId = calculate_pfsConfigId(self.fiberId, self.ra, self.dec)
+    def __len__(self):
+        """Number of fibers"""
+        return len(self.fiberId)
 
-        if self.pfsConfigId is None:
-            self.pfsConfigId = _pfsConfigId
-        elif _pfsConfigId != 0x0:
-            if self.pfsConfigId != _pfsConfigId:
-                raise RuntimeError("Mismatch between pfsConfigId == 0x%08x and fiberId/ra/dec -> 0x%08x" %
-                                   (self.pfsConfigId, _pfsConfigId))
+    def __str__(self):
+        """String representation"""
+        return "PfsConfig(%d, %d, ...)" % (self.pfiDesignId, self.expId)
 
-    def read(self, dirName="."):
-        """Read self's pfsConfig file from directory dirName"""
+    @property
+    def filename(self):
+        """Usual filename"""
+        return self.fileNameFormat % (self.pfiDesignId, self.expId)
 
+    @classmethod
+    def read(cls, pfiDesignId, expId, dirName="."):
+        """Construct from file
+
+        Requires pyfits.
+
+        Parameters
+        ----------
+        pfiDesignId : `int`
+            PFI design identifier, specifies the intended top-end configuration.
+        expId : `int`
+            Exposure identifier.
+        dirName : `str`, optional
+            Directory from which to read the file. Defaults to the current
+            directory.
+
+        Returns
+        -------
+        self : `PfsConfig`
+            Constructed `PfsConfig`.
+        """
         if not pyfits:
             raise RuntimeError("I failed to import pyfits, so cannot read from disk")
 
-        fd = pyfits.open(os.path.join(dirName, self.fileNameFormat % self.pfsConfigId))
+        filename = os.path.join(dirName, cls.fileNameFormat % (pfiDesignId, expId))
+        with pyfits.open(filename) as fd:
+            data = fd["CONFIG"].data
 
-        hdu = fd["CONFIG"]
-        hdr, data = hdu.header, hdu.data
-        self.filterNames = []
-        i = -1
-        while True:
-            i += 1
-            key = "FILTER%d" % i
-            if key in hdr:
-                self.filterNames.append(hdr[key])
-            else:
-                break
+            fiberId = data['fiberId']
+            tract = data['tract']
+            patch = data['patch']
+            ra = data['ra']
+            dec = data['dec']
+            catId = data['catId']
+            objId = data['objId']
+            targetType = data['targetType']
+            pfiCenter = data['pfiCenter']
+            pfiNominal = data['pfiNominal']
 
-        if False:
-            for k, v in hdr.items():
-                print("%8s %s" % (k, v))
+            photometry = fd["PHOTOMETRY"].data
 
-        self.fiberId = data['fiberId']
-        self.tract = data['tract']
-        self.patch = data['patch']
-        self.objId = data['objId']
-        self.ra = data['ra']
-        self.dec = data['dec']
-        self.fiberMag = data['fiberMag']
-        self.mpsCentroid = data['mps centroid']
+            fiberMag = {ii: [] for ii in fiberId}
+            filterNames = {ii: [] for ii in fiberId}
+            for row in photometry:
+                fiberMag[row['fiberId']].append(row['fiberMag'])
+                filterNames[row['fiberId']].append(row['filterName'])
 
-        assert self.pfsConfigId == calculate_pfsConfigId(self.fiberId, self.ra, self.dec)
+        return cls(pfiDesignId=pfiDesignId, expId=expId, tract=tract, patch=patch, fiberId=fiberId,
+                   ra=ra, dec=dec, catId=catId, objId=objId, targetType=targetType,
+                   fiberMag=[np.array(fiberMag[ii]) for ii in fiberId],
+                   filterNames=[filterNames[ii] for ii in fiberId],
+                   pfiCenter=pfiCenter, pfiNominal=pfiNominal)
 
     def write(self, dirName=".", fileName=None):
+        """Write to file
+
+        Requires pyfits.
+
+        Parameters
+        ----------
+        dirName : `str`, optional
+            Directory to which to write the file. Defaults to the current
+            directory.
+        fileName : `str`, optional
+            Filename to which to write. Defaults to using the filename template.
+        """
         if not pyfits:
-            raise RuntimeError("I failed to import pyfits, so cannot read from disk")
+            raise RuntimeError("I failed to import pyfits, so cannot write to disk")
 
-        for name in ["fiberId", "ra", "dec"]:
-            if getattr(self, name, None) is None:
-                if name == "fiberId" or self.pfsConfigId != 0x0:
-                    raise RuntimeError("I cannot write a pfsConfig file unless %s is provided" % name)
-
-                setattr(self, name, np.zeros_like(self.fiberId, dtype=np.float32))
-
-        # even if set in __init__ it might be invalid by now
-        _pfsConfigId = calculate_pfsConfigId(self.fiberId, self.ra, self.dec)
-
-        if self.pfsConfigId is None:
-            self.pfsConfigId = _pfsConfigId
-        else:
-            if self.pfsConfigId != _pfsConfigId:
-                raise RuntimeError("Mismatch between pfsConfigId == 0x%016x and fiberId/ra/dec -> 0x%016x" %
-                                   (self.pfsConfigId, _pfsConfigId))
-
-        hdus = pyfits.HDUList()
+        fits = pyfits.HDUList()
 
         hdr = pyfits.Header()
         hdu = pyfits.PrimaryHDU(header=hdr)
         hdr.update()
-        hdus.append(hdu)
+        fits.append(hdu)
 
-        # catId, objId, ra, dec, fiber flux, MPS centroid
-        hdr = pyfits.Header()
-        for i, b in enumerate(self.filterNames):
-            hdr["FILTER%d" % i] = b
-        hdr.update(INHERIT=True)
+        maxLength = max(len(pp) for pp in self.patch)
+        fits.append(pyfits.BinTableHDU.from_columns([
+            pyfits.Column(name='fiberId', format='J', array=self.fiberId),
+            pyfits.Column(name='tract', format='K', array=self.tract),
+            pyfits.Column(name='patch', format='A%d' % maxLength, array=self.patch),
+            pyfits.Column(name='ra', format='D', array=self.ra),
+            pyfits.Column(name='dec', format='D', array=self.dec),
+            pyfits.Column(name='catId', format='J', array=self.catId),
+            pyfits.Column(name='objId', format='K', array=self.objId),
+            pyfits.Column(name='targetType', format='J', array=self.targetType),
+            pyfits.Column(name='pfiCenter', format='2E', array=self.pfiCenter),
+            pyfits.Column(name='pfiNominal', format='2E', array=self.pfiNominal),
+        ], hdr, name='CONFIG'))
 
-        hdu = pyfits.BinTableHDU.from_columns([
-            pyfits.Column(name = 'fiberId', format = 'J', array=self.fiberId),
-            pyfits.Column(name = 'catId', format = 'J', array=self.catId),
-            pyfits.Column(name = 'tract', format = 'J', array=self.tract),
-            pyfits.Column(name = 'patch', format = 'A3', array=self.patch),
-            pyfits.Column(name = 'objId', format = 'K', array=self.objId),
-            pyfits.Column(name = 'ra', format = 'E', array=self.ra),
-            pyfits.Column(name = 'dec', format = 'E', array=self.dec),
-            pyfits.Column(name = 'fiberMag', format = '%dE' % len(self.filterNames), array=self.fiberMag),
-            pyfits.Column(name = 'MPS centroid', format = '2E', array=self.mpsCen)
-        ], hdr)
-        hdu.name = 'CONFIG'
-        hdus.append(hdu)
+        numRows = sum(len(mag) for mag in self.fiberMag)
+        fiberId = np.array(sum(([ii]*len(mag) for ii, mag in enumerate(self.fiberMag)), []))
+        fiberMag = np.array(sum((mag.tolist() for mag in self.fiberMag), []))
+        filterNames = np.array(sum(self.filterNames, []))
+        assert(len(fiberId) == numRows)
+        assert(len(fiberMag) == numRows)
+        assert(len(filterNames) == numRows)
+        maxLength = max(len(ff) for ff in filterNames)
+
+        fits.append(pyfits.BinTableHDU.from_columns([
+            pyfits.Column(name='fiberId', format='J', array=fiberId),
+            pyfits.Column(name='fiberMag', format='E', array=fiberMag),
+            pyfits.Column(name='filterName', format='A%d' % maxLength, array=filterNames),
+        ], hdr, name='PHOTOMETRY'))
 
         # clobber=True in writeto prints a message, so use open instead
         if fileName is None:
-            fileName = self.fileNameFormat % (self.pfsConfigId)
+            fileName = self.fileNameFormat % (self.pfiDesignId, self.expId)
         with open(os.path.join(dirName, fileName), "w") as fd:
-            hdus.writeto(fd)
+            fits.writeto(fd)
