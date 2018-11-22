@@ -209,11 +209,11 @@ class PfsConfig:
         hdr.update()
         fits.append(hdu)
 
-        # catId, objId, ra, dec, fiber flux, MPS centroid
+        maxLength = max(len(pp) for pp in self.patch)
         fits.append(pyfits.BinTableHDU.from_columns([
             pyfits.Column(name='fiberId', format='J', array=self.fiberId),
             pyfits.Column(name='tract', format='K', array=self.tract),
-            pyfits.Column(name='patch', format='A5', array=self.patch),
+            pyfits.Column(name='patch', format='A%d' % maxLength, array=self.patch),
             pyfits.Column(name='ra', format='D', array=self.ra),
             pyfits.Column(name='dec', format='D', array=self.dec),
             pyfits.Column(name='catId', format='J', array=self.catId),
@@ -235,7 +235,7 @@ class PfsConfig:
         fits.append(pyfits.BinTableHDU.from_columns([
             pyfits.Column(name='fiberId', format='J', array=fiberId),
             pyfits.Column(name='fiberMag', format='E', array=fiberMag),
-            pyfits.Column(name='filterName', format='%dA' % maxLength, array=filterNames),
+            pyfits.Column(name='filterName', format='A%d' % maxLength, array=filterNames),
         ], hdr, name='PHOTOMETRY'))
 
         # clobber=True in writeto prints a message, so use open instead
