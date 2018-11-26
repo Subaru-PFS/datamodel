@@ -104,6 +104,7 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
         def extendArray(array):
             """Double the length of the array"""
             return np.concatenate((array, array))
+
         def extendList(values):
             """Double the length of the list"""
             return values + values
