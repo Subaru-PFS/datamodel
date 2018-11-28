@@ -462,41 +462,42 @@ The file will have several HDUs:
 
 HDU#0 PDU
 
-HDU#1 LAMBDA_SCALE		Binary table		[FITS BINARY TABLE]
-	Columns for :
-	WAVELENGTH					FLOAT[NPIX]			Wavelength scale 
+HDU#1 LAMBDA_SCALE              Binary table            [FITS BINARY TABLE]
+        Columns for :
+        WAVELENGTH              FLOAT[NPIX]             Wavelength scale
 
-HDU#1 ZCANDIDATES		Binary table 		[FITS BINARY TABLE]
-	Colums for :
-	Z										FLOAT						Redshift
-	Z_ERR								FLOAT						Redshift error (negative for invalid fit)
-	ZRANK								INT32						Rank of redshift candidate ( best = 1 )
-	RELIABILITY					FLOAT						Probability
-	CLASS								STR							Spectro classification: GALAXY, QSO, STAR
-	SUBCLASS						STR							Subclassifications
-	ZFIT								FLOAT[NPIX]			Spectrum fit
+HDU#1 ZCANDIDATES               Binary table            [FITS BINARY TABLE]
+        Colums for :
+        Z                       FLOAT                   Redshift
+        Z_ERR                   FLOAT                   Redshift error (negative for invalid fit)
+        ZRANK                   INT32                   Rank of redshift candidate ( best = 1 )
+        RELIABILITY             FLOAT                   Probability
+        CLASS                   STR                     Spectro classification: GALAXY, QSO, STAR
+        SUBCLASS                STR                     Subclassifications
+        ZFIT                    FLOAT[NPIX]             Spectrum fit
 
-HDU#2 ZPDF 				Binary table		[FITS BINARY TABLE]
-	Colums for :
-	REDSHIFT 						FLOAT[NPIX]			Redshift scale
-	DENSITY							FLOAT[NPIX]			Intensity
+HDU#2 ZPDF                      Binary table            [FITS BINARY TABLE]
+        Colums for :
+        REDSHIFT                FLOAT[NPIX]             Redshift scale
+        DENSITY                 FLOAT[NPIX]             Intensity
 
-HDU#4 ZLINES 			Binary table       	[FITS BINARY TABLE]
-	Columns for :
-	LINENAME						STR							Line name
-	LINEWAVE						FLOAT						Catalog wavelength for this line in vacuum Angstroms
-	LINEZ              	FLOAT						Redshift
-	LINEZ_ERR          	FLOAT						Redshift error (negative for invalid fit)
-	LINESIGMA          	FLOAT						Gaussian width in Angstrom
-	LINESIGMA_ERR      	FLOAT						Error in gaussian width (negative for invalid fit)
-	LINEVEL            	FLOAT						Gaussian width in km/sec
-	LINEVEL_ERR        	FLOAT						Error in gaussian width (negative for invalid fit)
-	LINEFLUX           	FLOAT						Area in gaussian fit where units are (flux-units) * Ang
-	LINEFLUX_ERR       	FLOAT						Flux error (negative for invalid fit)
-	LINEEW             	FLOAT						Equivalent width (Angstroms)
-	LINEEW_ERR         	FLOAT						Equivalent width error (negative for invalid fit)
-	LINECONTLEVEL      	FLOAT						Continuum level at line center
-	LINECONTLEVEL_ERR  	FLOAT						Error in continuum level at line center
+HDU#4 ZLINES                    Binary table            [FITS BINARY TABLE]
+        Columns for :
+        LINENAME                STR                     Line name
+        LINEWAVE                FLOAT                   Catalog wavelength for this line in vacuum Angstroms
+        LINEZ                   FLOAT                   Redshift
+        LINEZ_ERR               FLOAT                   Redshift error (negative for invalid fit)
+        LINESIGMA               FLOAT                   Gaussian width in Angstrom
+        LINESIGMA_ERR           FLOAT                   Error in gaussian width (negative for invalid fit)
+        LINEVEL                 FLOAT                   Gaussian width in km/sec
+        LINEVEL_ERR             FLOAT                   Error in gaussian width (negative for invalid fit)
+        LINEFLUX                FLOAT                   Area in gaussian fit where units are (flux-units) * Ang
+        LINEFLUX_ERR            FLOAT                   Flux error (negative for invalid fit)
+        LINEEW                  FLOAT                   Equivalent width (Angstroms)
+        LINEEW_ERR              FLOAT                   Equivalent width error (negative for invalid fit)
+        LINECONTLEVEL           FLOAT                   Continuum level at line center
+        LINECONTLEVEL_ERR       FLOAT                   Error in continuum level at line center
+
 
 
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
