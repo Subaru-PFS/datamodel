@@ -205,6 +205,7 @@ FITS file format:
 
 HDU #0 PDU
 HDU #1          FITS binary table named "DESIGN"
+HDU #1          FITS binary table named "PHOTOMETRY"
 
 The DESIGN table lists for each object:
       fiberId        32-bit int
@@ -217,6 +218,19 @@ The DESIGN table lists for each object:
       pfiNominal     pair of 32-bit floats (microns on the PFI)
 
 N.b. fiberIds start at 1.
+
+The PHOTOMETRY table lists:
+      fiberId        32-bit int
+      fiberMag       32-bit float
+      filterName     string
+
+A fiberId may be listed multiple times in the PHOTOMETRY table in order to
+provide measurements in multiple filters for a single object.
+
+The 'filterName' values in the PHOTOMETRY table will specify particular
+transmission curves used by the pipeline, and therefore the range of
+permitted values is limited to a set to be specified by the DRP team.
+There will be a mechanism for adding to this set.
 
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
@@ -245,20 +259,10 @@ The CONFIG table lists for each object:
       pfiCenter      pair of 32-bit floats (microns on the PFI)
       pfiNominal     pair of 32-bit floats (microns on the PFI)
 
-N.b. fiberIds start at 1.
+(I.e., the same as for PfiDesign, except for the addition of the
+"pfiCenter" column.)
 
-The PHOTOMETRY table lists:
-      fiberId        32-bit int
-      fiberMag       32-bit float
-      filterName     string
-
-A fiberId may be listed multiple times in the PHOTOMETRY table in order to
-provide measurements in multiple filters for a single object.
-
-The 'filterName' values in the PHOTOMETRY table will specify particular
-transmission curves used by the pipeline, and therefore the range of
-permitted values is limited to a set to be specified by the DRP team.
-There will be a mechanism for adding to this set.
+The PHOTOMETRY table is the same as for the PfiDesign.
 
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
