@@ -107,18 +107,18 @@ class PfsConfig:
         self.pfiDesignId = pfiDesignId
         self.expId = expId
 
-        self.fiberId = fiberId
-        self.tract = tract
+        self.fiberId = np.array(fiberId)
+        self.tract = np.array(tract)
         self.patch = patch
-        self.ra = ra
-        self.dec = dec
-        self.catId = catId
-        self.objId = objId
-        self.targetType = targetType
-        self.fiberMag = fiberMag
+        self.ra = np.array(ra)
+        self.dec = np.array(dec)
+        self.catId = np.array(catId)
+        self.objId = np.array(objId)
+        self.targetType = np.array(targetType)
+        self.fiberMag = [np.array(mags) for mags in fiberMag]
         self.filterNames = filterNames
-        self.pfiCenter = pfiCenter
-        self.pfiNominal = pfiNominal
+        self.pfiCenter = np.array(pfiCenter)
+        self.pfiNominal = np.array(pfiNominal)
 
     def __len__(self):
         """Number of fibers"""
