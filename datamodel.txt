@@ -207,6 +207,11 @@ HDU #0 PDU
 HDU #1          FITS binary table named "DESIGN"
 HDU #1          FITS binary table named "PHOTOMETRY"
 
+The PDU has keys indicating the intended pointing of the telescope boresight.
+
+      RA        Intended telescope boresight Right Ascension.
+      DEC       Intended telescope boresight Declination.
+
 The DESIGN table lists for each object:
       fiberId        32-bit int
       catId          32-bit int
@@ -247,6 +252,11 @@ FITS file format:
 HDU #0 PDU
 HDU #1          FITS binary table named "CONFIG"
 HDU #1          FITS binary table named "PHOTOMETRY"
+
+The PDU has keys indicating the actual pointing of the telescope boresight.
+
+      RA        Actual telescope boresight Right Ascension.
+      DEC       Actual telescope boresight Declination.
 
 The CONFIG table lists for each object:
       fiberId        32-bit int

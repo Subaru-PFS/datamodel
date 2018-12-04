@@ -37,6 +37,10 @@ class PfsConfig:
         PFI design identifier, specifies the intended top-end configuration.
     expId : `int`
         Exposure identifier.
+    raBoresight : `float`, degrees
+        Right Ascension of telescope boresight.
+    decBoresight : `float`, degrees
+        Declination of telescope boresight.
     fiberId : `numpy.ndarary` of `int32`
         Fiber identifier for each fiber.
     tract : `numpy.ndarray` of `int32`
@@ -68,7 +72,8 @@ class PfsConfig:
 
     fileNameFormat = "pfsConfig-0x%016x-%06d.fits"
 
-    def __init__(self, pfiDesignId, expId, fiberId, tract, patch, ra, dec, catId, objId,
+    def __init__(self, pfiDesignId, expId, raBoresight, decBoresight,
+                 fiberId, tract, patch, ra, dec, catId, objId,
                  targetType, fiberMag, filterNames, pfiCenter, pfiNominal):
         if len(set([
             len(fiberId),
@@ -106,6 +111,8 @@ class PfsConfig:
 
         self.pfiDesignId = pfiDesignId
         self.expId = expId
+        self.raBoresight = raBoresight
+        self.decBoresight = decBoresight
 
         self.fiberId = np.array(fiberId)
         self.tract = np.array(tract)
@@ -159,6 +166,9 @@ class PfsConfig:
 
         filename = os.path.join(dirName, cls.fileNameFormat % (pfiDesignId, expId))
         with pyfits.open(filename) as fd:
+            phu = fd[0].header
+            raBoresight = phu['RA']
+            decBoresight = phu['DEC']
             data = fd["CONFIG"].data
 
             fiberId = data['fiberId']
@@ -180,7 +190,8 @@ class PfsConfig:
                 fiberMag[row['fiberId']].append(row['fiberMag'])
                 filterNames[row['fiberId']].append(row['filterName'])
 
-        return cls(pfiDesignId=pfiDesignId, expId=expId, tract=tract, patch=patch, fiberId=fiberId,
+        return cls(pfiDesignId=pfiDesignId, expId=expId, tract=tract, raBoresight=raBoresight,
+                   decBoresight=decBoresight, patch=patch, fiberId=fiberId,
                    ra=ra, dec=dec, catId=catId, objId=objId, targetType=targetType,
                    fiberMag=[np.array(fiberMag[ii]) for ii in fiberId],
                    filterNames=[filterNames[ii] for ii in fiberId],
@@ -205,6 +216,8 @@ class PfsConfig:
         fits = pyfits.HDUList()
 
         hdr = pyfits.Header()
+        hdr['RA'] = (self.raBoresight, "Telescope boresight RA, degrees")
+        hdr['DEC'] = (self.decBoresight, "Telescope boresight Dec, degrees")
         hdu = pyfits.PrimaryHDU(header=hdr)
         hdr.update()
         fits.append(hdu)
