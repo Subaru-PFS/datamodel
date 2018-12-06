@@ -241,7 +241,7 @@ class PfiDesign:
         assert(len(fiberId) == numRows)
         assert(len(fiberMag) == numRows)
         assert(len(filterNames) == numRows)
-        maxLength = max(len(ff) for ff in filterNames)
+        maxLength = max(len(ff) for ff in filterNames) if filterNames else 1
 
         fits.append(pyfits.BinTableHDU.from_columns([
             pyfits.Column(name='fiberId', format='J', array=fiberId),
