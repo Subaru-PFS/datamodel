@@ -466,7 +466,7 @@ HDU#1 LAMBDA_SCALE              Binary table            [FITS BINARY TABLE]
         Columns for :
         WAVELENGTH              FLOAT[NPIX]             Wavelength scale
 
-HDU#1 ZCANDIDATES               Binary table            [FITS BINARY TABLE]
+HDU#2 ZCANDIDATES               Binary table            [FITS BINARY TABLE]
         Colums for :
         Z                       FLOAT                   Redshift
         Z_ERR                   FLOAT                   Redshift error (negative for invalid fit)
@@ -476,7 +476,7 @@ HDU#1 ZCANDIDATES               Binary table            [FITS BINARY TABLE]
         SUBCLASS                STR                     Subclassifications
         ZFIT                    FLOAT[NPIX]             Spectrum fit
 
-HDU#2 ZPDF                      Binary table            [FITS BINARY TABLE]
+HDU#3 ZPDF                      Binary table            [FITS BINARY TABLE]
         Colums for :
         REDSHIFT                FLOAT[NPIX]             Redshift scale
         DENSITY                 FLOAT[NPIX]             Intensity
