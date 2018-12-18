@@ -237,7 +237,7 @@ class PfiDesign:
         numRows = sum(len(mag) for mag in self.fiberMag)
         fiberId = np.array(sum(([ii]*len(mag) for ii, mag in enumerate(self.fiberMag)), []))
         fiberMag = np.array(sum((mag.tolist() for mag in self.fiberMag), []))
-        filterNames = np.array(sum(self.filterNames, []))
+        filterNames = sum(self.filterNames, [])
         assert(len(fiberId) == numRows)
         assert(len(fiberMag) == numRows)
         assert(len(filterNames) == numRows)
