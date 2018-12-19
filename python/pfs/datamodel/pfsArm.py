@@ -46,7 +46,7 @@ class PfsArm:
 
         if pfsConfig is not None:
             if self.pfsConfigId is None:
-                self.pfsConfigId = pfsConfig.pfsConfigId
+                self.pfsConfigId = pfsConfig.pfiDesignId
             else:
                 self.checkPfsConfig()
 
@@ -136,9 +136,9 @@ class PfsArm:
         if self.pfsConfig is None:
             return
 
-        if self.pfsConfigId != self.pfsConfig.pfsConfigId:
-            raise RuntimeError("pfsConfigId == 0x%016x != pfsConfig.pfsConfigId == 0x%016x" %
-                               (self.pfsConfigId, self.pfsConfig.pfsConfigId))
+        if self.pfsConfigId != self.pfsConfig.pfiDesignId:
+            raise RuntimeError("pfsConfigId == 0x%016x != pfsConfig.pfiDesignId == 0x%016x" %
+                               (self.pfsConfigId, self.pfsConfig.pfiDesignId))
         #
         # the case pfsConfigId == 0 is special, and doesn't constrain the number of rows
         # so there's no point checking it
@@ -297,11 +297,11 @@ class PfsArmSet(object):
 
         if pfsConfig:
             if self.pfsConfigId:
-                if self.pfsConfigId != pfsConfig.pfsConfigId:
-                    raise RuntimeError("pfsConfigId == 0x%08x != pfsConfig.pfsConfigId == 0x%08x" %
-                                       (self.pfsConfigId, pfsConfig.pfsConfigId))
+                if self.pfsConfigId != pfsConfig.pfiDesignId:
+                    raise RuntimeError("pfsConfigId == 0x%08x != pfsConfig.pfiDesignId == 0x%08x" %
+                                       (self.pfsConfigId, pfsConfig.pfiDesignId))
             else:
-                self.pfsConfigId = pfsConfig.pfsConfigId
+                self.pfsConfigId = pfsConfig.pfiDesignId
 
             self.pfsConfigs[self.pfsConfigId] = pfsConfig
 
