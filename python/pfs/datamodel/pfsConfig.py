@@ -235,7 +235,7 @@ class PfiDesign:
         fits.append(pyfits.BinTableHDU.from_columns(columns, hdr, name=self._hduName))
 
         numRows = sum(len(mag) for mag in self.fiberMag)
-        fiberId = np.array(sum(([ii]*len(mag) for ii, mag in enumerate(self.fiberMag)), []))
+        fiberId = np.array(sum(([ii]*len(mags) for ii, mags in zip(self.fiberId, self.fiberMag)), []))
         fiberMag = np.array(sum((mag.tolist() for mag in self.fiberMag), []))
         filterNames = sum(self.filterNames, [])
         assert(len(fiberId) == numRows)

@@ -28,7 +28,7 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
 
         self.pfiDesignId = 12345
         self.expId = 67890
-        self.fiberId = np.arange(self.numFibers, dtype=int)
+        self.fiberId = np.array(list(reversed(range(self.numFibers))))
         rng = np.random.RandomState(12345)
         self.tract = rng.uniform(high=30000, size=self.numFibers).astype(int)
         self.patch = ["%d,%d" % tuple(xy.tolist()) for
