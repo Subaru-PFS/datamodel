@@ -272,6 +272,31 @@ class PfiDesign:
             fileName = self.filename
         self._writeImpl(os.path.join(dirName, fileName))
 
+    def selectByTargetType(self, targetType, fiberId=None):
+        """Select fibers by ``targetType``
+
+        If a `fiberId` array is provided, returns indices for array;
+        otherwise, returns indices for ``self``.
+
+        Parameters
+        ----------
+        targetType : `TargetType`
+            Target type to select.
+        fiberId : `numpy.ndarray` of `int`, optional
+            Array of fiber identifiers to select.
+
+        Returns
+        -------
+        indices : `numpy.ndarray` of `int`
+            Indices of selected elements.
+        """
+        targetType = int(targetType)
+        select = self.targetType == targetType
+        if fiberId is None:
+            return self.fiberId[select]
+        selected = set(self.fiberId[select])
+        return np.array([ii for ii, ff in enumerate(fiberId) if ff in selected])
+
 
 class PfsConfig(PfiDesign):
     """The configuration of the PFS top-end for one or more observations
