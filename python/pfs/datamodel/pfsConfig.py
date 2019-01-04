@@ -8,6 +8,8 @@ except ImportError:
     pyfits = None
 
 
+__all__ = ["TargetType", "PfiDesign", "PfsConfig"]
+
 @enum.unique
 class TargetType(enum.IntEnum):
     """Enumerated options for what a fiber is targeting
@@ -98,8 +100,8 @@ class PfiDesign:
             If the ``targetType`` is not recognised.
         """
         if len(set([len(getattr(self, nn)) for nn in self._keywords])) != 1:
-            raise RuntimeError("Inconsistent lengths: %s"  % ({nn: len(getattr(self, nn)) for
-                                                               nn in self._keywords}))
+            raise RuntimeError("Inconsistent lengths: %s" % ({nn: len(getattr(self, nn)) for
+                                                              nn in self._keywords}))
         for ii, tt in enumerate(self.targetType):
             try:
                 TargetType(tt)
