@@ -293,9 +293,114 @@ class PfiDesign:
         targetType = int(targetType)
         select = self.targetType == targetType
         if fiberId is None:
-            return self.fiberId[select]
+            return np.nonzero(select)[0]
         selected = set(self.fiberId[select])
         return np.array([ii for ii, ff in enumerate(fiberId) if ff in selected])
+
+    def selectTarget(self, catId, tract, patch, objId):
+        """Select fiber by target
+
+        Returns index for the fiber that matches the target identity.
+
+        Parameters
+        ----------
+        catId : `int`
+            Catalog identifier.
+        tract : `int`
+            Trace identifier.
+        patch : `str`
+            Patch name.
+        objId : `int`
+            Object identifier.
+
+        Returns
+        -------
+        index : `int`
+            Index of selected target.
+        """
+        index = np.argwhere((self.catId == catId) & (self.tract == tract) &
+                            (self.patch == patch) & (self.objId == objId))
+        if len(index) != 1:
+            raise RuntimeError("Non-unique selection of target: %s" % (index,))
+        return index[0][0]
+
+    def selectFiber(self, fiberId):
+        """Select fiber(s) by fiber identifier
+
+        Returns the index for the provided fiber identifier.
+
+        Parameters
+        ----------
+        fiberId : iterable of `int`
+            Fiber identifiers to select.
+
+        Returns
+        -------
+        index : array-like of `int`
+            Indices for fiber.
+        """
+        def impl(fiberId):
+            """Implementation: get index of fiber"""
+            return np.nonzero(self.fiberId == fiberId)[0]
+
+        try:
+            return np.array([impl(ff) for ff in fiberId])
+        except TypeError:  # fiberId is not iterable
+            return impl(fiberId)
+
+    def getIdentityFromIndex(self, index):
+        """Return the identity of the target indicated by the index
+
+        Parameters
+        ----------
+        index : scalar or iterable of `int`
+            Index for ``self``.
+
+        Returns
+        -------
+        identity : single or `list` of `dict`
+            Keword-value pairs identifying the target(s).
+        """
+        def impl(index):
+            """Implementation: get identity given index"""
+            return dict(catId=self.catId[index], tract=self.tract[index], patch=self.patch[index],
+                        objId=self.objId[index])
+        try:
+            return [impl(ii) for ii in index]
+        except TypeError:  # index is not iterable
+            return impl(index)
+
+    def getIdentity(self, fiberId):
+        """Return the identity of the target indicated by the fiber(s)
+
+        Parameters
+        ----------
+        fiberId : scalar or iterable of `int`
+            Fiber identifier.
+
+        Returns
+        -------
+        identity : single or `list` of `dict`
+            Keyword-value pairs identifying the target.
+        """
+        index = self.selectFiber(fiberId)
+        return self.getIdentityFromIndex(index)
+
+    def extractNominal(self, fiberId):
+        """Extract nominal positions for fibers
+
+        Parameters
+        ----------
+        fiberId : iterable of `int`
+            Fiber identifiers.
+
+        Returns
+        -------
+        nominal : `numpy.ndarray` of shape ``(N, 2)``
+            Nominal position for each fiber.
+        """
+        index = np.array([np.argwhere(self.fiberId == ff)[0][0] for ff in fiberId])
+        return self.pfiNominal[index]
 
 
 class PfsConfig(PfiDesign):
@@ -402,3 +507,19 @@ class PfsConfig(PfiDesign):
         """
         filename = os.path.join(dirName, cls.fileNameFormat % (pfiDesignId, expId))
         return cls._readImpl(filename, pfiDesignId=pfiDesignId, expId=expId)
+
+    def extractCenters(self, fiberId):
+        """Extract centers for fibers
+
+        Parameters
+        ----------
+        fiberId : iterable of `int`
+            Fiber identifiers.
+
+        Returns
+        -------
+        centers : `numpy.ndarray` of shape ``(N, 2)``
+            Center of each fiber.
+        """
+        index = np.array([np.argwhere(self.fiberId == ff)[0][0] for ff in fiberId])
+        return self.pfiCenter[index]
