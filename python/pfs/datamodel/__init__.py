@@ -1,2 +1,6 @@
-if False:
-    from .version import *
+from .masks import *
+from .pfsConfig import *
+from .pfsSpectra import *
+from .pfsSpectrum import *
+from .target import *
+from .drp import *

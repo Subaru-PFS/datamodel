@@ -1,8 +1,6 @@
 #
 # A couple of useful functions to calculate PFS's SHA-1s
 #
-from builtins import zip
-from builtins import range
 import hashlib
 import numpy as np
 
@@ -68,3 +66,43 @@ def makeFullCovariance(covar):
         C[i[:-j], i[j:]] = covar[j][0:-j]         # below the diagonal
 
     return C
+
+
+def astropyHeaderToDict(header):
+    """Convert an astropy FITS header to a dict
+
+    Comments are not preserved, nor are ``COMMENT`` or ``HISTORY`` cards.
+
+    Parameters
+    ----------
+    header : `astropy.io.fits.Header`
+        FITS header.
+
+    Returns
+    -------
+    metadata : `dict`
+        FITS header keywords and values.
+    """
+    return {key: value for key, value in header.items() if key not in set(("HISTORY", "COMMENT"))}
+
+
+def astropyHeaderFromDict(metadata):
+    """Convert a dict to an astropy FITS header
+
+    Parameters
+    ----------
+    metadata : `dict`
+        FITS header keywords and values.
+
+    Returns
+    -------
+    header : `astropy.io.fits.Header`
+        FITS header.
+    """
+    import astropy.io.fits
+    header = astropy.io.fits.Header()
+    for key, value in metadata.items():
+        if len(key) > 8 and not key.startswith("HIERARCH"):
+            key = "HIERARCH " + key
+        header.append((key, value))
+    return header

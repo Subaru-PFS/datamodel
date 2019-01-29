@@ -1,2 +1,5 @@
 setupOptional(pyfits)
+setupOptional(utils)
+setupOptional(afw)
+setupRequired(sconsUtils)
 pathPrepend(PYTHONPATH, ${PRODUCT_DIR}/python)

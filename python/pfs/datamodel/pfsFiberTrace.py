@@ -1,5 +1,3 @@
-from builtins import range
-from builtins import object
 import os
 
 import numpy as np
@@ -14,7 +12,7 @@ import lsst.daf.base as dafBase
 import lsst.afw.fits as afwFits
 
 
-class PfsFiberTrace(object):
+class PfsFiberTrace:
     """A class corresponding to a single fiberTrace file"""
     fileNameFormat = "pfsFiberTrace-%10s-%06d-%1s%1d.fits"
 
