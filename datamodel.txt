@@ -446,6 +446,63 @@ Note that the wavelength need not be uniformly sampled.
 
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
+Redshift candidates
+
+
+According to the "combined spectra" data model we include both the number of
+visits (nVisit) and a SHA-1 hash of the visits, pfsVisitHash.
+
+I propose :
+		"pfsZcandidates-%05d-%s-%3d-%08x-%02d-0x%08x.fits" % (tract, patch, catId, objId, nVisit % 100, pfsVisitHash)
+
+The path would be
+   tract/patch/pfsZcandidate-*.fits
+
+The file will have several HDUs:
+
+HDU#0 PDU
+
+HDU#1 ZCANDIDATES               Binary table            [FITS BINARY TABLE]     NCANDIDATE
+        Colums for :
+        Z                       FLOAT                   Redshift
+        Z_ERR                   FLOAT                   Redshift error
+        ZRANK                   INT32                   Rank of redshift candidate ( best = 1 )
+        RELIABILITY             FLOAT                   Area of the PDF peak (dz=+/-3.e-3)
+        CLASS                   STR                     Spectro classification: GALAXY, QSO, STAR
+        SUBCLASS                STR                     Subclassifications
+        MODELFLUX               FLOAT[NROW]             Spectrum model (unit: nJy)
+
+HDU#2 MODELWL                   Binary table            [FITS BINARY TABLE]     NROW
+        Columns for :
+        WAVELENGTH              FLOAT                   Wavelength scale (unit: nm)
+
+HDU#3 ZPDF                      Binary table            [FITS BINARY TABLE]     NPIX
+        Colums for :
+        REDSHIFT                FLOAT                   Redshift scale
+        PDF                     FLOAT                   PDF marginalised over all models
+
+HDU#4 ZLINES                    Binary table            [FITS BINARY TABLE]     NLINE
+        Columns for :
+        LINENAME                STR                     Line name
+        LINEWAVE                FLOAT                   Catalog wavelength for this line in vacuum (unit: nm)
+        LINEZ                   FLOAT                   Redshift
+        LINEZ_ERR               FLOAT                   Redshift error
+        LINESIGMA               FLOAT                   Gaussian width (unit: nm)
+        LINESIGMA_ERR           FLOAT                   Error in gaussian width
+        LINEVEL                 FLOAT                   Gaussian width (unit: km/sec)
+        LINEVEL_ERR             FLOAT                   Error in gaussian width
+        LINEFLUX                FLOAT                   Area in gaussian fit (unit: erg/cm^2/s)
+        LINEFLUX_ERR            FLOAT                   Flux error
+        LINEEW                  FLOAT                   Equivalent width (unit: nm)
+        LINEEW_ERR              FLOAT                   Equivalent width error
+        LINECONTLEVEL           FLOAT                   Continuum level at line center (unit: nJy)
+        LINECONTLEVEL_ERR       FLOAT                   Error in continuum level at line center
+
+
+
+-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+
 			Example File Names
 			------------------
 
@@ -555,4 +612,3 @@ The ISR-extracted H4RG images will be no bigger than
 
 	Do we really want HDU #1 (rebinned spectra) in medium-resolution pfsObject files to
 	omit the blue and IR data?
-
