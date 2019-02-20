@@ -302,7 +302,7 @@ class PfsSpectra:
         figure, axes = plt.subplots()
 
         colors = matplotlib.cm.rainbow(np.linspace(0, 1, len(fiberId)))
-        for ff, cc in fiberId, colors:
+        for ff, cc in zip(fiberId, colors):
             index = np.where(self.fiberId == ff)[0]
             good = (self.mask[index] & ignorePixelMask) == 0
             axes.plot(wavelength[index][good], self.flux[index][good], ls="solid", color=cc)
