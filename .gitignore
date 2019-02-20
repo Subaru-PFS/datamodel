@@ -3,3 +3,4 @@
 .sconf_temp
 .sconsign.dblite
 python/pfs/datamodel/version.py
+tests/.tests
