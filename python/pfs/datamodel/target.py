@@ -178,7 +178,8 @@ class TargetObservations(types.SimpleNamespace):
             Constructed observations.
         """
         hdu = fits["OBSERVATIONS"]
-        kwargs = {col: hdu.data[col] for col in ("identity", "fiberId", "pfiNominal", "pfiCenter")}
+        kwargs = {col: hdu.data[col] for col in ("fiberId", "pfiNominal", "pfiCenter")}
+        kwargs["identity"] = [eval(ident) for ident in hdu.data["identity"]]
         return cls(**kwargs)
 
     def toFits(self, fits):
