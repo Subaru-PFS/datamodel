@@ -190,7 +190,7 @@ class TargetObservations(types.SimpleNamespace):
             Opened FITS file.
         """
         from astropy.io.fits import BinTableHDU, Column
-        identityLength = max(len(ident) for ident in self.identity)
+        identityLength = max(len(str(ident)) for ident in self.identity)
         hdu = BinTableHDU.from_columns([
             Column("identity", "%dA" % identityLength, array=self.identity),
             Column("fiberId", "K", array=self.fiberId),
