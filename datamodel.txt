@@ -18,7 +18,7 @@ NROW        The number of rows that spectra extend over in the dispersion direct
 	    In practice, the number of rows in the usable part of the CCD.
 NSIMROW     Number of rows for simulated data.  May be different in different files, depending
 	    on the desired oversampling.
-NCOARSE     Number of wavelengths used in computing the full covariance matrix of the spectra
+NCOARSE     Number of wavelengths used in computing the coarse (low-resolution) covariance matrix of the spectra
 
 The values of NCOLUMN and NROW may be different in the optical and IR arms, and will differ for
 raw and reduced data.  Possible values are given in the section, "Parameters"
