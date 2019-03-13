@@ -178,7 +178,8 @@ class TargetObservations(types.SimpleNamespace):
             Constructed observations.
         """
         hdu = fits["OBSERVATIONS"]
-        kwargs = {col: hdu.data[col] for col in ("identity", "fiberId", "pfiNominal", "pfiCenter")}
+        kwargs = {col: hdu.data[col] for col in ("fiberId", "pfiNominal", "pfiCenter")}
+        kwargs["identity"] = [eval(ident) for ident in hdu.data["identity"]]
         return cls(**kwargs)
 
     def toFits(self, fits):
@@ -190,7 +191,7 @@ class TargetObservations(types.SimpleNamespace):
             Opened FITS file.
         """
         from astropy.io.fits import BinTableHDU, Column
-        identityLength = max(len(ident) for ident in self.identity)
+        identityLength = max(len(str(ident)) for ident in self.identity)
         hdu = BinTableHDU.from_columns([
             Column("identity", "%dA" % identityLength, array=self.identity),
             Column("fiberId", "K", array=self.fiberId),

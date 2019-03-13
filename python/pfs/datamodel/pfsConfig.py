@@ -485,6 +485,30 @@ class PfsConfig(PfiDesign):
         return self.fileNameFormat % (self.pfiDesignId, self.expId)
 
     @classmethod
+    def fromPfiDesign(cls, pfiDesign, expId, pfiCenter):
+        """Construct from a ``PfiDesign``
+
+        Parameters
+        ----------
+        pfiDesign : `pfs.datamodel.PfiDesign`
+            ``PfiDesign`` to use as the base for this ``PfsConfig``.
+        expId : `int`
+            Exposure identifier.
+        pfiCenter : `numpy.ndarray` of `float`
+            Actual position (2-vector) of each fiber on the PFI, microns.
+
+        Returns
+        -------
+        self : `PfsConfig`
+            Constructed ``PfsConfig`.
+        """
+        keywords = ["pfiDesignId", "raBoresight", "decBoresight"]
+        kwargs = {kk: getattr(pfiDesign, kk) for kk in pfiDesign._keywords + keywords}
+        kwargs["expId"] = expId
+        kwargs["pfiCenter"] = pfiCenter
+        return PfsConfig(**kwargs)
+
+    @classmethod
     def read(cls, pfiDesignId, expId, dirName="."):
         """Construct from file
 
