@@ -194,11 +194,11 @@ where the bounding box of the trace is defined by the lower left and upper right
 
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-The design of a PFI setup, i.e., the targetting of fibers, is a PfiDesign:
+The design of a PFI setup, i.e., the targetting of fibers, is a PfsDesign:
 
-    "pfiDesign-0x%016x.fits" % (pfiDesignId)
+    "pfsDesign-0x%016x.fits" % (pfsDesignId)
 
-The choice of a hex format is because the the pfiDesignId is a SHA-1
+The choice of a hex format is because the the pfsDesignId is a SHA-1
 of the intended fiber positions.
 
 FITS file format:
@@ -239,13 +239,13 @@ There will be a mechanism for adding to this set.
 
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-The realisation of a PfiDesign for a particular exposure is a PfsConfig.
-The most important differences from PfiDesign are that the actual fiber
+The realisation of a PfsDesign for a particular exposure is a PfsConfig.
+The most important differences from PfsDesign are that the actual fiber
 positions and object photometry are recorded for use in the DRP.
 
-    "pfsConfig-0x%016x-%06d.fits" % (pfiDesignId, expId)
+    "pfsConfig-0x%016x-%06d.fits" % (pfsDesignId, visit)
 
-The choice of a hex format is because the the pfiDesignId is a SHA-1.
+The choice of a hex format is because the the pfsDesignId is a SHA-1.
 
 FITS file format:
 
@@ -269,10 +269,10 @@ The CONFIG table lists for each object:
       pfiCenter      pair of 32-bit floats (microns on the PFI)
       pfiNominal     pair of 32-bit floats (microns on the PFI)
 
-(I.e., the same as for PfiDesign, except for the addition of the
+(I.e., the same as for PfsDesign, except for the addition of the
 "pfiCenter" column.)
 
-The PHOTOMETRY table is the same as for the PfiDesign.
+The PHOTOMETRY table is the same as for the PfsDesign.
 
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
