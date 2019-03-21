@@ -21,7 +21,7 @@ class PfsSpectra:
     ----------
     identity : `dict`
         Keyword-value pairs identifying the data of interest. Common keywords
-        include ``expId``, ``pfiDesignId``, ``spectrograph``, ``arm``.
+        include ``expId``, ``pfsDesignId``, ``spectrograph``, ``arm``.
     fiberId : `numpy.ndarray` of `int`
         Fiber identifiers for each spectrum.
     wavelength : `numpy.ndarray` of `float`
@@ -99,7 +99,7 @@ class PfsSpectra:
         ----------
         identity : `dict`
             Keyword-value pairs identifying the data of interest. Common keywords
-            include ``expId``, ``pfiDesignId``, ``spectrograph``, ``arm``.
+            include ``expId``, ``pfsDesignId``, ``spectrograph``, ``arm``.
 
         Returns
         -------
@@ -172,7 +172,7 @@ class PfsSpectra:
         ----------
         identity : `dict`
             Keyword-value pairs identifying the data of interest. Common keywords
-            include ``expId``, ``pfiDesignId``, ``spectrograph``, ``arm``.
+            include ``expId``, ``pfsDesignId``, ``spectrograph``, ``arm``.
         dirName : `str`, optional
             Directory from which to read.
 
