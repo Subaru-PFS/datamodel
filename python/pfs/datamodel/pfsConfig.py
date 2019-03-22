@@ -119,7 +119,7 @@ class PfsDesign:
     def __init__(self, pfsDesignId, raBoresight, decBoresight,
                  fiberId, tract, patch, ra, dec, catId, objId,
                  targetType, fiberMag, filterNames, pfiNominal):
-        self.pfiDesignId = pfsDesignId
+        self.pfsDesignId = pfsDesignId
         self.raBoresight = raBoresight
         self.decBoresight = decBoresight
 

@@ -63,7 +63,7 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
                             for tt in self.targetType]
 
     def assertPfsConfig(self, lhs, rhs):
-        for value in ("pfiDesignId", "expId"):
+        for value in ("pfsDesignId", "expId"):
             self.assertEqual(getattr(lhs, value), getattr(rhs, value), value)
         for value in ("raBoresight", "decBoresight"):
             # Our FITS header writer can introduce some tiny roundoff error

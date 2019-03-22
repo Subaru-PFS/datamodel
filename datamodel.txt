@@ -511,7 +511,7 @@ HDU#4 ZLINES                    Binary table            [FITS BINARY TABLE]     
  PFLB00123423.fits
 	Raw up-the-ramp exposure, visit 1234, taken at LAM with spectrograph 2 using the IR arm
 
- pfiDesign-0xad349fe2.fits
+ pfsDesign-0xad349fe2.fits
 	The fiber and targetting information for the PFI configuration with hash 0xad349fe2
 
  pfsFlat-000333-m2.fits
