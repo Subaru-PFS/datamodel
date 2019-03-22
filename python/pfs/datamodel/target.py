@@ -124,7 +124,7 @@ class TargetObservations(types.SimpleNamespace):
         assert self.pfiNominal.shape == (self.num, 2)
         assert self.pfiNominal.shape == (self.num, 2)
 
-    def calculateExpHash(self, keys=("expId",)):
+    def calculateExpHash(self, keys=("visit",)):
         """Calculate hash of the exposure inputs
 
         Parameters
@@ -147,7 +147,7 @@ class TargetObservations(types.SimpleNamespace):
         # Convert to int and truncate to 8 hexadecimal digits
         return int(hasher.hexdigest(), 16) & 0xffffffff
 
-    def getIdentity(self, hashKeys=("expId",)):
+    def getIdentity(self, hashKeys=("visit",)):
         """Return the identity of these observations
 
         Parameters

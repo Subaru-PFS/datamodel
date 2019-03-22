@@ -9,9 +9,9 @@ class PfsArm(PfsSpectra):
 
     Produced by ``reduceExposure``.
     """
-    filenameFormat = "pfsArm-%(expId)06d-%(arm)1s%(spectrograph)1d.fits"
+    filenameFormat = "pfsArm-%(visit)06d-%(arm)1s%(spectrograph)1d.fits"
     filenameRegex = r"^pfsArm-(\d{6})-([brnm])(\d)\.fits.*$"
-    filenameKeys = [("expId", int), ("arm", str), ("spectrograph", int)]
+    filenameKeys = [("visit", int), ("arm", str), ("spectrograph", int)]
 
 
 class PfsMerged(PfsSpectra):
@@ -19,9 +19,9 @@ class PfsMerged(PfsSpectra):
 
     Produced by ``mergeArms``.
     """
-    filenameFormat = "pfsMerged-%(expId)06d.fits"
+    filenameFormat = "pfsMerged-%(visit)06d.fits"
     filenameRegex = r"^pfsMerged-(\d{6})\.fits.*$"
-    filenameKeys = [("expId", int)]
+    filenameKeys = [("visit", int)]
 
 
 class PfsReference(PfsSimpleSpectrum):
@@ -39,9 +39,9 @@ class PfsObject(PfsSpectrum):
 
     Produced by ``fluxCalibrate``.
     """
-    filenameFormat = "pfsObject-%(catId)03d-%(tract)05d-%(patch)s-%(objId)08x-%(expId)06d.fits"
+    filenameFormat = "pfsObject-%(catId)03d-%(tract)05d-%(patch)s-%(objId)08x-%(visit)06d.fits"
     filenameRegex = r"^pfsObject-(\d{3})-(\d{5})-(.*)-(0x.{8})-(\d{6})\.fits.*$"
-    filenameKeys = [("catId", int), ("tract", int), ("patch", str), ("objId", int), ("expId", int)]
+    filenameKeys = [("catId", int), ("tract", int), ("patch", str), ("objId", int), ("visit", int)]
 
 
 class PfsCoadd(PfsSpectrum):
