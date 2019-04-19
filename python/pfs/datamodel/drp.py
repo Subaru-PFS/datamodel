@@ -29,7 +29,7 @@ class PfsReference(PfsSimpleSpectrum):
 
     Produced by ``calculateReferenceFlux``.
     """
-    filenameFormat = "pfsReference-%(catId)03d-%(tract)05d-%(patch)s-%(objId)08x.fits"
+    filenameFormat = "pfsReference-%(catId)03d-%(tract)05d-%(patch)s-%(objId)016x.fits"
     filenameRegex = r"^pfsReference-(\d{3})-(\d{5})-(.*)-(0x.{8})\.fits.*$"
     filenameKeys = [("catId", int), ("tract", int), ("patch", str), ("objId", int)]
 
@@ -39,8 +39,8 @@ class PfsObject(PfsSpectrum):
 
     Produced by ``fluxCalibrate``.
     """
-    filenameFormat = "pfsObject-%(catId)03d-%(tract)05d-%(patch)s-%(objId)08x-%(expId)06d.fits"
-    filenameRegex = r"^pfsObject-(\d{3})-(\d{5})-(.*)-(0x.{8})-(\d{6})\.fits.*$"
+    filenameFormat = "pfsObject-%(catId)03d-%(tract)05d-%(patch)s-%(objId)016x-%(expId)06d.fits"
+    filenameRegex = r"^pfsObject-(\d{3})-(\d{5})-(.*)-(0x.{16})-(\d{6})\.fits.*$"
     filenameKeys = [("catId", int), ("tract", int), ("patch", str), ("objId", int), ("expId", int)]
 
 
@@ -49,7 +49,7 @@ class PfsCoadd(PfsSpectrum):
 
     Produced by ``coaddSpectra``.
     """
-    filenameFormat = "pfsCoadd-%(catId)03d-%(tract)05d-%(patch)s-%(objId)08x-%(numExp)03d-%(expHash)08x.fits"
-    filenameRegex = r"^pfsCoadd-(\d{3})-(\d{5})-(.*)-(0x.{8})-(\d{3})-(0x.{8})\.fits.*$"
+    filenameFormat = "pfsCoadd-%(catId)03d-%(tract)05d-%(patch)s-%(objId)016x-%(numExp)03d-%(expHash)08x.fits"
+    filenameRegex = r"^pfsCoadd-(\d{3})-(\d{5})-(.*)-(0x.{16})-(\d{3})-(0x.{8})\.fits.*$"
     filenameKeys = [("catId", int), ("tract", int), ("patch", str), ("objId", int),
                     ("numExp", int), ("expHash", int)]
