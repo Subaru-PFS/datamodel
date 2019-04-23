@@ -411,6 +411,21 @@ the medium arm, and to omit the data from the blue and IR arms.
 
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
+Coadded Spectra
+
+This specifies the format for coadded spectra. As these object represent data across all 3 arms, 
+the structural contents of each pfsCoadd file are exactly the same as that for pfsObject files. 
+They are distinguished by filename, which follows the naming convention below. 
+The component nExp corresponds to the number of input exposures,
+and expHash is a SHA-1 hash that is unique for each set of observations.
+
+     "pfsCoadd-%05d-%s-%3d-%08x-%02d-0x%08x.fits" % (tract, patch, catId, objId, nExp, expHash)
+
+The path to these data is:
+   catId/tract/patch/pfsCoadd-*.fits
+
+-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
 Simulations
 
 We need to specify a format for the spectra going into the simulator.  At first glance we could adopt the
