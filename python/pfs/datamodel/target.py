@@ -2,7 +2,7 @@ import types
 import hashlib
 import numpy as np
 
-from .utils import astropyHeaderFromDict, astropyHeaderToDict, createHash
+from .utils import astropyHeaderFromDict, astropyHeaderToDict, createHash, wraparoundNVisit
 
 __all__ = ["TargetData", "TargetObservations"]
 
@@ -154,7 +154,7 @@ class TargetObservations(types.SimpleNamespace):
         identity : `dict`
             Keyword-value pairs identifying these observations.
         """
-        return dict(numExp=len(self), expHash=self.calculateExpHash(hashKeys))
+        return dict(numExp=wraparoundNVisit(len(self)), expHash=self.calculateExpHash(hashKeys))
 
     @classmethod
     def fromFits(cls, fits):
