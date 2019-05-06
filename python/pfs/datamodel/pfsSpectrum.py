@@ -4,7 +4,7 @@ import numpy as np
 
 from .masks import MaskHelper
 from .target import TargetData, TargetObservations
-from .utils import astropyHeaderFromDict
+from .utils import astropyHeaderFromDict, wraparoundNVisit
 
 __all__ = ["PfsSimpleSpectrum", "PfsSpectrum"]
 
@@ -247,7 +247,7 @@ class PfsSpectrum(PfsSimpleSpectrum):
         self.sky = sky
         self.covar = covar
         self.covar2 = covar2
-        self.numExp = len(self.observations)
+        self.numExp = wraparoundNVisit(len(self.observations))
         super().__init__(target, wavelength, flux, mask, flags)
 
     @property
@@ -270,7 +270,7 @@ class PfsSpectrum(PfsSimpleSpectrum):
     def validate(self):
         """Validate that all the arrays are of the expected shape"""
         self.observations.validate()
-        assert len(self.observations) == self.numExp
+        assert wraparoundNVisit(len(self.observations))== self.numExp
         assert self.sky.shape == (self.length,)
         assert self.covar.shape == (3, self.length)
         assert self.covar2.ndim == 2

@@ -21,9 +21,10 @@ def calculate_pfsDesignId(fiberIds, ras, decs):
         if ras is None and decs is None:
             return 0x0
 
-        raise RuntimeError("Either all or none of fiberId, ra, and dec may be None")
+        raise RuntimeError(
+            "Either all or none of fiberId, ra, and dec may be None")
 
-    if (ras == 0.0).all() and (decs == 0.0).all(): # don't check fiberIds as this may be lab data
+    if (ras == 0.0).all() and (decs == 0.0).all():  # don't check fiberIds as this may be lab data
         return 0x0
 
     return createHash(["%d %.0f %.0f" % (fiberId, ra, dec) for fiberId, ra, dec in zip(fiberIds, ras, decs)])
@@ -49,7 +50,8 @@ def createHash(*args):
     return int(m.hexdigest(), 16) & 0x7fffffffffffffff
 
 
-#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+# -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
 
 def makeFullCovariance(covar):
     """Given a matrix of the diagonal part of the covariance matrix return a full matrix
@@ -112,3 +114,19 @@ def astropyHeaderFromDict(metadata):
             key = "HIERARCH " + key
         header.append((key, value))
     return header
+
+
+def wraparoundNVisit(nVisit):
+    """Wraparound number of visits to acceptable range (0-999)
+
+    Parameters
+    ----------
+    nVisit : `int`
+        number of visits
+
+    Returns
+    -------
+    nVisit_wrapped : `int`
+        wraparound number of visits  
+    """
+    return nVisit % 1000
