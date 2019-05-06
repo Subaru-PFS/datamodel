@@ -1,7 +1,7 @@
 from .pfsSpectra import PfsSpectra
 from .pfsSpectrum import PfsSimpleSpectrum, PfsSpectrum
 
-__all__ = ["PfsArm", "PfsMerged", "PfsReference", "PfsObject", "PfsCoadd"]
+__all__ = ["PfsArm", "PfsMerged", "PfsReference", "PfsSingle", "PfsObject"]
 
 
 class PfsArm(PfsSpectra):
@@ -34,22 +34,22 @@ class PfsReference(PfsSimpleSpectrum):
     filenameKeys = [("catId", int), ("tract", int), ("patch", str), ("objId", int)]
 
 
-class PfsObject(PfsSpectrum):
+class PfsSingle(PfsSpectrum):
     """Flux-calibrated, single epoch spectrum
 
     Produced by ``fluxCalibrate``.
     """
-    filenameFormat = "pfsObject-%(catId)03d-%(tract)05d-%(patch)s-%(objId)08x-%(expId)06d.fits"
-    filenameRegex = r"^pfsObject-(\d{3})-(\d{5})-(.*)-(0x.{8})-(\d{6})\.fits.*$"
+    filenameFormat = "pfsSingle-%(catId)03d-%(tract)05d-%(patch)s-%(objId)08x-%(expId)06d.fits"
+    filenameRegex = r"^pfsSingle-(\d{3})-(\d{5})-(.*)-(0x.{8})-(\d{6})\.fits.*$"
     filenameKeys = [("catId", int), ("tract", int), ("patch", str), ("objId", int), ("expId", int)]
 
 
-class PfsCoadd(PfsSpectrum):
+class PfsObject(PfsSpectrum):
     """Coadded spectrum
 
     Produced by ``coaddSpectra``.
     """
-    filenameFormat = "pfsCoadd-%(catId)03d-%(tract)05d-%(patch)s-%(objId)08x-%(numExp)03d-%(expHash)08x.fits"
-    filenameRegex = r"^pfsCoadd-(\d{3})-(\d{5})-(.*)-(0x.{8})-(\d{3})-(0x.{8})\.fits.*$"
+    filenameFormat = "pfsObject-%(catId)03d-%(tract)05d-%(patch)s-%(objId)08x-%(numExp)03d-%(expHash)08x.fits"
+    filenameRegex = r"^pfsObject-(\d{3})-(\d{5})-(.*)-(0x.{8})-(\d{3})-(0x.{8})\.fits.*$"
     filenameKeys = [("catId", int), ("tract", int), ("patch", str), ("objId", int),
                     ("numExp", int), ("expHash", int)]
