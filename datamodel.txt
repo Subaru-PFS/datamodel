@@ -352,7 +352,7 @@ isn't human-friendly;  in particular it doesn't sort in a helpful way.  It seems
 ever have more than 100 visits, but as the pfsVisitHash is unambiguous it seemed safer to only allow for
 larger values of nVisit, but record them only modulo 100.
 
-     "pfsObject-%05d-%s-%3d-%016x-%02d-0x%016x.fits" % (tract, patch, catId, objId, nVisit % 100, pfsVisitHash)
+     "pfsObject-%05d-%s-%03d-%016x-%02d-0x%016x.fits" % (tract, patch, catId, objId, nVisit % 100, pfsVisitHash)
 
 The path would be
    tract/patch/pfsObject-*.fits
@@ -428,7 +428,7 @@ amplitude, width) for emission lines.  Will a continuum + lines model like this 
 evolution stellar spectra?
 
 For now, I propose:
-     "pfsSimObject-%05d-%s-%3d-%016x.fits" % (tract, patch, catId, objId)
+     "pfsSimObject-%05d-%s-%03d-%016x.fits" % (tract, patch, catId, objId)
 
 The tract, patch, catId, objId values will also be available as header keywords.
 
@@ -454,7 +454,7 @@ According to the "combined spectra" data model we include both the number of
 visits (nVisit) and a SHA-1 hash of the visits, pfsVisitHash.
 
 I propose :
-		"pfsZcandidates-%05d-%s-%3d-%016x-%02d-0x%016x.fits" % (tract, patch, catId, objId, nVisit % 100, pfsVisitHash)
+		"pfsZcandidates-%05d-%s-%03d-%016x-%02d-0x%016x.fits" % (tract, patch, catId, objId, nVisit % 100, pfsVisitHash)
 
 The path would be
    tract/patch/pfsZcandidate-*.fits
