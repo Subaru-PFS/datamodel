@@ -2,7 +2,7 @@ import types
 import hashlib
 import numpy as np
 
-from .utils import astropyHeaderFromDict, astropyHeaderToDict
+from .utils import astropyHeaderFromDict, astropyHeaderToDict, createHash
 
 __all__ = ["TargetData", "TargetObservations"]
 
@@ -136,16 +136,9 @@ class TargetObservations(types.SimpleNamespace):
         Returns
         -------
         hash : `int`
-            Hash, truncated to 8 hexadecimal digits.
+            Hash, truncated to 63 bits.
         """
-        keys = sorted(keys)
-        hasher = hashlib.sha1()
-        for ident in self.identity:
-            for kk in keys:
-                hasher.update(str(ident[kk]).encode())
-
-        # Convert to int and truncate to 8 hexadecimal digits
-        return int(hasher.hexdigest(), 16) & 0xffffffff
+        return createHash([str(indent[kk]).encode() for indent in self.identity for kk in sorted(keys)])
 
     def getIdentity(self, hashKeys=("expId",)):
         """Return the identity of these observations
