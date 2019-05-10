@@ -412,7 +412,7 @@ class PfsConfig(PfsDesign):
     ----------
     pfsDesignId : `int`
         PFI design identifier, specifies the intended top-end configuration.
-    expId : `int`
+    visit0 : `int`
         Exposure identifier.
     raBoresight : `float`, degrees
         Right Ascension of telescope boresight.
@@ -467,32 +467,32 @@ class PfsConfig(PfsDesign):
 
     fileNameFormat = "pfsConfig-0x%016x-%06d.fits"
 
-    def __init__(self, pfsDesignId, expId, raBoresight, decBoresight,
+    def __init__(self, pfsDesignId, visit0, raBoresight, decBoresight,
                  fiberId, tract, patch, ra, dec, catId, objId,
                  targetType, fiberMag, filterNames, pfiCenter, pfiNominal):
-        self.expId = expId
+        self.visit0 = visit0
         self.pfiCenter = np.array(pfiCenter)
         super().__init__(pfsDesignId, raBoresight, decBoresight, fiberId, tract, patch, ra, dec,
                          catId, objId, targetType, fiberMag, filterNames, pfiNominal)
 
     def __str__(self):
         """String representation"""
-        return "PfsConfig(%d, %d, ...)" % (self.pfsDesignId, self.expId)
+        return "PfsConfig(%d, %d, ...)" % (self.pfsDesignId, self.visit0)
 
     @property
     def filename(self):
         """Usual filename"""
-        return self.fileNameFormat % (self.pfsDesignId, self.expId)
+        return self.fileNameFormat % (self.pfsDesignId, self.visit0)
 
     @classmethod
-    def fromPfsDesign(cls, pfsDesign, expId, pfiCenter):
+    def fromPfsDesign(cls, pfsDesign, visit0, pfiCenter):
         """Construct from a ``PfsDesign``
 
         Parameters
         ----------
         pfsDesign : `pfs.datamodel.PfsDesign`
             ``PfsDesign`` to use as the base for this ``PfsConfig``.
-        expId : `int`
+        visit0 : `int`
             Exposure identifier.
         pfiCenter : `numpy.ndarray` of `float`
             Actual position (2-vector) of each fiber on the PFI, microns.
@@ -504,12 +504,12 @@ class PfsConfig(PfsDesign):
         """
         keywords = ["pfsDesignId", "raBoresight", "decBoresight"]
         kwargs = {kk: getattr(pfsDesign, kk) for kk in pfsDesign._keywords + keywords}
-        kwargs["expId"] = expId
+        kwargs["visit0"] = visit0
         kwargs["pfiCenter"] = pfiCenter
         return PfsConfig(**kwargs)
 
     @classmethod
-    def read(cls, pfsDesignId, expId, dirName="."):
+    def read(cls, pfsDesignId, visit0, dirName="."):
         """Construct from file
 
         Requires pyfits.
@@ -518,7 +518,7 @@ class PfsConfig(PfsDesign):
         ----------
         pfsDesignId : `int`
             PFI design identifier, specifies the intended top-end configuration.
-        expId : `int`
+        visit0 : `int`
             Exposure identifier.
         dirName : `str`, optional
             Directory from which to read the file. Defaults to the current
@@ -529,8 +529,8 @@ class PfsConfig(PfsDesign):
         self : `PfsConfig`
             Constructed `PfsConfig`.
         """
-        filename = os.path.join(dirName, cls.fileNameFormat % (pfsDesignId, expId))
-        return cls._readImpl(filename, pfsDesignId=pfsDesignId, expId=expId)
+        filename = os.path.join(dirName, cls.fileNameFormat % (pfsDesignId, visit0))
+        return cls._readImpl(filename, pfsDesignId=pfsDesignId, visit0=visit0)
 
     def extractCenters(self, fiberId):
         """Extract centers for fibers
