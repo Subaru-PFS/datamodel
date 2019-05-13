@@ -247,7 +247,7 @@ class PfsSpectrum(PfsSimpleSpectrum):
         self.sky = sky
         self.covar = covar
         self.covar2 = covar2
-        self.numExp = wraparoundNVisit(len(self.observations))
+        self.nVisit = wraparoundNVisit(len(self.observations))
         super().__init__(target, wavelength, flux, mask, flags)
 
     @property
@@ -270,7 +270,7 @@ class PfsSpectrum(PfsSimpleSpectrum):
     def validate(self):
         """Validate that all the arrays are of the expected shape"""
         self.observations.validate()
-        assert wraparoundNVisit(len(self.observations))== self.numExp
+        assert wraparoundNVisit(len(self.observations))== self.nVisit
         assert self.sky.shape == (self.length,)
         assert self.covar.shape == (3, self.length)
         assert self.covar2.ndim == 2
