@@ -154,7 +154,7 @@ class TargetObservations(types.SimpleNamespace):
         identity : `dict`
             Keyword-value pairs identifying these observations.
         """
-        return dict(numExp=wraparoundNVisit(len(self)), pfsVisitHash=self.calculateVisitHash(hashKeys))
+        return dict(nVisit=wraparoundNVisit(len(self)), pfsVisitHash=self.calculateVisitHash(hashKeys))
 
     @classmethod
     def fromFits(cls, fits):

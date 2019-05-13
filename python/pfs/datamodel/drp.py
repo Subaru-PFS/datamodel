@@ -49,7 +49,7 @@ class PfsObject(PfsSpectrum):
 
     Produced by ``coaddSpectra``.
     """
-    filenameFormat = "pfsObject-%(catId)03d-%(tract)05d-%(patch)s-%(objId)016x-%(numExp)03d-%(pfsVisitHash)016x.fits"
+    filenameFormat = "pfsObject-%(catId)03d-%(tract)05d-%(patch)s-%(objId)016x-%(nVisit)03d-%(pfsVisitHash)016x.fits"
     filenameRegex = r"^pfsObject-(\d{3})-(\d{5})-(.*)-(0x.{16})-(\d{3})-(0x.{16})\.fits.*$"
     filenameKeys = [("catId", int), ("tract", int), ("patch", str), ("objId", int),
-                    ("numExp", int), ("pfsVisitHash", int)]
+                    ("nVisit", int), ("pfsVisitHash", int)]
