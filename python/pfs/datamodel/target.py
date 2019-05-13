@@ -124,7 +124,7 @@ class TargetObservations(types.SimpleNamespace):
         assert self.pfiNominal.shape == (self.num, 2)
         assert self.pfiNominal.shape == (self.num, 2)
 
-    def calculateExpHash(self, keys=("visit",)):
+    def calculateVisitHash(self, keys=("visit",)):
         """Calculate hash of the exposure inputs
 
         Parameters
@@ -154,7 +154,7 @@ class TargetObservations(types.SimpleNamespace):
         identity : `dict`
             Keyword-value pairs identifying these observations.
         """
-        return dict(numExp=wraparoundNVisit(len(self)), expHash=self.calculateExpHash(hashKeys))
+        return dict(numExp=wraparoundNVisit(len(self)), pfsVisitHash=self.calculateVisitHash(hashKeys))
 
     @classmethod
     def fromFits(cls, fits):
