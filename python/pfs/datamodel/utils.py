@@ -4,24 +4,17 @@
 import hashlib
 import numpy as np
 
-def calculate_pfsVisitHash(visits):
-    """Calculate and return the 64-bit SHA-1 from a list of visits"""
 
+def calculate_pfsVisitHash(visits):
+    """Calculate and return the 63-bit SHA-1 from a list of visits"""
     if len(visits) == 1 and visits[0] == 0:
         return 0x0
 
-    m = hashlib.sha1()
+    return createHash(["%d" % (visit) for visit in visits])
 
-    for visit in visits:
-        m.update("%d" % (visit))
-
-    # convert to int and truncate to 8 hexadecimal digits
-    sha1 = int(m.hexdigest(), 16) & 0xffffffff
-
-    return sha1
 
 def calculate_pfsDesignId(fiberIds, ras, decs):
-    """Calculate and return the 64-bit SHA-1 from a set of lists of
+    """Calculate and return the 63-bit SHA-1 from a set of lists of
     fiberId, ra, and dec"""
 
     if fiberIds is None:
@@ -33,15 +26,28 @@ def calculate_pfsDesignId(fiberIds, ras, decs):
     if (ras == 0.0).all() and (decs == 0.0).all(): # don't check fiberIds as this may be lab data
         return 0x0
 
+    return createHash(["%d %.0f %.0f" % (fiberId, ra, dec) for fiberId, ra, dec in zip(fiberIds, ras, decs)])
+
+
+def createHash(*args):
+    """Create a hash from the input strings truncated to 63 bits.
+
+    Parameters
+    ----------
+    *args : `str`
+        input string values used to generate the hash.
+
+    Returns
+    -------
+    truncatedHash : `int`
+        truncated hash value
+    """
     m = hashlib.sha1()
+    for l in list(args):
+        m.update(str(l).encode())
 
-    for fiberId, ra, dec in zip(fiberIds, ras, decs):
-        m.update("%d %.0f %.0f" % (fiberId, ra, dec))
+    return int(m.hexdigest(), 16) & 0x7fffffffffffffff
 
-    # convert to int and truncate to 8 hexadecimal digits
-    sha1 = int(m.hexdigest(), 16) & 0xffffffff
-
-    return sha1
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 

@@ -24,9 +24,10 @@ The values of NCOLUMN and NROW may be different in the optical and IR arms, and 
 raw and reduced data.  Possible values are given in the section, "Parameters"
 
 In various places I refer to a SHA-1, which is a strong 160-bit hash, as used by e.g. git
-(https://en.wikipedia.org/wiki/SHA-1).  We truncate these hashes to 64bits (so as to fit
-in standard 64-bit integers), and abbreviate these SHA-1 values to 8 hexadecimal digits,
-2^32 ~ 4e9 possible values, in filenames.  In filenames, hexadecimal characters shall be
+(https://en.wikipedia.org/wiki/SHA-1).  We truncate these hashes to 63bits (so as to fit
+in standard 64-bit signed integers). Sixty-three bits would produce up to 2^63 ~ 9e18 values. 
+These SHA-1 values are encoded into 16 hexadecimal digits in filenames.  
+In filenames, hexadecimal characters shall be
 written in lower case (0x12345abcdef not 0X12345ABCDEF or 0x12345ABCDEF).
 
 The following variables are used in filename formats (which are written in python notation):
@@ -351,7 +352,7 @@ isn't human-friendly;  in particular it doesn't sort in a helpful way.  It seems
 ever have more than 100 visits, but as the pfsVisitHash is unambiguous it seemed safer to only allow for
 larger values of nVisit, but record them only modulo 100.
 
-     "pfsObject-%05d-%s-%3d-%016x-%02d-0x%08x.fits" % (tract, patch, catId, objId, nVisit % 100, pfsVisitHash)
+     "pfsObject-%05d-%s-%3d-%016x-%02d-0x%016x.fits" % (tract, patch, catId, objId, nVisit % 100, pfsVisitHash)
 
 The path would be
    tract/patch/pfsObject-*.fits
@@ -453,7 +454,7 @@ According to the "combined spectra" data model we include both the number of
 visits (nVisit) and a SHA-1 hash of the visits, pfsVisitHash.
 
 I propose :
-		"pfsZcandidates-%05d-%s-%3d-%016x-%02d-0x%08x.fits" % (tract, patch, catId, objId, nVisit % 100, pfsVisitHash)
+		"pfsZcandidates-%05d-%s-%3d-%016x-%02d-0x%016x.fits" % (tract, patch, catId, objId, nVisit % 100, pfsVisitHash)
 
 The path would be
    tract/patch/pfsZcandidate-*.fits
@@ -511,8 +512,8 @@ HDU#4 ZLINES                    Binary table            [FITS BINARY TABLE]     
  PFLB00123423.fits
 	Raw up-the-ramp exposure, visit 1234, taken at LAM with spectrograph 2 using the IR arm
 
- pfsDesign-0xad349fe2.fits
-	The fiber and targetting information for the PFI configuration with hash 0xad349fe2
+ pfsDesign-0xad349fe21234abcd.fits
+	The fiber and targetting information for the PFI configuration with hash 0xad349fe21234abcd
 
  pfsFlat-000333-m2.fits
 	Flat for spectrograph 2, medium resolution arm, valid for 333 <= visit < ??
@@ -530,10 +531,10 @@ HDU#4 ZLINES                    Binary table            [FITS BINARY TABLE]     
  pfsPSF-000666-b1.fits
 	The 2-D PSF for spectrograph 1's blue arm in visit 666
 
- pfsObject-07621-2,2-001-02468ace1234abcd-03-0xdeadbeef.fits
+ pfsObject-07621-2,2-001-02468ace1234abcd-03-0x1234abcddeadbeef.fits
 	Combined spectrum for HSC (the "001") object 0x02468ace1234abcd, located in tract 7621, patch 2,2.
 
-	The pfsVisitHash SHA-1 (calculated from the 3 visits included in this reduction) is 0xdeadbeef.
+	The pfsVisitHash SHA-1 (calculated from the 3 visits included in this reduction) is 0x1234abcddeadbeef.
 
  pfsSimObject-00000-0,0-000-13579bdf1234abcd.fits
 	A simulated spectrum (the "000") for object 0x13579bdf1234abcd, located in tract 0, patch 0,0
