@@ -349,10 +349,10 @@ bad, or process a number of subsets of the available data, there may be more tha
 to produce a pfsObject file for a given object.  We therefore include both the number of visits (nVisit)
 and a SHA-1 hash of the visits, pfsVisitHash.  We use both as nVisits may be ambiguous, while pfsVisitHash
 isn't human-friendly;  in particular it doesn't sort in a helpful way.  It seems improbable that we will
-ever have more than 100 visits, but as the pfsVisitHash is unambiguous it seemed safer to only allow for
-larger values of nVisit, but record them only modulo 100.
+ever have more than 1000 visits, but as the pfsVisitHash is unambiguous it seemed safer to only allow for
+larger values of nVisit, but record them only modulo 1000.
 
-     "pfsObject-%05d-%s-%03d-%016x-%02d-0x%016x.fits" % (tract, patch, catId, objId, nVisit % 100, pfsVisitHash)
+     "pfsObject-%05d-%s-%03d-%016x-%03d-0x%016x.fits" % (tract, patch, catId, objId, nVisit % 1000, pfsVisitHash)
 
 The path would be
    tract/patch/pfsObject-*.fits
@@ -454,7 +454,7 @@ According to the "combined spectra" data model we include both the number of
 visits (nVisit) and a SHA-1 hash of the visits, pfsVisitHash.
 
 I propose :
-		"pfsZcandidates-%05d-%s-%03d-%016x-%02d-0x%016x.fits" % (tract, patch, catId, objId, nVisit % 100, pfsVisitHash)
+		"pfsZcandidates-%05d-%s-%03d-%016x-%03d-0x%016x.fits" % (tract, patch, catId, objId, nVisit % 1000, pfsVisitHash)
 
 The path would be
    tract/patch/pfsZcandidate-*.fits
@@ -531,7 +531,7 @@ HDU#4 ZLINES                    Binary table            [FITS BINARY TABLE]     
  pfsPSF-000666-b1.fits
 	The 2-D PSF for spectrograph 1's blue arm in visit 666
 
- pfsObject-07621-2,2-001-02468ace1234abcd-03-0x1234abcddeadbeef.fits
+ pfsObject-07621-2,2-001-02468ace1234abcd-003-0x1234abcddeadbeef.fits
 	Combined spectrum for HSC (the "001") object 0x02468ace1234abcd, located in tract 7621, patch 2,2.
 
 	The pfsVisitHash SHA-1 (calculated from the 3 visits included in this reduction) is 0x1234abcddeadbeef.
