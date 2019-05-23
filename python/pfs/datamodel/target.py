@@ -2,7 +2,7 @@ import types
 import hashlib
 import numpy as np
 
-from .utils import astropyHeaderFromDict, astropyHeaderToDict
+from .utils import astropyHeaderFromDict, astropyHeaderToDict, createHash, wraparoundNVisit
 
 __all__ = ["TargetData", "TargetObservations"]
 
@@ -124,7 +124,7 @@ class TargetObservations(types.SimpleNamespace):
         assert self.pfiNominal.shape == (self.num, 2)
         assert self.pfiNominal.shape == (self.num, 2)
 
-    def calculateExpHash(self, keys=("expId",)):
+    def calculateVisitHash(self, keys=("visit",)):
         """Calculate hash of the exposure inputs
 
         Parameters
@@ -136,18 +136,11 @@ class TargetObservations(types.SimpleNamespace):
         Returns
         -------
         hash : `int`
-            Hash, truncated to 8 hexadecimal digits.
+            Hash, truncated to 63 bits.
         """
-        keys = sorted(keys)
-        hasher = hashlib.sha1()
-        for ident in self.identity:
-            for kk in keys:
-                hasher.update(str(ident[kk]).encode())
+        return createHash([str(indent[kk]).encode() for indent in self.identity for kk in sorted(keys)])
 
-        # Convert to int and truncate to 8 hexadecimal digits
-        return int(hasher.hexdigest(), 16) & 0xffffffff
-
-    def getIdentity(self, hashKeys=("expId",)):
+    def getIdentity(self, hashKeys=("visit",)):
         """Return the identity of these observations
 
         Parameters
@@ -161,7 +154,7 @@ class TargetObservations(types.SimpleNamespace):
         identity : `dict`
             Keyword-value pairs identifying these observations.
         """
-        return dict(numExp=len(self), expHash=self.calculateExpHash(hashKeys))
+        return dict(nVisit=wraparoundNVisit(len(self)), pfsVisitHash=self.calculateVisitHash(hashKeys))
 
     @classmethod
     def fromFits(cls, fits):

@@ -24,9 +24,10 @@ The values of NCOLUMN and NROW may be different in the optical and IR arms, and 
 raw and reduced data.  Possible values are given in the section, "Parameters"
 
 In various places I refer to a SHA-1, which is a strong 160-bit hash, as used by e.g. git
-(https://en.wikipedia.org/wiki/SHA-1).  We truncate these hashes to 64bits (so as to fit
-in standard 64-bit integers), and abbreviate these SHA-1 values to 8 hexadecimal digits,
-2^32 ~ 4e9 possible values, in filenames.  In filenames, hexadecimal characters shall be
+(https://en.wikipedia.org/wiki/SHA-1).  We truncate these hashes to 63bits (so as to fit
+in standard 64-bit signed integers). Sixty-three bits would produce up to 2^63 ~ 9e18 values. 
+These SHA-1 values are encoded into 16 hexadecimal digits in filenames.  
+In filenames, hexadecimal characters shall be
 written in lower case (0x12345abcdef not 0X12345ABCDEF or 0x12345ABCDEF).
 
 The following variables are used in filename formats (which are written in python notation):
@@ -75,7 +76,7 @@ patch
 objId
   A unique 64-bit object ID for an object.  For example, the HSC object ID from the database.
 
-  objIds are written out using %08x formats (rather than e.g. %08d) as a 64 bit integer is a large number.
+  objIds are written out using %016x formats for compactness reasons.
 
 catId
   A small integer specifying the source of the objId.  Currently only
@@ -83,11 +84,11 @@ catId
     1: HSC
   are defined.
 
-pfsConfigId
+pfsDesignId
   An integer uniquely specifying the configuration of the PFI; specifically a SHA-1 of the
   (fiberId, ra, dec) tuples (with position rounded to the nearest arcsecond) truncated to 64 bits.
 
-  See calculate_pfsConfigId() in
+  See calculate_pfsDesignId() in
 	python/pfs/datamodel/utils.py
 
   We include the standard prefix "0x" in filenames to visually separate SHA-1s from 64-bit objId; this is
@@ -96,8 +97,8 @@ pfsConfigId
   An alternative to a SHA-1 would be the visit number of the first data taken with this configuration but that
   would have the disadvantage that it would not be available until the data was taken.
 
-  Lab data may choose to set the pfsConfigId to 0x0.  As a convenience to simulators, if the fiberIds
-  in a pfsConfig file are consecutive integers starting at 1 and all ra/dec values are 0.0 the pfsConfigId
+  Lab data may choose to set the pfsDesignId to 0x0.  As a convenience to simulators, if the fiberIds
+  in a pfsConfig file are consecutive integers starting at 1 and all ra/dec values are 0.0 the pfsDesignId
   is taken to be 0x0
 
 pfsVisitHash
@@ -143,7 +144,7 @@ Calibration products (i.e. processed flats/biases/darks ready to be used in proc
 (While theoretically we don't need to distinguish between the r and m chips, it's simpler to be
 consistent, so we will have 16, not 12, biases/darks for the complete spectrograph)
 
-The visit is replaced by visit0, the first visit for which these flats/biases/darks are valid; in general
+Visit0 is the first visit for which these flats/biases/darks are valid; in general
 there will be many files for each (arm, spectrograph) but with different values of visit0.  Note that we
 don't know the upper range of validity when these files are created, so it cannot be encoded in the filename.
 
@@ -194,11 +195,11 @@ where the bounding box of the trace is defined by the lower left and upper right
 
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-The design of a PFI setup, i.e., the targetting of fibers, is a PfiDesign:
+The design of a PFI setup, i.e., the targetting of fibers, is a PfsDesign:
 
-    "pfiDesign-0x%016x.fits" % (pfiDesignId)
+    "pfsDesign-0x%016x.fits" % (pfsDesignId)
 
-The choice of a hex format is because the the pfiDesignId is a SHA-1
+The choice of a hex format is because the the pfsDesignId is a SHA-1
 of the intended fiber positions.
 
 FITS file format:
@@ -239,13 +240,13 @@ There will be a mechanism for adding to this set.
 
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-The realisation of a PfiDesign for a particular exposure is a PfsConfig.
-The most important differences from PfiDesign are that the actual fiber
+The realisation of a PfsDesign for a particular exposure is a PfsConfig.
+The most important differences from PfsDesign are that the actual fiber
 positions and object photometry are recorded for use in the DRP.
 
-    "pfsConfig-0x%016x-%06d.fits" % (pfiDesignId, expId)
+    "pfsConfig-0x%016x-%06d.fits" % (pfsDesignId, visit0)
 
-The choice of a hex format is because the the pfiDesignId is a SHA-1.
+The choice of a hex format is because the the pfsDesignId is a SHA-1.
 
 FITS file format:
 
@@ -269,10 +270,10 @@ The CONFIG table lists for each object:
       pfiCenter      pair of 32-bit floats (microns on the PFI)
       pfiNominal     pair of 32-bit floats (microns on the PFI)
 
-(I.e., the same as for PfiDesign, except for the addition of the
+(I.e., the same as for PfsDesign, except for the addition of the
 "pfiCenter" column.)
 
-The PHOTOMETRY table is the same as for the PfiDesign.
+The PHOTOMETRY table is the same as for the PfsDesign.
 
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
@@ -301,7 +302,7 @@ and
                             +-2      COVAR[fiberId][2][0:-2]
 terms in the covariance matrix.
 
-At a minimum the CONFIG table contains columns for pfsConfigId and visit (and only one row!  But it's
+At a minimum the CONFIG table contains columns for pfsDesignId and visit (and only one row!  But it's
 a table not header keywords for consistency with the pfsObject file).
 
 It would be possible to denormalise additional information about the observation into this HDU.  I do not
@@ -348,10 +349,10 @@ bad, or process a number of subsets of the available data, there may be more tha
 to produce a pfsObject file for a given object.  We therefore include both the number of visits (nVisit)
 and a SHA-1 hash of the visits, pfsVisitHash.  We use both as nVisits may be ambiguous, while pfsVisitHash
 isn't human-friendly;  in particular it doesn't sort in a helpful way.  It seems improbable that we will
-ever have more than 100 visits, but as the pfsVisitHash is unambiguous it seemed safer to only allow for
-larger values of nVisit, but record them only modulo 100.
+ever have more than 1000 visits, but as the pfsVisitHash is unambiguous it seemed safer to only allow for
+larger values of nVisit, but record them only modulo 1000.
 
-     "pfsObject-%05d-%s-%3d-%08x-%02d-0x%08x.fits" % (tract, patch, catId, objId, nVisit % 100, pfsVisitHash)
+     "pfsObject-%05d-%s-%03d-%016x-%03d-0x%016x.fits" % (tract, patch, catId, objId, nVisit % 1000, pfsVisitHash)
 
 The path would be
    tract/patch/pfsObject-*.fits
@@ -396,12 +397,12 @@ The second covariance table (COVAR2) is the full covariance at low spectral reso
 really only 0.5*NCOARSE*(NCOARSE + 1) numbers, but it doesn't seem worth the trouble to save a few bytes.
 This covariance is needed to model the spectrophotometric errors.
 
-The CONFIG table has nVisit rows, and at a minimum contains columns for visit and pfsConfigId:
+The CONFIG table has nVisit rows, and at a minimum contains columns for visit and pfsDesignId:
     visit:       32-bit int
-    pfsConfigId: 64-bit int
+    pfsDesignId: 64-bit int
 
-The targetting information that SDSS put in the PLUGMAP table is available from the pfsConfigId column, which
-links to the relevant pfsConfig files.  This could be denormalised into the CONFIG table if desired.
+The targetting information that SDSS put in the PLUGMAP table is available from the pfsDesignId column, which
+links to the relevant pfsDesign files.  This could be denormalised into the CONFIG table if desired.
 
 Note that we don't keep the SDSS "AND" and "OR" masks -- if needs be we could set two mask bits to capture
 the same information, but in practice SDSS's OR masks were not very useful.
@@ -414,7 +415,7 @@ the medium arm, and to omit the data from the blue and IR arms.
 Simulations
 
 We need to specify a format for the spectra going into the simulator.  At first glance we could adopt the
-pfsObject file, along with a pfsConfig file to map them to the sky.  This would work, but there is a problem
+pfsObject file, along with a pfsDesign file to map them to the sky.  This would work, but there is a problem
 with resolution, in particular emission lines.  Also, the resolution of the pfsObject files for
 medium-resolution spectra may be different from that for low-resolution (extra-galactic) spectra (and the
 simulators are probably not interested in covariances and masks)
@@ -427,7 +428,7 @@ amplitude, width) for emission lines.  Will a continuum + lines model like this 
 evolution stellar spectra?
 
 For now, I propose:
-     "pfsSimObject-%05d-%s-%3d-%08x.fits" % (tract, patch, catId, objId)
+     "pfsSimObject-%05d-%s-%03d-%016x.fits" % (tract, patch, catId, objId)
 
 The tract, patch, catId, objId values will also be available as header keywords.
 
@@ -437,9 +438,9 @@ HDU #0 PDU
 HDU #1             Flux in units of nJy     	   	       [FLOAT]        NSIMROW
 HDU #2 WAVELENGTH  Wavelength solution in nm (vacuum)	       [FLOAT] 	      NSIMROW
 
-The simulation team will also need to provide a matching pfsConfig file, and may well choose to set
+The simulation team will also need to provide a matching pfsDesign file, and may well choose to set
    tract, patch = 0, "0,0"
-The catId/objId is only needed to allow the set of pfsSimObject files and a pfsConfig file to specify a
+The catId/objId is only needed to allow the set of pfsSimObject files and a pfsDesign file to specify a
 set of simulated exposures.
 
 Note that the wavelength need not be uniformly sampled.
@@ -453,7 +454,7 @@ According to the "combined spectra" data model we include both the number of
 visits (nVisit) and a SHA-1 hash of the visits, pfsVisitHash.
 
 I propose :
-		"pfsZcandidates-%05d-%s-%3d-%08x-%02d-0x%08x.fits" % (tract, patch, catId, objId, nVisit % 100, pfsVisitHash)
+		"pfsZcandidates-%05d-%s-%03d-%016x-%03d-0x%016x.fits" % (tract, patch, catId, objId, nVisit % 1000, pfsVisitHash)
 
 The path would be
    tract/patch/pfsZcandidate-*.fits
@@ -511,8 +512,8 @@ HDU#4 ZLINES                    Binary table            [FITS BINARY TABLE]     
  PFLB00123423.fits
 	Raw up-the-ramp exposure, visit 1234, taken at LAM with spectrograph 2 using the IR arm
 
- pfsConfig-0xad349fe2.fits
-	The fiber and targetting information for the PFI configuration with hash 0xad349fe2
+ pfsDesign-0xad349fe21234abcd.fits
+	The fiber and targetting information for the PFI configuration with hash 0xad349fe21234abcd
 
  pfsFlat-000333-m2.fits
 	Flat for spectrograph 2, medium resolution arm, valid for 333 <= visit < ??
@@ -530,13 +531,13 @@ HDU#4 ZLINES                    Binary table            [FITS BINARY TABLE]     
  pfsPSF-000666-b1.fits
 	The 2-D PSF for spectrograph 1's blue arm in visit 666
 
- pfsObject-07621-2,2-001-02468ace-03-0xdeadbeef.fits
-	Combined spectrum for HSC (the "001") object 0x02468ace, located in tract 7621, patch 2,2.
+ pfsObject-07621-2,2-001-02468ace1234abcd-003-0x1234abcddeadbeef.fits
+	Combined spectrum for HSC (the "001") object 0x02468ace1234abcd, located in tract 7621, patch 2,2.
 
-	The pfsVisitHash SHA-1 (calculated from the 3 visits included in this reduction) is 0xdeadbeef.
+	The pfsVisitHash SHA-1 (calculated from the 3 visits included in this reduction) is 0x1234abcddeadbeef.
 
- pfsSimObject-00000-0,0-000-13579bdf.fits
-	A simulated spectrum (the "000") for object 0x13579bdf, located in tract 0, patch 0,0
+ pfsSimObject-00000-0,0-000-13579bdf1234abcd.fits
+	A simulated spectrum (the "000") for object 0x13579bdf1234abcd, located in tract 0, patch 0,0
 
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
@@ -593,7 +594,7 @@ The ISR-extracted H4RG images will be no bigger than
 
 	Do we need to save the covariance of the wavelength solution
 
-	Should we save the per-pfsConfigId combined spectra?  Note that this is doable within
+	Should we save the per-pfsDesignId combined spectra?  Note that this is doable within
 	my naming scheme now we have added a pfsVisitHash and an nVisit field
 
 	Reruns in directory tree, and also headers of course
