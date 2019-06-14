@@ -252,7 +252,7 @@ class PfsDesign:
         ], hdr, name='PHOTOMETRY'))
 
         # clobber=True in writeto prints a message, so use open instead
-        with open(filename, "w") as fd:
+        with open(filename, "wb") as fd:
             fits.writeto(fd)
 
     def write(self, dirName=".", fileName=None):

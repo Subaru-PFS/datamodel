@@ -165,7 +165,7 @@ class PfsSimpleSpectrum:
         fits = HDUList()
         fits.append(PrimaryHDU())
         self._writeImpl(fits)
-        with open(filename, "w") as fd:
+        with open(filename, "wb") as fd:
             fits.writeto(fd)
 
     def write(self, dirName="."):

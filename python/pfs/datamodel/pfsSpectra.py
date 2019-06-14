@@ -205,7 +205,7 @@ class PfsSpectra:
             hduName = attr.upper()
             data = getattr(self, attr)
             fits.append(astropy.io.fits.ImageHDU(data, name=hduName))
-        with open(filename, "w") as fd:
+        with open(filename, "wb") as fd:
             fits.writeto(fd)
 
     def write(self, dirName="."):
