@@ -91,8 +91,6 @@ class TargetObservations(types.SimpleNamespace):
 
     Parameters
     ----------
-    target : `TargetData`
-        The spectroscopic target we observed.
     identity : `list` of `dict`
         A list of keyword-value pairs identifying each observation.
     fiberId : `numpy.ndarray` of `int`
