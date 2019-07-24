@@ -5,6 +5,7 @@ import numpy as np
 from .masks import MaskHelper
 from .target import TargetData, TargetObservations
 from .utils import astropyHeaderFromDict, wraparoundNVisit
+from .fluxTable import FluxTable
 
 __all__ = ["PfsSimpleSpectrum", "PfsSpectrum"]
 
@@ -82,8 +83,8 @@ class PfsSimpleSpectrum:
         """
         data = {}
         for col in ("wavelength", "flux", "mask"):
-            data[col] = fits["FLUXTBL"].data[col]
-        data["flags"] = MaskHelper.fromFitsHeader(fits["FLUXTBL"].header)
+            data[col] = fits["FLUX"].data[col]
+        data["flags"] = MaskHelper.fromFitsHeader(fits["FLUX"].header)
         data["target"] = TargetData.fromFits(fits)
         return data
 
@@ -147,7 +148,7 @@ class PfsSimpleSpectrum:
             Column("wavelength", "E", array=self.wavelength),
             Column("flux", "E", array=self.flux),
             Column("mask", "K", array=self.mask),
-        ], header=astropyHeaderFromDict(self.flags.toFitsHeader()), name="FLUXTBL"))
+        ], header=astropyHeaderFromDict(self.flags.toFitsHeader()), name="FLUX"))
         self.target.toFits(fits)
 
     def writeFits(self, filename):
@@ -239,15 +240,19 @@ class PfsSpectrum(PfsSimpleSpectrum):
         Low-resolution non-sparse covariance estimate.
     flags : `MaskHelper`
         Helper for dealing with symbolic names for mask values.
+    fluxTable : `pfs.datamodel.FluxTable`, optional
+        Table of fluxes from contributing observations.
     """
     filenameFormat = None  # Subclasses should override
 
-    def __init__(self, target, observations, wavelength, flux, mask, sky, covar, covar2, flags):
+    def __init__(self, target, observations, wavelength, flux, mask, sky, covar, covar2, flags,
+                 fluxTable=None):
         self.observations = observations
         self.sky = sky
         self.covar = covar
         self.covar2 = covar2
         self.nVisit = wraparoundNVisit(len(self.observations))
+        self.fluxTable = fluxTable
         super().__init__(target, wavelength, flux, mask, flags)
 
     @property
@@ -307,6 +312,14 @@ class PfsSpectrum(PfsSimpleSpectrum):
         data["observations"] = TargetObservations.fromFits(fits)
         data["covar"] = fits["COVAR"].data
         data["covar2"] = fits["COVAR2"].data
+        try:
+            fluxTable = FluxTable.fromFits(fits)
+        except KeyError as exc:
+            # Only want to catch "Extension XXX not found."
+            if not exc.args[0].startswith("Extension"):
+                raise
+            fluxTable = None
+        data["fluxTable"] = fluxTable
         return data
 
     def _writeImpl(self, fits):
@@ -324,6 +337,8 @@ class PfsSpectrum(PfsSimpleSpectrum):
         self.observations.toFits(fits)
         fits.append(ImageHDU(self.covar, name="COVAR"))
         fits.append(ImageHDU(self.covar2, name="COVAR2"))
+        if self.fluxTable is not None:
+            self.fluxTable.toFits(fits)
 
     def plot(self, plotSky=True, plotErrors=True, ignorePixelMask=0x0, show=True):
         """Plot the object spectrum
