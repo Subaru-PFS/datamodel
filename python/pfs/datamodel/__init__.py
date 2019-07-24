@@ -4,3 +4,4 @@ from .pfsSpectra import *
 from .pfsSpectrum import *
 from .target import *
 from .drp import *
+from .fluxTable import *
