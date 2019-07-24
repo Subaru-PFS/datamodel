@@ -144,8 +144,8 @@ class PfsSimpleSpectrum:
         """
         from astropy.io.fits import BinTableHDU, Column
         fits.append(BinTableHDU.from_columns([
-            Column("wavelength", "D", array=self.wavelength),
-            Column("flux", "D", array=self.flux),
+            Column("wavelength", "E", array=self.wavelength),
+            Column("flux", "E", array=self.flux),
             Column("mask", "K", array=self.mask),
         ], header=astropyHeaderFromDict(self.flags.toFitsHeader()), name="FLUXTBL"))
         self.target.toFits(fits)
