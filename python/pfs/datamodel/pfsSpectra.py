@@ -1,11 +1,11 @@
 import os
 import re
 import numpy as np
-from scipy.interpolate import interp1d
 
 from .utils import astropyHeaderToDict, astropyHeaderFromDict
 from .masks import MaskHelper
 from .target import TargetData, TargetObservations
+from .interpolate import interpolateFlux, interpolateMask
 
 __all__ = ["PfsSpectra"]
 
@@ -348,14 +348,6 @@ class PfsSpectra:
         if fiberId is None:
             fiberId = self.fiberId
 
-        # how to interpolate
-        kwargs = dict(kind='linear',
-                      bounds_error=False,
-                      fill_value=0,
-                      copy=True,
-                      assume_sorted=True,
-                      )
-
         numSpectra = len(fiberId)
         numSamples = len(wavelength)
         flux = np.empty((numSpectra, numSamples), dtype=self.flux.dtype)
@@ -365,14 +357,12 @@ class PfsSpectra:
 
         for ii, ff in enumerate(fiberId):
             jj = np.argwhere(self.fiberId == ff)[0][0]
-            flux[ii] = interp1d(self.wavelength[jj], self.flux[jj], **kwargs)(wavelength)
-            sky[ii] = interp1d(self.wavelength[jj], self.sky[jj], **kwargs)(wavelength)
-            kwargs.update(fill_value=np.inf)
+            flux[ii] = interpolateFlux(self.wavelength[jj], self.flux[jj], wavelength)
+            sky[ii] = interpolateFlux(self.wavelength[jj], self.sky[jj], wavelength)
             # XXX dropping covariance on the floor: just doing the variance for now
-            covar[ii][0] = interp1d(self.wavelength[jj], self.covar[jj][0], **kwargs)(wavelength)
-            kwargs.update(fill_value=self.flags["NO_DATA"], kind='nearest')
-            mask[ii] = interp1d(self.wavelength[jj], self.mask[jj],
-                                **kwargs)(wavelength).astype(self.mask.dtype)
+            covar[ii][0] = interpolateFlux(self.wavelength[jj], self.covar[jj][0], wavelength, fill=np.inf)
+            mask[ii] = interpolateMask(self.wavelength[jj], self.mask[jj], wavelength,
+                                       fill=self.flags["NO_DATA"]).astype(self.mask.dtype)
 
         return type(self)(self.identity, fiberId, np.concatenate([[wavelength]]*numSpectra),
                           flux, mask, sky, covar, self.flags, self.metadata)
