@@ -11,10 +11,11 @@ class MaskHelper:
         The mask planes. The integers should all be positive in the range 0..63.
     """
     maskPlanePrefix = "MP_"  # Prefix for header keywords
+    _maxSize = 64  # Maximum number of bits
 
     def __init__(self, **kwargs):
         self.flags = kwargs
-        assert all(ii >= 0 and ii < 64 and isinstance(ii, int) for ii in kwargs.values())
+        assert all(ii >= 0 and ii < self._maxSize and isinstance(ii, int) for ii in kwargs.values())
 
     def __repr__(self):
         """Representation"""
@@ -28,9 +29,38 @@ class MaskHelper:
         """Retrieve value for a single mask name"""
         return 2**self.flags[name]
 
+    def __len__(self):
+        """Number of bits used"""
+        return len(self.flags)
+
+    def __contains__(self, name):
+        """Is mask name used?"""
+        return name in self.flags
+
     def get(self, *args):
         """Retrieve value for multiple masks"""
         return sum(self[name] for name in args)
+
+    def copy(self):
+        """Return a copy"""
+        return type(self)(**self.flags)
+
+    def add(self, name):
+        """Add mask name"""
+        if name in self.flags:
+            return self[name]
+        if len(self) >= self._maxSize:
+            raise RuntimeError("No bits remaining")
+        # Find the lowest available bit
+        existing = set(self.flags.values())
+        for ii in range(self._maxSize):
+            if ii not in existing:
+                value = ii
+                break
+        else:
+            raise AssertionError("Something's broken")
+        self.flags[name] = value
+        return self[name]
 
     @classmethod
     def fromFitsHeader(cls, header):
