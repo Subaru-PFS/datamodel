@@ -86,6 +86,24 @@ class PfsSpectra:
         """Stringify"""
         return "%s{%d spectra of length %d}" % (self.__class__.__name__, self.numSpectra, self.length)
 
+    def __imul__(self, rhs):
+        """In-place multiplication"""
+        with np.errstate(invalid="ignore"):
+            self.flux *= rhs
+            self.sky *= rhs
+            for ii in range(3):
+                self.covar[:, ii, :] *= np.array(rhs)**2
+        return self
+
+    def __itruediv__(self, rhs):
+        """In-place division"""
+        with np.errstate(invalid="ignore", divide="ignore"):
+            self.flux /= rhs
+            self.sky /= rhs
+            for ii in range(3):
+                self.covar[:, ii, :] /= np.array(rhs)**2
+        return self
+
     @property
     def filename(self):
         """Filename, without directory"""
