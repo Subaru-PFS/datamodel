@@ -78,6 +78,11 @@ class PfsSpectra:
         assert self.sky.shape == (self.numSpectra, self.length)
         assert self.covar.shape == (self.numSpectra, 3, self.length)
 
+    @property
+    def variance(self):
+        """Shortcut for variance"""
+        return self.covar[:, 0, :]
+
     def __len__(self):
         """Return number of spectra"""
         return self.numSpectra
