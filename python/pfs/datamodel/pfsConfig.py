@@ -3,7 +3,7 @@ import os
 import enum
 
 try:
-    import pyfits
+    import astropy.io.fits as pyfits
 except ImportError:
     pyfits = None
 
@@ -166,7 +166,7 @@ class PfsDesign:
             Constructed instance.
         """
         if not pyfits:
-            raise RuntimeError("I failed to import pyfits, so cannot read from disk")
+            raise RuntimeError("I failed to import astropy.io.fits, so cannot read from disk")
 
         with pyfits.open(filename) as fd:
             phu = fd[0].header
@@ -215,7 +215,7 @@ class PfsDesign:
 
     def _writeImpl(self, filename):
         if not pyfits:
-            raise RuntimeError("I failed to import pyfits, so cannot write to disk")
+            raise RuntimeError("I failed to import astropy.io.fits, so cannot write to disk")
 
         fits = pyfits.HDUList()
 
