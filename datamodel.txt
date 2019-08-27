@@ -18,7 +18,8 @@ NROW        The number of rows that spectra extend over in the dispersion direct
 	    In practice, the number of rows in the usable part of the CCD.
 NSIMROW     Number of rows for simulated data.  May be different in different files, depending
 	    on the desired oversampling.
-NCOARSE     Number of wavelengths used in computing the coarse (low-resolution) covariance matrix of the spectra
+NCOARSE     Number of wavelengths used in computing the coarse 
+      (low-resolution) covariance matrix of the spectra
 
 The values of NCOLUMN and NROW may be different in the optical and IR arms, and will differ for
 raw and reduced data.  Possible values are given in the section, "Parameters"
@@ -352,7 +353,8 @@ isn't human-friendly;  in particular it doesn't sort in a helpful way.  It seems
 ever have more than 1000 visits, but as the pfsVisitHash is unambiguous it seemed safer to only allow for
 larger values of nVisit, but record them only modulo 1000.
 
-     "pfsObject-%05d-%s-%03d-%016x-%03d-0x%016x.fits" % (tract, patch, catId, objId, nVisit % 1000, pfsVisitHash)
+     "pfsObject-%03d-%05d-%s-%016x-%03d-0x%016x.fits" 
+         % (catId, tract, patch, objId, nVisit % 1000, pfsVisitHash)
 
 The path would be
    tract/patch/pfsObject-*.fits
@@ -428,7 +430,7 @@ amplitude, width) for emission lines.  Will a continuum + lines model like this 
 evolution stellar spectra?
 
 For now, I propose:
-     "pfsSimObject-%05d-%s-%03d-%016x.fits" % (tract, patch, catId, objId)
+     "pfsSimObject-%03d-%05d-%s-%03d-%016x.fits" % (catId, tract, patch, objId)
 
 The tract, patch, catId, objId values will also be available as header keywords.
 
@@ -454,7 +456,8 @@ According to the "combined spectra" data model we include both the number of
 visits (nVisit) and a SHA-1 hash of the visits, pfsVisitHash.
 
 I propose :
-		"pfsZcandidates-%05d-%s-%03d-%016x-%03d-0x%016x.fits" % (tract, patch, catId, objId, nVisit % 1000, pfsVisitHash)
+		"pfsZcandidates-%03d-%05d-%s-%016x-%03d-0x%016x.fits" 
+        % (catId, tract, patch, objId, nVisit % 1000, pfsVisitHash)
 
 The path would be
    tract/patch/pfsZcandidate-*.fits
@@ -531,12 +534,12 @@ HDU#4 ZLINES                    Binary table            [FITS BINARY TABLE]     
  pfsPSF-000666-b1.fits
 	The 2-D PSF for spectrograph 1's blue arm in visit 666
 
- pfsObject-07621-2,2-001-02468ace1234abcd-003-0x1234abcddeadbeef.fits
+ pfsObject-001-07621-2,2-02468ace1234abcd-003-0x1234abcddeadbeef.fits
 	Combined spectrum for HSC (the "001") object 0x02468ace1234abcd, located in tract 7621, patch 2,2.
 
 	The pfsVisitHash SHA-1 (calculated from the 3 visits included in this reduction) is 0x1234abcddeadbeef.
 
- pfsSimObject-00000-0,0-000-13579bdf1234abcd.fits
+ pfsSimObject-000-00000-0,0-13579bdf1234abcd.fits
 	A simulated spectrum (the "000") for object 0x13579bdf1234abcd, located in tract 0, patch 0,0
 
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
