@@ -138,9 +138,9 @@ we use the order "arm, spectrograph" but now arm is a string (e.g. r2, n4).
 
 Calibration products (i.e. processed flats/biases/darks ready to be used in processing)
 
-   "pfsFlat-%06d-%1s%1d.fits" % (visit0, arm, spectrograph)
-   "pfsBias-%06d-%1s%1d.fits" % (visit0, arm, spectrograph)
-   "pfsDark-%06d-%1s%1d.fits" % (visit0, arm, spectrograph)
+   "pfsFlat-%s-%06d-%1s%1d.fits" % (calibDate, visit0, arm, spectrograph)
+   "pfsBias-%s-%06d-%1s%1d.fits" % (calibDate, visit0, arm, spectrograph)
+   "pfsDark-%s-%06d-%1s%1d.fits" % (calibDate, visit0, arm, spectrograph)
 
 (While theoretically we don't need to distinguish between the r and m chips, it's simpler to be
 consistent, so we will have 16, not 12, biases/darks for the complete spectrograph)
@@ -159,7 +159,7 @@ Single extension fits files of size NCOLUMN*NROW
 
 The positions and widths of fiber traces in the 2-D flat-field images.
 
-  "pfsFiberTrace-%06d-%1s%1d.fits" % (visit0, arm, spectrograph)
+  "pfsFiberTrace-%s-%06d-%1s%1d.fits" % (calibDate, visit0, arm, spectrograph)
 
 Note that visit0 is defined under "Calibration products"
 
@@ -518,15 +518,15 @@ HDU#4 ZLINES                    Binary table            [FITS BINARY TABLE]     
  pfsDesign-0xad349fe21234abcd.fits
 	The fiber and targetting information for the PFI configuration with hash 0xad349fe21234abcd
 
- pfsFlat-000333-m2.fits
-	Flat for spectrograph 2, medium resolution arm, valid for 333 <= visit < ??
- pfsBias-000333-r1.fits
+ pfsFlat-2019-08-29-000333-m2.fits
+	Flat for spectrograph 2, medium resolution arm, from 2019-08-29, valid for 333 <= visit < ??
+ pfsBias-2019-08-29-000333-r1.fits
 	Bias for spectrograph 1, red arm
- pfsBias-000333-m1.fits
-	Bias for spectrograph 1, medium resolution arm (identical to pfsBias-000333-1r.fits)
- pfsDark-000333-b3.fits
+ pfsBias-2019-08-29-000333-m1.fits
+	Bias for spectrograph 1, medium resolution arm (identical to pfsBias-2019-08-29-000333-1r.fits)
+ pfsDark-2019-08-29-000333-b3.fits
 	Dark for spectrograph 3, blue arm
- pfsFiberTrace-000333-n2.fits
+ pfsFiberTrace-2019-08-29-000333-n2.fits
 	Fiber traces for spectrograph 2, IR arm
 
  pfsArm-000666-b1.fits
