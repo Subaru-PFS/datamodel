@@ -109,7 +109,7 @@ class PfsFiberTrace:
         else:
             hdr = metadata
 
-        hdr.add('OBSTYPE', 'FIBERTRACE')
+        hdr.set('OBSTYPE', 'FIBERTRACE')
 
         # Write fits file from MaskedImage
         allTracesMI.writeFits(fullFileName, hdr)
