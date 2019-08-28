@@ -71,7 +71,7 @@ class PfsDesign:
     # Some elements of the code expect the following to be present:
     #     fiberId, targetType
     _fields = {"fiberId": "J",
-               "tract": "K",
+               "tract": "J",
                "patch": "A",
                "ra": "D",
                "dec": "D",
@@ -450,7 +450,7 @@ class PfsConfig(PfsDesign):
     # Some elements of the code expect the following to be present:
     #     fiberId, targetType
     _fields = {"fiberId": "J",
-               "tract": "K",
+               "tract": "J",
                "patch": "A",
                "ra": "D",
                "dec": "D",

@@ -211,8 +211,8 @@ HDU #1          FITS binary table named "PHOTOMETRY"
 
 The PDU has keys indicating the intended pointing of the telescope boresight.
 
-      RA        Intended telescope boresight Right Ascension.
-      DEC       Intended telescope boresight Declination.
+      RA        Intended telescope boresight Right Ascension (degrees)
+      DEC       Intended telescope boresight Declination (degrees)
 
 The DESIGN table lists for each object:
       fiberId        32-bit int
@@ -222,6 +222,7 @@ The DESIGN table lists for each object:
       objId          64-bit int
       ra             64-bit float (degrees)
       dec            64-bit float (degrees)
+      targetType     32-bit int (enumerated type: SCIENCE,SKY,FLUXSTD,BROKEN,BLOCKED)
       pfiNominal     pair of 32-bit floats (microns on the PFI)
 
 N.b. fiberIds start at 1.
@@ -257,8 +258,8 @@ HDU #1          FITS binary table named "PHOTOMETRY"
 
 The PDU has keys indicating the actual pointing of the telescope boresight.
 
-      RA        Actual telescope boresight Right Ascension.
-      DEC       Actual telescope boresight Declination.
+      RA        Actual telescope boresight Right Ascension (degrees).
+      DEC       Actual telescope boresight Declination (degrees).
 
 The CONFIG table lists for each object:
       fiberId        32-bit int
@@ -268,6 +269,7 @@ The CONFIG table lists for each object:
       objId          64-bit int
       ra             64-bit float (degrees)
       dec            64-bit float (degrees)
+      targetType     32-bit int (enumerated type: SCIENCE,SKY,FLUXSTD,BROKEN,BLOCKED)
       pfiCenter      pair of 32-bit floats (microns on the PFI)
       pfiNominal     pair of 32-bit floats (microns on the PFI)
 
