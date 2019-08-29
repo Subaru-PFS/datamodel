@@ -296,7 +296,7 @@ HDU #3 FLUX         Flux (nJy)                              [FLOAT]         NROW
 HDU #4 MASK         Pixel mask                              [32-bit INT]    NROW*NFIBER
 HDU #5 SKY          Sky flux (nJy)                          [FLOAT]         NROW*NFIBER
 HDU #6 COVAR        Near-diagonal part of flux covariance   [FLOAT]         NROW*3*NFIBER
-HDU #7 IDENTITY     Keyword-value pairs identifying data    [BINARY TABLE]
+HDU #7 CONFIG       Keyword-value pairs identifying data    [BINARY TABLE]
 
 Note that the data need not be resampled onto a uniform grid, as a wavelength is provided for each pixel.
 
@@ -306,7 +306,7 @@ and
                             +-2      COVAR[fiberId][2][0:-2]
 terms in the covariance matrix.
 
-At a minimum the IDENTITY table contains columns for pfsDesignId and visit (and only one row!  But it's
+At a minimum the CONFIG table contains columns for pfsDesignId and visit (and only one row!  But it's
 a table not header keywords for consistency with the pfsObject file).
 
 It would be possible to denormalise additional information about the observation into this HDU.  I do not

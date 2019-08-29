@@ -155,10 +155,10 @@ class PfsSpectra:
             for attr in ("fiberId", "wavelength", "flux", "mask", "sky", "covar"):
                 hduName = attr.upper()
                 data[attr] = fd[hduName].data
+            data["identity"] = {nn: fd["CONFIG"].data.field(nn)[0] for nn in fd["CONFIG"].data.names}
 
         data["flags"] = MaskHelper.fromFitsHeader(data["metadata"])
-        identity = cls._parseFilename(filename)
-        return cls(identity, **data)
+        return cls(**data)
 
     @classmethod
     def read(cls, identity, dirName="."):
@@ -205,6 +205,22 @@ class PfsSpectra:
             hduName = attr.upper()
             data = getattr(self, attr)
             fits.append(astropy.io.fits.ImageHDU(data, name=hduName))
+
+        # CONFIG table
+        def columnFormat(data):
+            """Return appropriate column format for some data"""
+            if isinstance(data, str):
+                return f"{len(data)}A"
+            if isinstance(data, (float, np.float32, np.float64)):
+                return "E"  # Don't expect to need double precision
+            if isinstance(data, (int, np.int32, np.int64)):
+                return "K"  # Use 64 bits because space is not a concern, and we need to support pfsDesignId
+            raise TypeError(f"Unable to determine suitable column format for {data}")
+
+        columns = [astropy.io.fits.Column(name=kk, format=columnFormat(vv), array=[vv]) for
+                   kk, vv in self.identity.items()]
+        fits.append(astropy.io.fits.BinTableHDU.from_columns(columns, name="CONFIG"))
+
         with open(filename, "wb") as fd:
             fits.writeto(fd)
 
