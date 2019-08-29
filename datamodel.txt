@@ -360,7 +360,7 @@ larger values of nVisit, but record them only modulo 1000.
          % (catId, tract, patch, objId, nVisit % 1000, pfsVisitHash)
 
 The path would be
-   tract/patch/pfsObject-*.fits
+   catId/tract/patch/pfsObject-*.fits
 
 The file will have several HDUs:
 
