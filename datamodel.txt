@@ -433,7 +433,7 @@ amplitude, width) for emission lines.  Will a continuum + lines model like this 
 evolution stellar spectra?
 
 For now, I propose:
-     "pfsSimObject-%03d-%05d-%s-%03d-%016x.fits" % (catId, tract, patch, objId)
+     "pfsSimObject-%03d-%05d-%s-%016x.fits" % (catId, tract, patch, objId)
 
 The tract, patch, catId, objId values will also be available as header keywords.
 
