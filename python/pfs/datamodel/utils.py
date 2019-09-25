@@ -31,7 +31,7 @@ def calculate_pfsDesignId(fiberIds, ras, decs):
 
 
 def createHash(*args):
-    """Create a hash from the input strings truncated to 63 bits.
+    """Create a hash from the input strings truncated to 64 bits.
 
     Parameters
     ----------
@@ -47,7 +47,7 @@ def createHash(*args):
     for l in list(args):
         m.update(str(l).encode())
 
-    return int(m.hexdigest(), 16) & 0x7fffffffffffffff
+    return int(m.hexdigest(), 16) & 0xffffffffffffffff
 
 
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
