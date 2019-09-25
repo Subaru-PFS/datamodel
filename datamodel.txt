@@ -138,9 +138,9 @@ we use the order "arm, spectrograph" but now arm is a string (e.g. r2, n4).
 
 Calibration products (i.e. processed flats/biases/darks ready to be used in processing)
 
-   "pfsFlat-%06d-%1s%1d.fits" % (visit0, arm, spectrograph)
-   "pfsBias-%06d-%1s%1d.fits" % (visit0, arm, spectrograph)
-   "pfsDark-%06d-%1s%1d.fits" % (visit0, arm, spectrograph)
+   "pfsFlat-%s-%06d-%1s%1d.fits" % (calibDate, visit0, arm, spectrograph)
+   "pfsBias-%s-%06d-%1s%1d.fits" % (calibDate, visit0, arm, spectrograph)
+   "pfsDark-%s-%06d-%1s%1d.fits" % (calibDate, visit0, arm, spectrograph)
 
 (While theoretically we don't need to distinguish between the r and m chips, it's simpler to be
 consistent, so we will have 16, not 12, biases/darks for the complete spectrograph)
@@ -159,7 +159,7 @@ Single extension fits files of size NCOLUMN*NROW
 
 The positions and widths of fiber traces in the 2-D flat-field images.
 
-  "pfsFiberTrace-%06d-%1s%1d.fits" % (visit0, arm, spectrograph)
+  "pfsFiberTrace-%s-%06d-%1s%1d.fits" % (calibDate, visit0, arm, spectrograph)
 
 Note that visit0 is defined under "Calibration products"
 
@@ -180,10 +180,10 @@ HDU #3 VARIANCE   Variance representing the FiberTrace profiles  [FLOAT]        
 HDU #4 ID_BOX     Fiber ID and bounding boxes                    [BINARY FITS TABLE]   NFIBER*5
 
 The PDU has keys to define which data were used to construct the FiberTrace:
-   SPECTROGRAPH   Which spectrograph
-   ARM            The arm of the spectrograph
-   VISIT%03d      Visits which were used
-I.e. if only visit 5830 were used, the r1 file would have ARM='r', SPECTROGRAPH=1, VISIT000=5394
+   SPECTROGRAPH       Which spectrograph
+   ARM                The arm of the spectrograph
+   CALIB_INPUT_%d     Visits which were used
+I.e. if only visit 5830 were used, the r1 file would have ARM='r', SPECTROGRAPH=1, CALIB_INPUT_0=5830
 
 The individual parameters per fiber are stored in HDU #4:
         FIBERID     NFIBER*32-bit               int
@@ -211,8 +211,8 @@ HDU #1          FITS binary table named "PHOTOMETRY"
 
 The PDU has keys indicating the intended pointing of the telescope boresight.
 
-      RA        Intended telescope boresight Right Ascension.
-      DEC       Intended telescope boresight Declination.
+      RA        Intended telescope boresight Right Ascension (degrees)
+      DEC       Intended telescope boresight Declination (degrees)
 
 The DESIGN table lists for each object:
       fiberId        32-bit int
@@ -222,6 +222,7 @@ The DESIGN table lists for each object:
       objId          64-bit int
       ra             64-bit float (degrees)
       dec            64-bit float (degrees)
+      targetType     32-bit int (enumerated type: SCIENCE,SKY,FLUXSTD,BROKEN,BLOCKED)
       pfiNominal     pair of 32-bit floats (microns on the PFI)
 
 N.b. fiberIds start at 1.
@@ -257,8 +258,8 @@ HDU #1          FITS binary table named "PHOTOMETRY"
 
 The PDU has keys indicating the actual pointing of the telescope boresight.
 
-      RA        Actual telescope boresight Right Ascension.
-      DEC       Actual telescope boresight Declination.
+      RA        Actual telescope boresight Right Ascension (degrees).
+      DEC       Actual telescope boresight Declination (degrees).
 
 The CONFIG table lists for each object:
       fiberId        32-bit int
@@ -268,6 +269,7 @@ The CONFIG table lists for each object:
       objId          64-bit int
       ra             64-bit float (degrees)
       dec            64-bit float (degrees)
+      targetType     32-bit int (enumerated type: SCIENCE,SKY,FLUXSTD,BROKEN,BLOCKED)
       pfiCenter      pair of 32-bit floats (microns on the PFI)
       pfiNominal     pair of 32-bit floats (microns on the PFI)
 
@@ -288,12 +290,13 @@ keywords in the header to disambiguate this.
 The file will have several HDUs:
 
 HDU #0 PDU
-HDU #1 FLUX        Flux in units of nJy     	   	       [FLOAT]        NROW*NFIBER
-HDU #2 COVAR       Near-diagonal part of HDU 1's covariance    [FLOAT]        NROW*3*NFIBER
-HDU #3 MASK        Pixel mask	       	      	  	       [32-bit INT]   NROW*NFIBER
-HDU #4 WAVELENGTH  Wavelength solution in nm (vacuum)	       [FLOAT] 	      NROW*NFIBER
-HDU #5 SKY         Sky flux in same units as HDU1    	       [FLOAT]	      NROW*NFIBER
-HDU #6 CONFIG      Information about the PFI, targetting, etc. [BINARY FITS TABLE]
+HDU #1 FIBERID      Fiber identifier                        [32-bit INT]    NROW*NFIBER
+HDU #2 WAVELENGTH   Wavelength (nm, vacuum)                 [FLOAT]         NROW*NFIBER
+HDU #3 FLUX         Flux (nJy)                              [FLOAT]         NROW*NFIBER
+HDU #4 MASK         Pixel mask                              [32-bit INT]    NROW*NFIBER
+HDU #5 SKY          Sky flux (nJy)                          [FLOAT]         NROW*NFIBER
+HDU #6 COVAR        Near-diagonal part of flux covariance   [FLOAT]         NROW*3*NFIBER
+HDU #7 CONFIG       Keyword-value pairs identifying data    [BINARY TABLE]
 
 Note that the data need not be resampled onto a uniform grid, as a wavelength is provided for each pixel.
 
@@ -357,7 +360,7 @@ larger values of nVisit, but record them only modulo 1000.
          % (catId, tract, patch, objId, nVisit % 1000, pfsVisitHash)
 
 The path would be
-   tract/patch/pfsObject-*.fits
+   catId/tract/patch/pfsObject-*.fits
 
 The file will have several HDUs:
 
@@ -430,7 +433,7 @@ amplitude, width) for emission lines.  Will a continuum + lines model like this 
 evolution stellar spectra?
 
 For now, I propose:
-     "pfsSimObject-%03d-%05d-%s-%03d-%016x.fits" % (catId, tract, patch, objId)
+     "pfsSimObject-%03d-%05d-%s-%016x.fits" % (catId, tract, patch, objId)
 
 The tract, patch, catId, objId values will also be available as header keywords.
 
@@ -518,15 +521,15 @@ HDU#4 ZLINES                    Binary table            [FITS BINARY TABLE]     
  pfsDesign-0xad349fe21234abcd.fits
 	The fiber and targetting information for the PFI configuration with hash 0xad349fe21234abcd
 
- pfsFlat-000333-m2.fits
-	Flat for spectrograph 2, medium resolution arm, valid for 333 <= visit < ??
- pfsBias-000333-r1.fits
+ pfsFlat-2019-08-29-000333-m2.fits
+	Flat for spectrograph 2, medium resolution arm, from 2019-08-29, valid for 333 <= visit < ??
+ pfsBias-2019-08-29-000333-r1.fits
 	Bias for spectrograph 1, red arm
- pfsBias-000333-m1.fits
-	Bias for spectrograph 1, medium resolution arm (identical to pfsBias-000333-1r.fits)
- pfsDark-000333-b3.fits
+ pfsBias-2019-08-29-000333-m1.fits
+	Bias for spectrograph 1, medium resolution arm (identical to pfsBias-2019-08-29-000333-1r.fits)
+ pfsDark-2019-08-29-000333-b3.fits
 	Dark for spectrograph 3, blue arm
- pfsFiberTrace-000333-n2.fits
+ pfsFiberTrace-2019-08-29-000333-n2.fits
 	Fiber traces for spectrograph 2, IR arm
 
  pfsArm-000666-b1.fits
