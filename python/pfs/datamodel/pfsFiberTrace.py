@@ -2,7 +2,7 @@ import os
 
 import numpy as np
 try:
-    import pyfits
+    import astropy.io.fits as pyfits
 except ImportError:
     pyfits = None
 
@@ -29,7 +29,7 @@ class PfsFiberTrace:
     def read(self, dirName="."):
         """Read self's pfsFiberTrace file from directory dirName"""
         if not pyfits:
-            raise RuntimeError("I failed to import pyfits, so cannot read from disk")
+            raise RuntimeError("I failed to import astropy.io.fits, so cannot read from disk")
 
         fileName = PfsFiberTrace.fileNameFormat % (self.obsDate, self.visit0, self.arm, self.spectrograph)
 
@@ -62,7 +62,7 @@ class PfsFiberTrace:
 
     def write(self, dirName=".", fileName=None, metadata=None):
         if not pyfits:
-            raise RuntimeError("I failed to import pyfits, so cannot write to disk")
+            raise RuntimeError("I failed to import astropy.io.fits, so cannot write to disk")
 
         if fileName is None:
             fileName = self.fileNameFormat % (self.obsDate, self.visit0, self.arm, self.spectrograph)
