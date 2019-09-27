@@ -4,3 +4,6 @@
 .sconsign.dblite
 python/pfs/datamodel/version.py
 tests/.tests
+.coverage
+.pytest_cache
+pytest_session.txt
