@@ -7,6 +7,7 @@ from .target import TargetData, TargetObservations
 from .utils import astropyHeaderFromDict, wraparoundNVisit
 from .fluxTable import FluxTable
 from .interpolate import interpolateFlux, interpolateMask
+from .wavelengthArray import WavelengthArray
 
 __all__ = ["PfsSimpleSpectrum", "PfsSpectrum"]
 
@@ -83,8 +84,16 @@ class PfsSimpleSpectrum:
             Keyword arguments for constructing spectrum.
         """
         data = {}
-        for col in ("wavelength", "flux", "mask"):
-            data[col] = fits["FLUX"].data[col]
+        data["flux"] = fits["FLUX"].data
+        data["mask"] = fits["MASK"].data
+
+        # Wavelength can be specified in an explicit extension, or as a WCS in the header
+        if "WAVELENGTH" in fits:
+            wavelength = fits["WAVELENGTH"].data
+        else:
+            wavelength = WavelengthArray.fromFitsHeader(fits["FLUX"].header, len(fits["FLUX"].data))
+        data["wavelength"] = wavelength
+
         data["flags"] = MaskHelper.fromFitsHeader(fits["FLUX"].header)
         data["target"] = TargetData.fromFits(fits)
         return data
@@ -138,19 +147,36 @@ class PfsSimpleSpectrum:
     def _writeImpl(self, fits):
         """Implementation for writing to FITS file
 
+        We attempt to write the wavelength to the header (as a WCS; this results
+        in a modest size savings), which works if the wavelength is a specified
+        as a `WavelengthArray`; otherwise we write it as an explicit extension.
+
         Parameters
         ----------
         fits : `astropy.io.fits.HDUList`
             List of FITS HDUs. This has a Primary HDU already, the header of
             which may be supplemented with additional keywords.
+
+        Returns
+        -------
+        header : `astropy.io.fits.Header`
+            FITS headers which may contain the wavelength WCS.
         """
-        from astropy.io.fits import BinTableHDU, Column
-        fits.append(BinTableHDU.from_columns([
-            Column("wavelength", "E", array=self.wavelength),
-            Column("flux", "E", array=self.flux),
-            Column("mask", "K", array=self.mask),
-        ], header=astropyHeaderFromDict(self.flags.toFitsHeader()), name="FLUX"))
+        from astropy.io.fits import ImageHDU, Header
+        haveWavelengthHeader = False
+        try:
+            header = self.wavelength.toFitsHeader()  # For WavelengthArray
+            haveWavelengthHeader = True
+        except AttributeError:
+            header = Header()
+        fits.append(ImageHDU(self.flux, header=header, name="FLUX"))
+        maskHeader = astropyHeaderFromDict(self.flags.toFitsHeader())
+        maskHeader.extend(header)
+        fits.append(ImageHDU(self.mask, header=maskHeader, name="MASK"))
+        if not haveWavelengthHeader:
+            fits.append(ImageHDU(self.wavelength, header=header, name="WAVELENGTH"))
         self.target.toFits(fits)
+        return header
 
     def writeFits(self, filename):
         """Write to FITS file
@@ -350,11 +376,11 @@ class PfsSpectrum(PfsSimpleSpectrum):
             which may be supplemented with additional keywords.
         """
         from astropy.io.fits import ImageHDU
-        super()._writeImpl(fits)
-        fits.append(ImageHDU(self.sky, name="SKY"))
-        self.observations.toFits(fits)
-        fits.append(ImageHDU(self.covar, name="COVAR"))
+        header = super()._writeImpl(fits)
+        fits.append(ImageHDU(self.sky, header=header, name="SKY"))
+        fits.append(ImageHDU(self.covar, header=header, name="COVAR"))
         fits.append(ImageHDU(self.covar2, name="COVAR2"))
+        self.observations.toFits(fits)
         if self.fluxTable is not None:
             self.fluxTable.toFits(fits)
 
