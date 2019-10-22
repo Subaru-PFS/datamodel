@@ -327,14 +327,15 @@ class PfsSpectrum(PfsSimpleSpectrum):
     def __imul__(self, rhs):
         """Flux multiplication, in-place"""
         super().__imul__(rhs)
-        self.covar *= rhs
+        for ii in range(3):
+            self.covar[ii] *= rhs**2
         return self
 
     def __itruediv__(self, rhs):
         """Flux division, in-place"""
         super().__itruediv__(rhs)
         for ii in range(3):
-            self.covar[ii] /= rhs
+            self.covar[ii] /= rhs**2
         return self
 
     @classmethod
