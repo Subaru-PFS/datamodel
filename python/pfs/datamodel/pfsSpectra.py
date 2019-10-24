@@ -1,11 +1,11 @@
 import os
 import re
 import numpy as np
-from scipy.interpolate import interp1d
 
 from .utils import astropyHeaderToDict, astropyHeaderFromDict
 from .masks import MaskHelper
 from .target import TargetData, TargetObservations
+from .interpolate import interpolateFlux, interpolateMask
 
 __all__ = ["PfsSpectra"]
 
@@ -78,6 +78,11 @@ class PfsSpectra:
         assert self.sky.shape == (self.numSpectra, self.length)
         assert self.covar.shape == (self.numSpectra, 3, self.length)
 
+    @property
+    def variance(self):
+        """Shortcut for variance"""
+        return self.covar[:, 0, :]
+
     def __len__(self):
         """Return number of spectra"""
         return self.numSpectra
@@ -85,6 +90,24 @@ class PfsSpectra:
     def __str__(self):
         """Stringify"""
         return "%s{%d spectra of length %d}" % (self.__class__.__name__, self.numSpectra, self.length)
+
+    def __imul__(self, rhs):
+        """In-place multiplication"""
+        with np.errstate(invalid="ignore"):
+            self.flux *= rhs
+            self.sky *= rhs
+            for ii in range(3):
+                self.covar[:, ii, :] *= np.array(rhs)**2
+        return self
+
+    def __itruediv__(self, rhs):
+        """In-place division"""
+        with np.errstate(invalid="ignore", divide="ignore"):
+            self.flux /= rhs
+            self.sky /= rhs
+            for ii in range(3):
+                self.covar[:, ii, :] /= np.array(rhs)**2
+        return self
 
     @property
     def filename(self):
@@ -348,14 +371,6 @@ class PfsSpectra:
         if fiberId is None:
             fiberId = self.fiberId
 
-        # how to interpolate
-        kwargs = dict(kind='linear',
-                      bounds_error=False,
-                      fill_value=0,
-                      copy=True,
-                      assume_sorted=True,
-                      )
-
         numSpectra = len(fiberId)
         numSamples = len(wavelength)
         flux = np.empty((numSpectra, numSamples), dtype=self.flux.dtype)
@@ -365,14 +380,12 @@ class PfsSpectra:
 
         for ii, ff in enumerate(fiberId):
             jj = np.argwhere(self.fiberId == ff)[0][0]
-            flux[ii] = interp1d(self.wavelength[jj], self.flux[jj], **kwargs)(wavelength)
-            sky[ii] = interp1d(self.wavelength[jj], self.sky[jj], **kwargs)(wavelength)
-            kwargs.update(fill_value=np.inf)
+            flux[ii] = interpolateFlux(self.wavelength[jj], self.flux[jj], wavelength)
+            sky[ii] = interpolateFlux(self.wavelength[jj], self.sky[jj], wavelength)
             # XXX dropping covariance on the floor: just doing the variance for now
-            covar[ii][0] = interp1d(self.wavelength[jj], self.covar[jj][0], **kwargs)(wavelength)
-            kwargs.update(fill_value=self.flags["NO_DATA"], kind='nearest')
-            mask[ii] = interp1d(self.wavelength[jj], self.mask[jj],
-                                **kwargs)(wavelength).astype(self.mask.dtype)
+            covar[ii][0] = interpolateFlux(self.wavelength[jj], self.covar[jj][0], wavelength, fill=np.inf)
+            mask[ii] = interpolateMask(self.wavelength[jj], self.mask[jj], wavelength,
+                                       fill=self.flags["NO_DATA"]).astype(self.mask.dtype)
 
         return type(self)(self.identity, fiberId, np.concatenate([[wavelength]]*numSpectra),
                           flux, mask, sky, covar, self.flags, self.metadata)

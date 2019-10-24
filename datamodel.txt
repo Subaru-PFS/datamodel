@@ -365,32 +365,46 @@ The path would be
 The file will have several HDUs:
 
 HDU #0 PDU
-HDU #1 FLUX        Flux in units of nJy     	   	       [FLOAT]        NROW
-HDU #2 FLUXTBL     Binary table                                [FITS BINARY TABLE] NROW
-    		   Columns for:
-		       wavelength in units of nm (vacuum)      [FLOAT]
-		       intensity in units of nJy	       [FLOAT]
-		       intensity error same units as intensity [FLOAT]
-		       mask                                    [32-bit INT]
-HDU #3 COVAR       Near-diagonal part of HDU 2's covariance    [FLOAT]        NROW*3
-HDU #4 COVAR2      Low-resolution non-sparse estimate covariance [FLOAT]      NCOARSE*NCOARSE
-HDU #5 MASK        Pixel mask	       	      	  	       [32-bit INT]   NROW
-HDU #6 SKY         Sky flux in same units as HDU1    	       [FLOAT]	      NROW
-HDU #7 CONFIG	   Information about the PFI, targetting, etc. [BINARY FITS TABLE]
+HDU #1 FLUX        Flux in units of nJy                       [FLOAT]        NROW
+HDU #2 MASK        Pixel mask                                 [32-bit INT]   NROW
+HDU #3 TARGET      Binary table                                [FITS BINARY TABLE] NFILTER
+               Columns for:
+               filterName                              [STRING]
+               fiberMag                                [FLOAT]
+HDU #4 SKY         Sky flux in same units as FLUX             [FLOAT]        NROW
+HDU #5 COVAR       Near-diagonal part of FLUX's covariance    [FLOAT]        NROW*3
+HDU #6 COVAR2      Low-resolution non-sparse estimate covariance [FLOAT]      NCOARSE*NCOARSE
+HDU #7 OBSERVATIONS    Binary table                            [FITS BINARY TABLE] NOBS
+               Columns for:
+               identity of the observation             [STRING]
+               fiberId                                 [32-bit INT]
+               nominal PFI position (microns)          [FLOAT]*2
+               actual PFI position (microns)           [FLOAT]*2
+HDU #8 FLUXTABLE   Binary table                                [FITS BINARY TABLE] NOBS*NROW
+               Columns for:
+		       wavelength in units of nm (vacuum)          [FLOAT]
+		       intensity in units of nJy                   [FLOAT]
+		       intensity error in same units as intensity  [FLOAT]
+		       mask                                        [32-bit INT]
 
-The PDU must contain at least the keywords
-	tract		tract		INT
-	patch		patch		STRING
-	catId		catId           INT
-	objId		objId		INT
-        pfsVHash	pfsVisitHash	INT
+The wavelengths are specified via the WCS cards in the header (e.g. CRPIX1,
+CRVAL1) for the FLUX, MASK, SKY, COVAR extensions and explicitly in the table
+for the FLUXTABLE.  We chose these two representations for the data due to the
+difficulty in resampling marginally sampled data onto a regular grid,  while
+recognising the convenience of such a grid when rebinning, performing PCAs, or
+stacking spectra.  For highest precision the data in the FLUXTABLE is likely to
+be used.
+
+The TARGET HDU must contain at least the keywords
+    catId       Catalog identifier         INT
+    tract       Tract identifier           INT
+    patch       Patch identifier           STRING
+    objId       Object identifier          INT
+    ra          Right Ascension (degrees)  DOUBLE
+    dec         Declination (degrees)      DOUBLE
+    targetType  Target type enum           INT
+
 (N.b. the keywords are case-insensitive).  Other HDUs should specify INHERIT=T.
-
-The wavelengths are specified via the WCS cards in the header (e.g. CRPIX1, CRVAL1) for HDU #1, and
-explicitly in the table for HDU #2.  We chose these two representations for the data due to the
-difficulty in resampling marginally sampled data onto a regular grid,  while recognising the convenience
-of such a grid when rebinning, performing PCAs, or stacking spectra.  For highest precision the data
-in HDU #2 is likely to be used.
 
 See pfsObject for definition of the COVAR data
 
@@ -401,13 +415,6 @@ What resolution should we use for HDU #1?  The instrument has a dispersion per p
 The second covariance table (COVAR2) is the full covariance at low spectral resolution, maybe 10x10. It's
 really only 0.5*NCOARSE*(NCOARSE + 1) numbers, but it doesn't seem worth the trouble to save a few bytes.
 This covariance is needed to model the spectrophotometric errors.
-
-The CONFIG table has nVisit rows, and at a minimum contains columns for visit and pfsDesignId:
-    visit:       32-bit int
-    pfsDesignId: 64-bit int
-
-The targetting information that SDSS put in the PLUGMAP table is available from the pfsDesignId column, which
-links to the relevant pfsDesign files.  This could be denormalised into the CONFIG table if desired.
 
 Note that we don't keep the SDSS "AND" and "OR" masks -- if needs be we could set two mask bits to capture
 the same information, but in practice SDSS's OR masks were not very useful.

@@ -81,7 +81,7 @@ class TargetData(types.SimpleNamespace):
         header = {attr.upper(): getattr(self, attr) for attr in self._attributes}
         hdu = BinTableHDU.from_columns([
             Column("filterName", "%dA" % maxLength, array=list(self.fiberMags.keys())),
-            Column("fiberMag", "D", array=np.array(list(self.fiberMags.values()))),
+            Column("fiberMag", "E", array=np.array(list(self.fiberMags.values()))),
         ], header=astropyHeaderFromDict(header), name="TARGET")
         fits.append(hdu)
 
@@ -91,8 +91,6 @@ class TargetObservations(types.SimpleNamespace):
 
     Parameters
     ----------
-    target : `TargetData`
-        The spectroscopic target we observed.
     identity : `list` of `dict`
         A list of keyword-value pairs identifying each observation.
     fiberId : `numpy.ndarray` of `int`
@@ -187,8 +185,8 @@ class TargetObservations(types.SimpleNamespace):
         identityLength = max(len(str(ident)) for ident in self.identity)
         hdu = BinTableHDU.from_columns([
             Column("identity", "%dA" % identityLength, array=self.identity),
-            Column("fiberId", "K", array=self.fiberId),
-            Column("pfiNominal", "2D", array=self.pfiNominal),
-            Column("pfiCenter", "2D", array=self.pfiCenter),
+            Column("fiberId", "J", array=self.fiberId),
+            Column("pfiNominal", "2E", array=self.pfiNominal),
+            Column("pfiCenter", "2E", array=self.pfiCenter),
         ], name="OBSERVATIONS")
         fits.append(hdu)

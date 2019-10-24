@@ -5,6 +5,9 @@ import numpy as np
 from .masks import MaskHelper
 from .target import TargetData, TargetObservations
 from .utils import astropyHeaderFromDict, wraparoundNVisit
+from .fluxTable import FluxTable
+from .interpolate import interpolateFlux, interpolateMask
+from .wavelengthArray import WavelengthArray
 
 __all__ = ["PfsSimpleSpectrum", "PfsSpectrum"]
 
@@ -81,9 +84,17 @@ class PfsSimpleSpectrum:
             Keyword arguments for constructing spectrum.
         """
         data = {}
-        for col in ("wavelength", "flux", "mask"):
-            data[col] = fits["FLUXTBL"].data[col]
-        data["flags"] = MaskHelper.fromFitsHeader(fits["FLUXTBL"].header)
+        data["flux"] = fits["FLUX"].data
+        data["mask"] = fits["MASK"].data
+
+        # Wavelength can be specified in an explicit extension, or as a WCS in the header
+        if "WAVELENGTH" in fits:
+            wavelength = fits["WAVELENGTH"].data
+        else:
+            wavelength = WavelengthArray.fromFitsHeader(fits["FLUX"].header, len(fits["FLUX"].data))
+        data["wavelength"] = wavelength
+
+        data["flags"] = MaskHelper.fromFitsHeader(fits["FLUX"].header)
         data["target"] = TargetData.fromFits(fits)
         return data
 
@@ -136,19 +147,36 @@ class PfsSimpleSpectrum:
     def _writeImpl(self, fits):
         """Implementation for writing to FITS file
 
+        We attempt to write the wavelength to the header (as a WCS; this results
+        in a modest size savings), which works if the wavelength is a specified
+        as a `WavelengthArray`; otherwise we write it as an explicit extension.
+
         Parameters
         ----------
         fits : `astropy.io.fits.HDUList`
             List of FITS HDUs. This has a Primary HDU already, the header of
             which may be supplemented with additional keywords.
+
+        Returns
+        -------
+        header : `astropy.io.fits.Header`
+            FITS headers which may contain the wavelength WCS.
         """
-        from astropy.io.fits import BinTableHDU, Column
-        fits.append(BinTableHDU.from_columns([
-            Column("wavelength", "D", array=self.wavelength),
-            Column("flux", "D", array=self.flux),
-            Column("mask", "K", array=self.mask),
-        ], header=astropyHeaderFromDict(self.flags.toFitsHeader()), name="FLUXTBL"))
+        from astropy.io.fits import ImageHDU, Header
+        haveWavelengthHeader = False
+        try:
+            header = self.wavelength.toFitsHeader()  # For WavelengthArray
+            haveWavelengthHeader = True
+        except AttributeError:
+            header = Header()
+        fits.append(ImageHDU(self.flux, header=header, name="FLUX"))
+        maskHeader = astropyHeaderFromDict(self.flags.toFitsHeader())
+        maskHeader.extend(header)
+        fits.append(ImageHDU(self.mask, header=maskHeader, name="MASK"))
+        if not haveWavelengthHeader:
+            fits.append(ImageHDU(self.wavelength, header=header, name="WAVELENGTH"))
         self.target.toFits(fits)
+        return header
 
     def writeFits(self, filename):
         """Write to FITS file
@@ -212,6 +240,23 @@ class PfsSimpleSpectrum:
             figure.show()
         return figure, axes
 
+    def resample(self, wavelength):
+        """Resampled the spectrum in wavelength
+
+        Parameters
+        ----------
+        wavelength : `numpy.ndarray` of `float`
+            Desired wavelength sampling.
+
+        Returns
+        -------
+        resampled : `PfsSimpleSpectrum`
+            Resampled spectrum.
+        """
+        flux = interpolateFlux(self.wavelength, self.flux, wavelength)
+        mask = interpolateMask(self.wavelength, self.mask, wavelength)
+        return type(self)(self.target, wavelength, flux, mask, self.flags)
+
 
 class PfsSpectrum(PfsSimpleSpectrum):
     """Spectrum for a single object
@@ -239,15 +284,19 @@ class PfsSpectrum(PfsSimpleSpectrum):
         Low-resolution non-sparse covariance estimate.
     flags : `MaskHelper`
         Helper for dealing with symbolic names for mask values.
+    fluxTable : `pfs.datamodel.FluxTable`, optional
+        Table of fluxes from contributing observations.
     """
     filenameFormat = None  # Subclasses should override
 
-    def __init__(self, target, observations, wavelength, flux, mask, sky, covar, covar2, flags):
+    def __init__(self, target, observations, wavelength, flux, mask, sky, covar, covar2, flags,
+                 fluxTable=None):
         self.observations = observations
         self.sky = sky
         self.covar = covar
         self.covar2 = covar2
         self.nVisit = wraparoundNVisit(len(self.observations))
+        self.fluxTable = fluxTable
         super().__init__(target, wavelength, flux, mask, flags)
 
     @property
@@ -278,14 +327,15 @@ class PfsSpectrum(PfsSimpleSpectrum):
     def __imul__(self, rhs):
         """Flux multiplication, in-place"""
         super().__imul__(rhs)
-        self.covar *= rhs
+        for ii in range(3):
+            self.covar[ii] *= rhs**2
         return self
 
     def __itruediv__(self, rhs):
         """Flux division, in-place"""
         super().__itruediv__(rhs)
         for ii in range(3):
-            self.covar[ii] /= rhs
+            self.covar[ii] /= rhs**2
         return self
 
     @classmethod
@@ -307,6 +357,14 @@ class PfsSpectrum(PfsSimpleSpectrum):
         data["observations"] = TargetObservations.fromFits(fits)
         data["covar"] = fits["COVAR"].data
         data["covar2"] = fits["COVAR2"].data
+        try:
+            fluxTable = FluxTable.fromFits(fits)
+        except KeyError as exc:
+            # Only want to catch "Extension XXX not found."
+            if not exc.args[0].startswith("Extension"):
+                raise
+            fluxTable = None
+        data["fluxTable"] = fluxTable
         return data
 
     def _writeImpl(self, fits):
@@ -319,11 +377,13 @@ class PfsSpectrum(PfsSimpleSpectrum):
             which may be supplemented with additional keywords.
         """
         from astropy.io.fits import ImageHDU
-        super()._writeImpl(fits)
-        fits.append(ImageHDU(self.sky, name="SKY"))
-        self.observations.toFits(fits)
-        fits.append(ImageHDU(self.covar, name="COVAR"))
+        header = super()._writeImpl(fits)
+        fits.append(ImageHDU(self.sky, header=header, name="SKY"))
+        fits.append(ImageHDU(self.covar, header=header, name="COVAR"))
         fits.append(ImageHDU(self.covar2, name="COVAR2"))
+        self.observations.toFits(fits)
+        if self.fluxTable is not None:
+            self.fluxTable.toFits(fits)
 
     def plot(self, plotSky=True, plotErrors=True, ignorePixelMask=0x0, show=True):
         """Plot the object spectrum
@@ -355,3 +415,24 @@ class PfsSpectrum(PfsSimpleSpectrum):
         if show:
             figure.show()
         return figure, axes
+
+    def resample(self, wavelength):
+        """Resampled the spectrum in wavelength
+
+        Parameters
+        ----------
+        wavelength : `numpy.ndarray` of `float`
+            Desired wavelength sampling.
+
+        Returns
+        -------
+        resampled : `PfsSpectrum`
+            Resampled spectrum.
+        """
+        flux = interpolateFlux(self.wavelength, self.flux, wavelength)
+        mask = interpolateMask(self.wavelength, self.mask, wavelength)
+        sky = interpolateFlux(self.wavelength, self.sky, wavelength)
+        covar = np.array([interpolateFlux(self.wavelength, cc, wavelength) for cc in self.covar])
+        covar2 = np.array([[0]])  # Not sure what to put here
+        return type(self)(self.target, self.observations, wavelength, flux, mask, sky, covar, covar2,
+                          self.flags, self.fluxTable)
