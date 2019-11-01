@@ -10,6 +10,7 @@ except ImportError:
 
 __all__ = ["TargetType", "PfsDesign", "PfsConfig"]
 
+
 @enum.unique
 class TargetType(enum.IntEnum):
     """Enumerated options for what a fiber is targeting
@@ -20,7 +21,9 @@ class TargetType(enum.IntEnum):
     * ``FLUXSTD``: the fiber is intended to be on a flux standard, and used for
       flux calibration.
     * ``BROKEN``: the fiber is broken, and any flux should be ignored.
-    * ``BLOCKED``: the fiber is hidden behind its spot, and any flux should be
+    * ``BLOCKED``: the transmission through the fiber is temporarily blocked.
+        Any flux should be ignored. 
+    * ``BLACKSPOT``: the fiber is hidden behind its spot, and any flux should be
       ignored.
     """
     SCIENCE = 1
@@ -28,6 +31,7 @@ class TargetType(enum.IntEnum):
     FLUXSTD = 3
     BROKEN = 4
     BLOCKED = 5
+    BLACKSPOT = 6
 
 
 class PfsDesign:

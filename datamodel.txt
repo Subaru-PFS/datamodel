@@ -222,7 +222,7 @@ The DESIGN table lists for each object:
       objId          64-bit int
       ra             64-bit float (degrees)
       dec            64-bit float (degrees)
-      targetType     32-bit int (enumerated type: SCIENCE,SKY,FLUXSTD,BROKEN,BLOCKED)
+      targetType     32-bit int (enumerated type: SCIENCE,SKY,FLUXSTD,BROKEN,BLOCKED,BLACKSPOT)
       pfiNominal     pair of 32-bit floats (microns on the PFI)
 
 N.b. fiberIds start at 1.
@@ -269,7 +269,7 @@ The CONFIG table lists for each object:
       objId          64-bit int
       ra             64-bit float (degrees)
       dec            64-bit float (degrees)
-      targetType     32-bit int (enumerated type: SCIENCE,SKY,FLUXSTD,BROKEN,BLOCKED)
+      targetType     32-bit int (enumerated type: SCIENCE,SKY,FLUXSTD,BROKEN,BLOCKED,BLACKSPOT)
       pfiCenter      pair of 32-bit floats (microns on the PFI)
       pfiNominal     pair of 32-bit floats (microns on the PFI)
 
