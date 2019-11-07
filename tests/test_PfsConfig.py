@@ -19,7 +19,9 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
         self.numFluxStd = 300
         self.numBroken = 3
         self.numBlocked = 2
-        self.numObject = self.numFibers - (self.numSky + self.numFluxStd + self.numBroken + self.numBlocked)
+        self.numBlackSpot = 1
+        self.numObject = self.numFibers - (self.numSky + self.numFluxStd +
+                                           self.numBroken + self.numBlocked + self.numBlackSpot)
         self.raBoresight = 60.0*lsst.afw.geom.degrees
         self.decBoresight = 30.0*lsst.afw.geom.degrees
         self.fov = 1.5*lsst.afw.geom.degrees
@@ -53,6 +55,7 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
                                    [int(TargetType.FLUXSTD)]*self.numFluxStd +
                                    [int(TargetType.BROKEN)]*self.numBroken +
                                    [int(TargetType.BLOCKED)]*self.numBlocked +
+                                   [int(TargetType.BLACKSPOT)]*self.numBlackSpot +
                                    [int(TargetType.SCIENCE)]*self.numObject)
         rng.shuffle(self.targetType)
 
