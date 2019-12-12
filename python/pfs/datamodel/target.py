@@ -1,10 +1,10 @@
 import types
-import hashlib
 import numpy as np
 
 from .utils import astropyHeaderFromDict, astropyHeaderToDict, calculatePfsVisitHash, wraparoundNVisit
 
 __all__ = ["TargetData", "TargetObservations"]
+
 
 class TargetData(types.SimpleNamespace):
     """A spectroscopic target
