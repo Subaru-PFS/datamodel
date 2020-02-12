@@ -1,10 +1,10 @@
 import types
-import hashlib
 import numpy as np
 
-from .utils import astropyHeaderFromDict, astropyHeaderToDict, createHash, wraparoundNVisit
+from .utils import astropyHeaderFromDict, astropyHeaderToDict, calculatePfsVisitHash, wraparoundNVisit
 
 __all__ = ["TargetData", "TargetObservations"]
+
 
 class TargetData(types.SimpleNamespace):
     """A spectroscopic target
@@ -122,37 +122,52 @@ class TargetObservations(types.SimpleNamespace):
         assert self.pfiNominal.shape == (self.num, 2)
         assert self.pfiNominal.shape == (self.num, 2)
 
-    def calculateVisitHash(self, keys=("visit",)):
+    def getVisits(self, visitKey="visit"):
+        """Return a list of visits
+
+        Parameters
+        ----------
+        visitKey : `str`, optional
+            Key in the ``identity`` to use in identifying the visit number.
+
+        Returns
+        -------
+        visits : `list` of `int`
+            List of visits.
+        """
+        return list(set(ident[visitKey] for ident in self.identity))
+
+    def calculateVisitHash(self, visitKey="visit"):
         """Calculate hash of the exposure inputs
 
         Parameters
         ----------
-        keys : iterable
-            Iterable of keys from the ``identity`` to use in constructing the
-            hash.
+        visitKey : `str`, optional
+            Key in the ``identity`` to use in identifying the visit number.
 
         Returns
         -------
         hash : `int`
             Hash, truncated to 63 bits.
         """
-        return createHash([str(indent[kk]).encode() for indent in self.identity for kk in sorted(keys)])
+        return calculatePfsVisitHash(self.getVisits(visitKey))
 
-    def getIdentity(self, hashKeys=("visit",)):
+    def getIdentity(self, visitKey="visit"):
         """Return the identity of these observations
 
         Parameters
         ----------
-        hashKeys : iterable of `str`
-            Iterable of keys from the ``identity`` to use in constructing the
-            hash.
+        visitKey : `str`, optional
+            Key in the ``identity`` to use in identifying the visit number.
 
         Returns
         -------
         identity : `dict`
             Keyword-value pairs identifying these observations.
         """
-        return dict(nVisit=wraparoundNVisit(len(self)), pfsVisitHash=self.calculateVisitHash(hashKeys))
+        return dict(nVisit=wraparoundNVisit(len(self.getVisits(visitKey))),
+                    pfsVisitHash=self.calculateVisitHash(visitKey),
+                    )
 
     @classmethod
     def fromFits(cls, fits):

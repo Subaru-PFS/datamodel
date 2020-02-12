@@ -5,16 +5,29 @@ import hashlib
 import numpy as np
 
 
-def calculate_pfsVisitHash(visits):
-    """Calculate and return the 63-bit SHA-1 from a list of visits"""
-    if len(visits) == 1 and visits[0] == 0:
-        return 0x0
+def calculatePfsVisitHash(visits):
+    """Calculate and return a hash from a list of visits
 
-    return createHash(["%d" % (visit) for visit in visits])
+    Parameters
+    ----------
+    visits : `list` of `int`
+        List of visit numbers.
+
+    Returns
+    -------
+    hash : `int`
+        Hash of the visits.
+    """
+    check = set(visits)
+    if len(check) != len(visits):
+        from collections import Counter
+        counts = Counter(visits)
+        raise ValueError(f"List of visits is not unique: {[vv for vv in counts if counts[vv] > 1]}")
+    return createHash([str(vv).encode() for vv in sorted(visits)])
 
 
 def calculate_pfsDesignId(fiberIds, ras, decs):
-    """Calculate and return the 63-bit SHA-1 from a set of lists of
+    """Calculate and return the hash from a set of lists of
     fiberId, ra, and dec"""
 
     if fiberIds is None:
