@@ -5,7 +5,7 @@ import unittest
 import numpy as np
 
 import lsst.utils.tests
-import lsst.afw.geom
+import lsst.geom
 
 from pfs.datamodel.pfsConfig import PfsConfig, TargetType
 
@@ -22,9 +22,9 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
         self.numBlackSpot = 1
         self.numObject = self.numFibers - (self.numSky + self.numFluxStd +
                                            self.numBroken + self.numBlocked + self.numBlackSpot)
-        self.raBoresight = 60.0*lsst.afw.geom.degrees
-        self.decBoresight = 30.0*lsst.afw.geom.degrees
-        self.fov = 1.5*lsst.afw.geom.degrees
+        self.raBoresight = 60.0*lsst.geom.degrees
+        self.decBoresight = 30.0*lsst.geom.degrees
+        self.fov = 1.5*lsst.geom.degrees
         self.pfiScale = 800000.0/self.fov.asDegrees()  # microns/degree
         self.pfiErrors = 10  # microns
 
@@ -36,10 +36,10 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
         self.patch = ["%d,%d" % tuple(xy.tolist()) for
                       xy in rng.uniform(high=15, size=(self.numFibers, 2)).astype(int)]
 
-        boresight = lsst.afw.geom.SpherePoint(self.raBoresight, self.decBoresight)
+        boresight = lsst.geom.SpherePoint(self.raBoresight, self.decBoresight)
         radius = np.sqrt(rng.uniform(size=self.numFibers))*0.5*self.fov.asDegrees()  # degrees
         theta = rng.uniform(size=self.numFibers)*2*np.pi  # radians
-        coords = [boresight.offset(tt*lsst.afw.geom.radians, rr*lsst.afw.geom.degrees) for
+        coords = [boresight.offset(tt*lsst.geom.radians, rr*lsst.geom.degrees) for
                   rr, tt in zip(radius, theta)]
         self.ra = np.array([cc.getRa().asDegrees() for cc in coords])
         self.dec = np.array([cc.getDec().asDegrees() for cc in coords])

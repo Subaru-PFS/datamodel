@@ -6,7 +6,7 @@ try:
 except ImportError:
     pyfits = None
 
-import lsst.afw.geom as afwGeom
+import lsst.geom
 import lsst.afw.image as afwImage
 import lsst.daf.base as dafBase
 import lsst.afw.fits as afwFits
@@ -49,10 +49,10 @@ class PfsFiberTrace:
         x0 = 0
         for i in range(len(self.fiberId)):
             # bbox: BBox in full (i.e. data) image
-            bbox = afwGeom.BoxI(afwGeom.PointI(minX[i], minY[i]), afwGeom.PointI(maxX[i], maxY[i]))
+            bbox = lsst.geom.BoxI(lsst.geom.PointI(minX[i], minY[i]), lsst.geom.PointI(maxX[i], maxY[i]))
 
             # bboxAllTMI: BBox in allTracesMI
-            bboxAllTMI = afwGeom.BoxI(afwGeom.PointI(x0, bbox.getMinY()), bbox.getDimensions())
+            bboxAllTMI = lsst.geom.BoxI(lsst.geom.PointI(x0, bbox.getMinY()), bbox.getDimensions())
             
             trace = allTracesMI[bboxAllTMI].clone()
             trace.setXY0(bbox.getBegin())
@@ -92,13 +92,13 @@ class PfsFiberTrace:
 
         # Copy trace's MaskedImages to allTracesMI
         x0 = 0
-        origin = afwGeom.PointI(0, 0)
+        origin = lsst.geom.PointI(0, 0)
         for i in range(len(self.traces)):
             trace = self.traces[i]
 
-            xy0 = afwGeom.Point2I(x0, minY[i]) # origin in allTracesMI
-            allTracesMI[afwGeom.BoxI(xy0, trace.getDimensions())] = \
-                        trace.Factory(trace, afwGeom.BoxI(origin, trace.getDimensions()), afwImage.LOCAL)
+            xy0 = lsst.geom.Point2I(x0, minY[i]) # origin in allTracesMI
+            allTracesMI[lsst.geom.BoxI(xy0, trace.getDimensions())] = \
+                trace.Factory(trace, lsst.geom.BoxI(origin, trace.getDimensions()), afwImage.LOCAL)
 
             x0 += trace.getWidth()
         #
