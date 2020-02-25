@@ -53,10 +53,10 @@ class PfsFiberTrace:
 
             # bboxAllTMI: BBox in allTracesMI
             bboxAllTMI = lsst.geom.BoxI(lsst.geom.PointI(x0, bbox.getMinY()), bbox.getDimensions())
-            
+
             trace = allTracesMI[bboxAllTMI].clone()
             trace.setXY0(bbox.getBegin())
-            
+
             self.traces.append(trace)
             x0 += bbox.getWidth()
 
@@ -96,7 +96,7 @@ class PfsFiberTrace:
         for i in range(len(self.traces)):
             trace = self.traces[i]
 
-            xy0 = lsst.geom.Point2I(x0, minY[i]) # origin in allTracesMI
+            xy0 = lsst.geom.Point2I(x0, minY[i])  # origin in allTracesMI
             allTracesMI[lsst.geom.BoxI(xy0, trace.getDimensions())] = \
                 trace.Factory(trace, lsst.geom.BoxI(origin, trace.getDimensions()), afwImage.LOCAL)
 
@@ -116,18 +116,18 @@ class PfsFiberTrace:
 
         # append the additional HDUs
         hdu = pyfits.BinTableHDU.from_columns([
-            pyfits.Column(name = 'FIBERID', format = 'J', array=np.array(self.fiberId, dtype=np.int32)),
-            pyfits.Column(name = 'MINX', format = 'J', array=np.array(minX, dtype=np.int32)),
-            pyfits.Column(name = 'MINY', format = 'J', array=np.array(minY, dtype=np.int32)),
-            pyfits.Column(name = 'MAXX', format = 'J', array=np.array(maxX, dtype=np.int32)),
-            pyfits.Column(name = 'MAXY', format = 'J', array=np.array(maxY, dtype=np.int32)),
+            pyfits.Column(name='FIBERID', format='J', array=np.array(self.fiberId, dtype=np.int32)),
+            pyfits.Column(name='MINX', format='J', array=np.array(minX, dtype=np.int32)),
+            pyfits.Column(name='MINY', format='J', array=np.array(minY, dtype=np.int32)),
+            pyfits.Column(name='MAXX', format='J', array=np.array(maxX, dtype=np.int32)),
+            pyfits.Column(name='MAXY', format='J', array=np.array(maxY, dtype=np.int32)),
         ])
 
         hdu.name = "ID_BOX"
         hdu.header["INHERIT"] = True
 
         # clobber=True in writeto prints a message, so use open instead
-        
+
         with pyfits.open(fullFileName, "update") as fd:
             fd[1].name = "IMAGE"
             fd[2].name = "MASK"
