@@ -11,7 +11,6 @@ class CreateHashTestCase(unittest.TestCase):
         self.assertEqual(createHash('1', '2'), 0x39753077792b0554)
 
     def testListComprehension(self):
-        
         listA = ['a', 'b']
         listB = ['y', 'z']
         listC = [a + b for a in listA for b in listB]
