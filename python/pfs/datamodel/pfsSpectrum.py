@@ -268,7 +268,7 @@ class PfsSpectrum(PfsSimpleSpectrum):
     def validate(self):
         """Validate that all the arrays are of the expected shape"""
         self.observations.validate()
-        assert wraparoundNVisit(len(self.observations))== self.nVisit
+        assert wraparoundNVisit(len(self.observations)) == self.nVisit
         assert self.sky.shape == (self.length,)
         assert self.covar.shape == (3, self.length)
         assert self.covar2.ndim == 2
@@ -319,4 +319,3 @@ class PfsSpectrum(PfsSimpleSpectrum):
         self.observations.toFits(fits)
         if self.fluxTable is not None:
             self.fluxTable.toFits(fits)
-
