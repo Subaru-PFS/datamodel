@@ -263,7 +263,7 @@ class PfsSpectra:
         return self.writeFits(filename)
 
     @classmethod
-    def fromMerge(cls, identityKeys, spectraList):
+    def fromMerge(cls, identityKeys, spectraList, metadata=None):
         """Construct from merging multiple spectra
 
         Parameters
@@ -273,6 +273,8 @@ class PfsSpectra:
             combined spectra's ``identity``.
         spectraList : iterable of `PfsSpectra`
             Spectra to combine.
+        metadata : `dict` (`str`: POD), optional
+            Keyword-value pairs for the header.
 
         Returns
         -------
@@ -301,9 +303,8 @@ class PfsSpectra:
             sky[select] = ss.sky
             covar[select] = ss.covar
             index += len(ss)
-        metadata = {}
         flags = MaskHelper.fromMerge(list(ss.flags for ss in spectraList))
-        return cls(identity, fiberId, wavelength, flux, mask, sky, covar, flags, metadata)
+        return cls(identity, fiberId, wavelength, flux, mask, sky, covar, flags, metadata if metadata else {})
 
     def plot(self, fiberId=None, usePixels=False, ignorePixelMask=0x0, show=True):
         """Plot the spectra
