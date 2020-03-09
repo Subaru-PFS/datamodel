@@ -30,15 +30,18 @@ class PfsSimpleSpectrum:
         Array of mask pixels.
     flags : `pfs.datamodel.MaskHelper`
         Helper for dealing with symbolic names for mask values.
+    metadata : `dict` (`str`: POD), optional
+        Keyword-value pairs for the header.
     """
     filenameFormat = None  # Subclasses should override
 
-    def __init__(self, target, wavelength, flux, mask, flags):
+    def __init__(self, target, wavelength, flux, mask, flags, metadata=None):
         self.target = target
         self.wavelength = wavelength
         self.flux = flux
         self.mask = mask
         self.flags = flags
+        self.metadata = metadata if metadata is not None else {}
 
         self.length = len(wavelength)
         self.validate()
@@ -169,6 +172,8 @@ class PfsSimpleSpectrum:
             haveWavelengthHeader = True
         except AttributeError:
             header = Header()
+        if self.metadata:
+            header.extend(astropyHeaderFromDict(self.metadata))
         fits.append(ImageHDU(self.flux, header=header, name="FLUX"))
         maskHeader = astropyHeaderFromDict(self.flags.toFitsHeader())
         maskHeader.extend(header)
@@ -284,12 +289,14 @@ class PfsSpectrum(PfsSimpleSpectrum):
         Low-resolution non-sparse covariance estimate.
     flags : `MaskHelper`
         Helper for dealing with symbolic names for mask values.
+    metadata : `dict` (`str`: POD), optional
+        Keyword-value pairs for the header.
     fluxTable : `pfs.datamodel.FluxTable`, optional
         Table of fluxes from contributing observations.
     """
     filenameFormat = None  # Subclasses should override
 
-    def __init__(self, target, observations, wavelength, flux, mask, sky, covar, covar2, flags,
+    def __init__(self, target, observations, wavelength, flux, mask, sky, covar, covar2, flags, metadata=None,
                  fluxTable=None):
         self.observations = observations
         self.sky = sky
@@ -297,7 +304,7 @@ class PfsSpectrum(PfsSimpleSpectrum):
         self.covar2 = covar2
         self.nVisit = wraparoundNVisit(len(self.observations))
         self.fluxTable = fluxTable
-        super().__init__(target, wavelength, flux, mask, flags)
+        super().__init__(target, wavelength, flux, mask, flags, metadata=metadata)
 
     @property
     def variance(self):
