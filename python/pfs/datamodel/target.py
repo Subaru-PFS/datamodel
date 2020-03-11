@@ -4,10 +4,10 @@ import numpy as np
 from .utils import astropyHeaderFromDict, astropyHeaderToDict, calculatePfsVisitHash, wraparoundNVisit
 from .pfsConfig import TargetType
 
-__all__ = ["TargetData", "TargetObservations"]
+__all__ = ("Target", "TargetObservations")
 
 
-class TargetData(types.SimpleNamespace):
+class Target(types.SimpleNamespace):
     """A spectroscopic target
 
     Parameters
@@ -20,19 +20,19 @@ class TargetData(types.SimpleNamespace):
         Patch in which the object resides.
     objId : `objId`
         Object identifier of the object.
-    ra : `float`
+    ra : `float`, optional
         Right Ascension of the object.
-    dec : `float`
+    dec : `float`, optional
         Declination of the object.
-    targetType : `TargetType`
+    targetType : `TargetType`, optional
         Type of target (typically ``SCIENCE``).
-    fiberMags : `dict` mapping `str` to `float`
+    fiberMags : `dict` mapping `str` to `float`, optional
         Filter names and corresponding fiber magnitudes.
     """
     _attributes = ("catId", "tract", "patch", "objId", "ra", "dec", "targetType")  # Read from header
     """Attributes to read from FITS header (iterable of `str`)"""
 
-    def __init__(self, catId, tract, patch, objId, ra, dec, targetType, fiberMags):
+    def __init__(self, catId, tract, patch, objId, ra=np.nan, dec=np.nan, targetType=-1, fiberMags=None):
         self.catId = catId
         self.tract = tract
         self.patch = patch
@@ -40,8 +40,8 @@ class TargetData(types.SimpleNamespace):
         self.ra = ra
         self.dec = dec
         self.targetType = targetType
-        self.fiberMags = fiberMags
-        self.identity = dict(catId=catId, tract=tract, patch=patch, objId=objId, targetType=targetType)
+        self.fiberMags = fiberMags if fiberMags is not None else {}
+        self.identity = dict(catId=catId, tract=tract, patch=patch, objId=objId)
 
     def __str__(self):
         """Stringify"""
@@ -58,8 +58,8 @@ class TargetData(types.SimpleNamespace):
 
         Returns
         -------
-        self : `TargetData`
-            Constructed `TargetData`.
+        self : `Target`
+            Constructed `Target`.
         """
         hdu = fits["TARGET"]
         header = astropyHeaderToDict(hdu.header)
@@ -86,6 +86,40 @@ class TargetData(types.SimpleNamespace):
             Column("fiberMag", "E", array=np.array(list(self.fiberMags.values()))),
         ], header=header, name="TARGET")
         fits.append(hdu)
+
+    def __hash__(self):
+        return hash((self.catId, self.tract, self.patch, self.objId))
+
+    @classmethod
+    def fromPfsConfig(cls, pfsConfig, index):
+        """Construct from a PfsConfig
+
+        Parameters
+        ----------
+        pfsConfig : `pfs.datamodel.PfsConfig`
+            Top-end configuration.
+        index : `int`
+            Index into the ``pfsConfig`` arrays for the target of interest.
+
+        Returns
+        -------
+        self : cls
+            Constructed `Target`.
+        """
+        catId = pfsConfig.catId[index]
+        tract = pfsConfig.tract[index]
+        patch = pfsConfig.patch[index]
+        objId = pfsConfig.objId[index]
+        ra = pfsConfig.ra[index]
+        dec = pfsConfig.dec[index]
+        fiberMags = dict(zip(pfsConfig.filterNames[index], pfsConfig.fiberMag[index]))
+        targetType = pfsConfig.targetType[index]
+        return cls(catId, tract, patch, objId, ra, dec, targetType, fiberMags)
+
+    def __reduce__(self):
+        """How to pickle"""
+        return type(self), (self.catId, self.tract, self.patch, self.objId, self.ra, self.dec,
+                            self.targetType, self.fiberMags)
 
 
 class TargetObservations(types.SimpleNamespace):
