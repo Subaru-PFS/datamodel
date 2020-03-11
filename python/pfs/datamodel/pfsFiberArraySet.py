@@ -4,7 +4,8 @@ import numpy as np
 
 from .utils import astropyHeaderToDict, astropyHeaderFromDict, inheritDocstrings
 from .masks import MaskHelper
-from .target import TargetData, TargetObservations
+from .target import Target
+from .observations import Observations
 from .identity import Identity
 
 __all__ = ["PfsFiberArraySet"]
@@ -268,7 +269,8 @@ class PfsFiberArraySet:
             index += len(ss)
         identity = Identity.fromMerge([ss.identity for ss in spectraList])
         flags = MaskHelper.fromMerge(list(ss.flags for ss in spectraList))
-        return cls(identity, fiberId, wavelength, flux, mask, sky, covar, flags, metadata if metadata else {})
+        return cls(identity, fiberId, wavelength, flux, mask, sky, covar, flags,
+                   metadata if metadata else {})
 
     def extractFiber(self, FiberArrayClass, pfsConfig, fiberId):
         """Extract a single fiber
@@ -301,11 +303,11 @@ class PfsFiberArraySet:
         jj = jj[0]
 
         fiberMag = dict(zip(pfsConfig.filterNames[jj], pfsConfig.fiberMag[jj]))
-        target = TargetData(pfsConfig.catId[jj], pfsConfig.tract[jj], pfsConfig.patch[jj],
-                            pfsConfig.objId[jj], pfsConfig.ra[jj], pfsConfig.dec[jj],
-                            pfsConfig.targetType[jj], fiberMag)
-        obs = TargetObservations([self.identity], np.array([fiberId]), np.array([pfsConfig.pfiNominal[jj]]),
-                                 np.array([pfsConfig.pfiCenter[jj]]))
+        target = Target(pfsConfig.catId[jj], pfsConfig.tract[jj], pfsConfig.patch[jj],
+                        pfsConfig.objId[jj], pfsConfig.ra[jj], pfsConfig.dec[jj],
+                        pfsConfig.targetType[jj], fiberMag)
+        obs = Observations.makeSingle(self.identity, pfsConfig, fiberId)
+
         # XXX not dealing with covariance properly.
         covar = np.zeros((3, self.length), dtype=self.covar.dtype)
         covar[:] = self.covar[ii]

@@ -1,7 +1,7 @@
 from .pfsSimpleSpectrum import PfsSimpleSpectrum
 from .utils import wraparoundNVisit, inheritDocstrings
 from .fluxTable import FluxTable
-from .target import TargetObservations
+from .observations import Observations
 
 
 @inheritDocstrings
@@ -13,9 +13,9 @@ class PfsFiberArray(PfsSimpleSpectrum):
 
     Parameters
     ----------
-    target : `pfs.datamodel.target.TargetData`
+    target : `pfs.datamodel.Target`
         Target information.
-    observations : `pfs.datamodel.target.TargetObservations`
+    observations : `pfs.datamodel.Observations`
         Observations of the target.
     wavelength : `numpy.ndarray` of `float`
         Array of wavelengths.
@@ -103,7 +103,7 @@ class PfsFiberArray(PfsSimpleSpectrum):
         """
         data = super()._readImpl(fits)
         data["sky"] = fits["SKY"].data
-        data["observations"] = TargetObservations.fromFits(fits)
+        data["observations"] = Observations.fromFits(fits)
         data["covar"] = fits["COVAR"].data
         data["covar2"] = fits["COVAR2"].data
         try:

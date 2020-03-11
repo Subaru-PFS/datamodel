@@ -1,7 +1,7 @@
 import os
 
 from .masks import MaskHelper
-from .target import TargetData
+from .target import Target
 from .utils import astropyHeaderFromDict, inheritDocstrings
 from .wavelengthArray import WavelengthArray
 
@@ -17,7 +17,7 @@ class PfsSimpleSpectrum:
 
     Parameters
     ----------
-    target : `pfs.datamodel.TargetData`
+    target : `pfs.datamodel.Target`
         Target information.
     wavelength : `numpy.ndarray` of `float`
         Array of wavelengths.
@@ -85,7 +85,7 @@ class PfsSimpleSpectrum:
         data["wavelength"] = wavelength
 
         data["flags"] = MaskHelper.fromFitsHeader(fits["FLUX"].header)
-        data["target"] = TargetData.fromFits(fits)
+        data["target"] = Target.fromFits(fits)
         return data
 
     @classmethod
