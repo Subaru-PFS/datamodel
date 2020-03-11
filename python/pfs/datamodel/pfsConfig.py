@@ -11,42 +11,46 @@ except ImportError:
 __all__ = ("TargetType", "FiberStatus", "PfsDesign", "PfsConfig")
 
 
-@enum.unique
-class TargetType(enum.IntEnum):
-    """Enumerated options for what a fiber is targeting
+class DocEnum(enum.IntEnum):
+    """An integer enumerated type with documented members
 
-    * ``SCIENCE``: the fiber is intended to be on a science target.
-    * ``SKY``: the fiber is intended to be on blank sky, and used for sky
-      subtraction.
-    * ``FLUXSTD``: the fiber is intended to be on a flux standard, and used for
-      flux calibration.
-    * ``UNASSIGNED``: the fiber is not targeted on anything in particular.
-    * ``ENGINEERING``: the fiber is an engineering fiber.
+    From https://stackoverflow.com/a/50473952/834250
     """
-    SCIENCE = 1
-    SKY = 2
-    FLUXSTD = 3
-    UNASSIGNED = 4
-    ENGINEERING = 5
+    def __new__(cls, value, doc):
+        self = int.__new__(cls, value)
+        self._value_ = value
+        self.__doc__ = doc
+        return self
+
+    @classmethod
+    def getFitsHeaders(cls):
+        """Return FITS headers documenting the options
+
+        Returns
+        -------
+        header : `dict` (`str`: `str`)
+            Keyword-value pairs to include in a FITS header.
+        """
+        keyBase = "HIERARCH " + cls.__name__ + "."
+        return {keyBase + member.name: (member.value, member.__doc__) for member in cls}
 
 
-@enum.unique
-class FiberStatus(enum.IntEnum):
-    """ Enumerated options for the status of a fiber
+class TargetType(DocEnum):
+    """Enumerated options for what a fiber is targeting"""
+    SCIENCE = 1, "science target"
+    SKY = 2, "blank sky; used for sky subtraction"
+    FLUXSTD = 3, "flux standard; used for fluxcal"
+    UNASSIGNED = 4, "no particular target"
+    ENGINEERING = 5, "engineering fiber"
 
-    * ``GOOD``: the fiber is working normally.
-    * ``BROKENFIBER``: the fiber is broken, and any flux should be ignored.
-    * ``BLOCKED``: the transmission through the fiber is temporarily blocked.
-      Any flux should be ignored.
-    * ``BLACKSPOT``: the fiber is hidden behind its spot, and any flux should be
-      ignored.
-    * ``UNILLUMINATED``: the fiber is not being illuminated.
-    """
-    GOOD = 1
-    BROKENFIBER = 2
-    BLOCKED = 3
-    BLACKSPOT = 4
-    UNILLUMINATED = 5
+
+class FiberStatus(DocEnum):
+    """Enumerated options for the status of a fiber"""
+    GOOD = 1, "working normally"
+    BROKENFIBER = 2, "broken; ignore any flux"
+    BLOCKED = 3, "temporarily blocked; ignore any flux"
+    BLACKSPOT = 4, "hidden behind spot; ignore any flux"
+    UNILLUMINATED = 5, "not illuminated; ignore any flux"
 
 
 class PfsDesign:
@@ -251,6 +255,8 @@ class PfsDesign:
         hdr = pyfits.Header()
         hdr['RA'] = (self.raBoresight, "Telescope boresight RA, degrees")
         hdr['DEC'] = (self.decBoresight, "Telescope boresight Dec, degrees")
+        hdr.update(TargetType.getFitsHeaders())
+        hdr.update(FiberStatus.getFitsHeaders())
         hdu = pyfits.PrimaryHDU(header=hdr)
         hdr.update()
         fits.append(hdu)
