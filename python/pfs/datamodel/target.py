@@ -2,6 +2,7 @@ import types
 import numpy as np
 
 from .utils import astropyHeaderFromDict, astropyHeaderToDict, calculatePfsVisitHash, wraparoundNVisit
+from .pfsConfig import TargetType
 
 __all__ = ["TargetData", "TargetObservations"]
 
@@ -78,11 +79,12 @@ class TargetData(types.SimpleNamespace):
         """
         from astropy.io.fits import BinTableHDU, Column
         maxLength = max(len(ff) for ff in self.fiberMags.keys()) if self.fiberMags else 1
-        header = {attr.upper(): getattr(self, attr) for attr in self._attributes}
+        header = astropyHeaderFromDict({attr.upper(): getattr(self, attr) for attr in self._attributes})
+        header.update(TargetType.getFitsHeaders())
         hdu = BinTableHDU.from_columns([
             Column("filterName", "%dA" % maxLength, array=list(self.fiberMags.keys())),
             Column("fiberMag", "E", array=np.array(list(self.fiberMags.values()))),
-        ], header=astropyHeaderFromDict(header), name="TARGET")
+        ], header=header, name="TARGET")
         fits.append(hdu)
 
 
