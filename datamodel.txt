@@ -315,7 +315,7 @@ HDU #3 FLUX         Flux (arbitrary units)                  [FLOAT]         NROW
 HDU #4 MASK         Pixel mask                              [32-bit INT]    NROW*NFIBER
 HDU #5 SKY          Sky flux                                [FLOAT]         NROW*NFIBER
 HDU #6 COVAR        Near-diagonal part of flux covariance   [FLOAT]         NROW*3*NFIBER
-HDU #7 CONFIG       Keyword-value pairs identifying data    [BINARY TABLE]
+HDU #7 CONFIG       Identification of the exposure          [BINARY TABLE]
 
 Note that the data need not be resampled onto a uniform grid, as a wavelength is provided for each pixel.
 
