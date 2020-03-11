@@ -8,7 +8,7 @@ except ImportError:
     pyfits = None
 
 
-__all__ = ["TargetType", "PfsDesign", "PfsConfig"]
+__all__ = ("TargetType", "FiberStatus", "PfsDesign", "PfsConfig")
 
 
 @enum.unique
@@ -20,18 +20,33 @@ class TargetType(enum.IntEnum):
       subtraction.
     * ``FLUXSTD``: the fiber is intended to be on a flux standard, and used for
       flux calibration.
-    * ``BROKEN``: the fiber is broken, and any flux should be ignored.
-    * ``BLOCKED``: the transmission through the fiber is temporarily blocked.
-        Any flux should be ignored. 
-    * ``BLACKSPOT``: the fiber is hidden behind its spot, and any flux should be
-      ignored.
+    * ``UNASSIGNED``: the fiber is not targeted on anything in particular.
+    * ``ENGINEERING``: the fiber is an engineering fiber.
     """
     SCIENCE = 1
     SKY = 2
     FLUXSTD = 3
-    BROKEN = 4
-    BLOCKED = 5
-    BLACKSPOT = 6
+    UNASSIGNED = 4
+    ENGINEERING = 5
+
+
+@enum.unique
+class FiberStatus(enum.IntEnum):
+    """ Enumerated options for the status of a fiber
+
+    * ``GOOD``: the fiber is working normally.
+    * ``BROKENFIBER``: the fiber is broken, and any flux should be ignored.
+    * ``BLOCKED``: the transmission through the fiber is temporarily blocked.
+      Any flux should be ignored.
+    * ``BLACKSPOT``: the fiber is hidden behind its spot, and any flux should be
+      ignored.
+    * ``UNILLUMINATED``: the fiber is not being illuminated.
+    """
+    GOOD = 1
+    BROKENFIBER = 2
+    BLOCKED = 3
+    BLACKSPOT = 4
+    UNILLUMINATED = 5
 
 
 class PfsDesign:
@@ -64,6 +79,9 @@ class PfsDesign:
     targetType : `numpy.ndarray` of `int`
         Type of target for each fiber. Values must be convertible to
         `TargetType` (which limits the range of values).
+    fiberStatus : `numpy.ndarray` of `int`
+        Status of each fiber. Values must be convertible to `FiberStatus`
+        (which limits the range of values).
     fiberMag : `list` of `numpy.ndarray` of `float`
         Array of fiber magnitudes for each fiber.
     filterNames : `list` of `list` of `str`
@@ -82,6 +100,7 @@ class PfsDesign:
                "catId": "J",
                "objId": "K",
                "targetType": "J",
+               "fiberStatus": "J",
                "pfiNominal": "2E",
                }
     _pointFields = ["pfiNominal"]  # List of point fields; should be in _fields too
@@ -111,6 +130,11 @@ class PfsDesign:
                 TargetType(tt)
             except ValueError as exc:
                 raise ValueError("targetType[%d] = %d is not a recognized TargetType" % (ii, tt)) from exc
+        for ii, tt in enumerate(self.fiberStatus):
+            try:
+                FiberStatus(tt)
+            except ValueError as exc:
+                raise ValueError("fiberStatus[%d] = %d is not a recognised FiberStatus" % (ii, tt)) from exc
         for ii, (mag, names) in enumerate(zip(self.fiberMag, self.filterNames)):
             if len(mag) != len(names):
                 raise RuntimeError("Inconsistent lengths between fiberMag (%d) and filterNames (%d) "
@@ -122,7 +146,7 @@ class PfsDesign:
 
     def __init__(self, pfsDesignId, raBoresight, decBoresight,
                  fiberId, tract, patch, ra, dec, catId, objId,
-                 targetType, fiberMag, filterNames, pfiNominal):
+                 targetType, fiberStatus, fiberMag, filterNames, pfiNominal):
         self.pfsDesignId = pfsDesignId
         self.raBoresight = raBoresight
         self.decBoresight = decBoresight
@@ -135,6 +159,7 @@ class PfsDesign:
         self.catId = np.array(catId)
         self.objId = np.array(objId)
         self.targetType = np.array(targetType)
+        self.fiberStatus = np.array(fiberStatus)
         self.fiberMag = [np.array(mags) for mags in fiberMag]
         self.filterNames = filterNames
         self.pfiNominal = np.array(pfiNominal)
@@ -301,6 +326,31 @@ class PfsDesign:
         selected = set(self.fiberId[select])
         return np.array([ii for ii, ff in enumerate(fiberId) if ff in selected])
 
+    def selectByFiberStatus(self, fiberStatus, fiberId=None):
+        """Select fibers by ``fiberStatus``
+
+        If a `fiberId` array is provided, returns indices for array;
+        otherwise, returns indices for ``self``.
+
+        Parameters
+        ----------
+        fiberStatus : `FiberStatus`
+            Fiber status to select.
+        fiberId : `numpy.ndarray` of `int`, optional
+            Array of fiber identifiers to select.
+
+        Returns
+        -------
+        indices : `numpy.ndarray` of `int`
+            Indices of selected elements.
+        """
+        fiberStatus = int(fiberStatus)
+        select = self.fiberStatus == fiberStatus
+        if fiberId is None:
+            return np.nonzero(select)[0]
+        selected = set(self.fiberId[select])
+        return np.array([ii for ii, ff in enumerate(fiberId) if ff in selected])
+
     def selectTarget(self, catId, tract, patch, objId):
         """Select fiber by target
 
@@ -441,6 +491,9 @@ class PfsConfig(PfsDesign):
     targetType : `numpy.ndarray` of `int`
         Type of target for each fiber. Values must be convertible to
         `TargetType` (which limits the range of values).
+    fiberStatus : `numpy.ndarray` of `int`
+        Status of each fiber. Values must be convertible to `FiberStatus`
+        (which limits the range of values).
     fiberMag : `list` of `numpy.ndarray` of `float`
         Array of fiber magnitudes for each fiber.
     filterNames : `list` of `list` of `str`
@@ -461,6 +514,7 @@ class PfsConfig(PfsDesign):
                "catId": "J",
                "objId": "K",
                "targetType": "J",
+               "fiberStatus": "J",
                "pfiNominal": "2E",
                "pfiCenter": "2E",
                }
@@ -473,11 +527,11 @@ class PfsConfig(PfsDesign):
 
     def __init__(self, pfsDesignId, visit0, raBoresight, decBoresight,
                  fiberId, tract, patch, ra, dec, catId, objId,
-                 targetType, fiberMag, filterNames, pfiCenter, pfiNominal):
+                 targetType, fiberStatus, fiberMag, filterNames, pfiCenter, pfiNominal):
         self.visit0 = visit0
         self.pfiCenter = np.array(pfiCenter)
         super().__init__(pfsDesignId, raBoresight, decBoresight, fiberId, tract, patch, ra, dec,
-                         catId, objId, targetType, fiberMag, filterNames, pfiNominal)
+                         catId, objId, targetType, fiberStatus, fiberMag, filterNames, pfiNominal)
 
     def __str__(self):
         """String representation"""

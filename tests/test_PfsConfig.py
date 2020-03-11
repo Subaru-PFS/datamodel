@@ -7,7 +7,7 @@ import numpy as np
 import lsst.utils.tests
 import lsst.geom
 
-from pfs.datamodel.pfsConfig import PfsConfig, TargetType
+from pfs.datamodel.pfsConfig import PfsConfig, TargetType, FiberStatus
 
 display = None
 
@@ -15,13 +15,23 @@ display = None
 class PfsConfigTestCase(lsst.utils.tests.TestCase):
     def setUp(self):
         self.numFibers = 2396
+
+        # TargetType
         self.numSky = 240
         self.numFluxStd = 300
+        self.numUnassigned = 10
+        self.numEngineering = 10
+        self.numObject = self.numFibers - (self.numSky + self.numFluxStd +
+                                           self.numUnassigned + self.numEngineering)
+
+        # FiberStatus
         self.numBroken = 3
         self.numBlocked = 2
         self.numBlackSpot = 1
-        self.numObject = self.numFibers - (self.numSky + self.numFluxStd +
-                                           self.numBroken + self.numBlocked + self.numBlackSpot)
+        self.numUnilluminated = 3
+        self.numGood = self.numFibers - (self.numBroken + self.numBlocked +
+                                         self.numBlackSpot + self.numUnilluminated)
+
         self.raBoresight = 60.0*lsst.geom.degrees
         self.decBoresight = 30.0*lsst.geom.degrees
         self.fov = 1.5*lsst.geom.degrees
@@ -53,11 +63,16 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
 
         self.targetType = np.array([int(TargetType.SKY)]*self.numSky +
                                    [int(TargetType.FLUXSTD)]*self.numFluxStd +
-                                   [int(TargetType.BROKEN)]*self.numBroken +
-                                   [int(TargetType.BLOCKED)]*self.numBlocked +
-                                   [int(TargetType.BLACKSPOT)]*self.numBlackSpot +
-                                   [int(TargetType.SCIENCE)]*self.numObject)
+                                   [int(TargetType.SCIENCE)]*self.numObject +
+                                   [int(TargetType.UNASSIGNED)]*self.numUnassigned +
+                                   [int(TargetType.ENGINEERING)]*self.numEngineering)
         rng.shuffle(self.targetType)
+        self.fiberStatus = np.array([int(FiberStatus.BROKENFIBER)]*self.numBroken +
+                                    [int(FiberStatus.BLOCKED)]*self.numBlocked +
+                                    [int(FiberStatus.BLACKSPOT)]*self.numBlackSpot +
+                                    [int(FiberStatus.UNILLUMINATED)]*self.numUnilluminated +
+                                    [int(FiberStatus.GOOD)]*self.numGood)
+        rng.shuffle(self.fiberStatus)
 
         self.fiberMag = [np.array([22.0, 23.5, 25.0, 26.0] if
                                   tt in (TargetType.SCIENCE, TargetType.FLUXSTD) else [])
@@ -72,7 +87,7 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
             # Our FITS header writer can introduce some tiny roundoff error
             self.assertAlmostEqual(getattr(lhs, value), getattr(rhs, value), 14, value)
         for value in ("fiberId", "tract", "ra", "dec", "catId", "objId",
-                      "pfiCenter", "pfiNominal", "targetType"):
+                      "pfiCenter", "pfiNominal", "targetType", "fiberStatus"):
             np.testing.assert_array_equal(getattr(lhs, value), getattr(rhs, value), value)
         self.assertEqual(len(lhs.patch), len(rhs.patch))
         self.assertEqual(len(lhs.fiberMag), len(rhs.fiberMag))
@@ -86,7 +101,7 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
         """Test basic operation of PfsConfig"""
         config = PfsConfig(self.pfsDesignId, self.visit0, self.raBoresight.asDegrees(),
                            self.decBoresight.asDegrees(), self.fiberId, self.tract, self.patch,
-                           self.ra, self.dec, self.catId, self.objId, self.targetType,
+                           self.ra, self.dec, self.catId, self.objId, self.targetType, self.fiberStatus,
                            self.fiberMag, self.filterNames, self.pfiCenter, self.pfiNominal)
 
         dirName = os.path.splitext(__file__)[0]
@@ -122,62 +137,62 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
         with self.assertRaises(RuntimeError):
             PfsConfig(self.pfsDesignId, self.visit0, raBoresight, decBoresight,
                       extendArray(self.fiberId), self.tract, self.patch,
-                      self.ra, self.dec, self.catId, self.objId, self.targetType,
+                      self.ra, self.dec, self.catId, self.objId, self.targetType, self.fiberStatus,
                       self.fiberMag, self.filterNames, self.pfiCenter, self.pfiNominal)
         with self.assertRaises(RuntimeError):
             PfsConfig(self.pfsDesignId, self.visit0, raBoresight, decBoresight,
                       self.fiberId, extendArray(self.tract), self.patch,
-                      self.ra, self.dec, self.catId, self.objId, self.targetType,
+                      self.ra, self.dec, self.catId, self.objId, self.targetType, self.fiberStatus,
                       self.fiberMag, self.filterNames, self.pfiCenter, self.pfiNominal)
         with self.assertRaises(RuntimeError):
             PfsConfig(self.pfsDesignId, self.visit0, raBoresight, decBoresight,
                       self.fiberId, self.tract, self.patch,
                       extendArray(self.ra), self.dec, self.catId, self.objId, self.targetType,
-                      self.fiberMag, self.filterNames, self.pfiCenter, self.pfiNominal)
+                      self.fiberStatus, self.fiberMag, self.filterNames, self.pfiCenter, self.pfiNominal)
         with self.assertRaises(RuntimeError):
             PfsConfig(self.pfsDesignId, self.visit0, raBoresight, decBoresight,
                       self.fiberId, self.tract, self.patch,
                       self.ra, extendArray(self.dec), self.catId, self.objId, self.targetType,
-                      self.fiberMag, self.filterNames, self.pfiCenter, self.pfiNominal)
+                      self.fiberStatus, self.fiberMag, self.filterNames, self.pfiCenter, self.pfiNominal)
         with self.assertRaises(RuntimeError):
             PfsConfig(self.pfsDesignId, self.visit0, raBoresight, decBoresight,
                       self.fiberId, self.tract, self.patch,
                       self.ra, self.dec, extendArray(self.catId), self.objId, self.targetType,
-                      self.fiberMag, self.filterNames, self.pfiCenter, self.pfiNominal)
+                      self.fiberStatus, self.fiberMag, self.filterNames, self.pfiCenter, self.pfiNominal)
         with self.assertRaises(RuntimeError):
             PfsConfig(self.pfsDesignId, self.visit0, raBoresight, decBoresight,
                       self.fiberId, self.tract, self.patch,
                       self.ra, self.dec, self.catId, extendArray(self.objId), self.targetType,
-                      self.fiberMag, self.filterNames, self.pfiCenter, self.pfiNominal)
+                      self.fiberStatus, self.fiberMag, self.filterNames, self.pfiCenter, self.pfiNominal)
         with self.assertRaises(RuntimeError):
             PfsConfig(self.pfsDesignId, self.visit0, raBoresight, decBoresight,
                       self.fiberId, self.tract, self.patch,
                       self.ra, self.dec, self.catId, self.objId, extendArray(self.targetType),
-                      self.fiberMag, self.filterNames, self.pfiCenter, self.pfiNominal)
+                      self.fiberStatus, self.fiberMag, self.filterNames, self.pfiCenter, self.pfiNominal)
         with self.assertRaises(RuntimeError):
             PfsConfig(self.pfsDesignId, self.visit0, raBoresight, decBoresight,
                       self.fiberId, self.tract, self.patch,
-                      self.ra, self.dec, self.catId, self.objId, self.targetType,
+                      self.ra, self.dec, self.catId, self.objId, self.targetType, self.fiberStatus,
                       self.fiberMag, self.filterNames, extendArray(self.pfiCenter), self.pfiNominal)
         with self.assertRaises(RuntimeError):
             PfsConfig(self.pfsDesignId, self.visit0, raBoresight, decBoresight,
                       self.fiberId, self.tract, self.patch,
-                      self.ra, self.dec, self.catId, self.objId, self.targetType,
+                      self.ra, self.dec, self.catId, self.objId, self.targetType, self.fiberStatus,
                       self.fiberMag, self.filterNames, self.pfiCenter, extendArray(self.pfiNominal))
         with self.assertRaises(RuntimeError):
             PfsConfig(self.pfsDesignId, self.visit0, raBoresight, decBoresight,
                       self.fiberId, self.tract, extendList(self.patch),
-                      self.ra, self.dec, self.catId, self.objId, self.targetType,
+                      self.ra, self.dec, self.catId, self.objId, self.targetType, self.fiberStatus,
                       self.fiberMag, self.filterNames, self.pfiCenter, self.pfiNominal)
         with self.assertRaises(RuntimeError):
             PfsConfig(self.pfsDesignId, self.visit0, raBoresight, decBoresight,
                       self.fiberId, self.tract, self.patch,
-                      self.ra, self.dec, self.catId, self.objId, self.targetType,
+                      self.ra, self.dec, self.catId, self.objId, self.targetType, self.fiberStatus,
                       extendList(self.fiberMag), self.filterNames, self.pfiCenter, self.pfiNominal)
         with self.assertRaises(RuntimeError):
             PfsConfig(self.pfsDesignId, self.visit0, raBoresight, decBoresight,
                       self.fiberId, self.tract, self.patch,
-                      self.ra, self.dec, self.catId, self.objId, self.targetType,
+                      self.ra, self.dec, self.catId, self.objId, self.targetType, self.fiberStatus,
                       self.fiberMag, extendList(self.filterNames), self.pfiCenter, self.pfiNominal)
 
         targetType = self.targetType.copy()
@@ -185,7 +200,15 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
         with self.assertRaises(ValueError):
             PfsConfig(self.pfsDesignId, self.visit0, raBoresight, decBoresight,
                       self.fiberId, self.tract, self.patch,
-                      self.ra, self.dec, self.catId, self.objId, targetType,
+                      self.ra, self.dec, self.catId, self.objId, targetType, self.fiberStatus,
+                      self.fiberMag, self.filterNames, self.pfiCenter, self.pfiNominal)
+
+        fiberStatus = self.fiberStatus.copy()
+        fiberStatus[self.numFibers//2] = -1
+        with self.assertRaises(ValueError):
+            PfsConfig(self.pfsDesignId, self.visit0, raBoresight, decBoresight,
+                      self.fiberId, self.tract, self.patch,
+                      self.ra, self.dec, self.catId, self.objId, self.targetType, fiberStatus,
                       self.fiberMag, self.filterNames, self.pfiCenter, self.pfiNominal)
 
         fiberMag = [extendArray(mag) if ii == self.numFibers//2 else mag
@@ -193,7 +216,7 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
         with self.assertRaises(RuntimeError):
             PfsConfig(self.pfsDesignId, self.visit0, raBoresight, decBoresight,
                       self.fiberId, self.tract, self.patch,
-                      self.ra, self.dec, self.catId, self.objId, self.targetType,
+                      self.ra, self.dec, self.catId, self.objId, self.targetType, self.fiberStatus,
                       fiberMag, self.filterNames, self.pfiCenter, self.pfiNominal)
 
         filterNames = [extendList(ff) if ii == self.numFibers//5 else ff
@@ -201,21 +224,21 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
         with self.assertRaises(RuntimeError):
             PfsConfig(self.pfsDesignId, self.visit0, raBoresight, decBoresight,
                       self.fiberId, self.tract, self.patch,
-                      self.ra, self.dec, self.catId, self.objId, self.targetType,
+                      self.ra, self.dec, self.catId, self.objId, self.targetType, self.fiberStatus,
                       self.fiberMag, filterNames, self.pfiCenter, self.pfiNominal)
 
         pfiCenter = np.concatenate((self.pfiCenter, self.pfiCenter), axis=1)
         with self.assertRaises(RuntimeError):
             PfsConfig(self.pfsDesignId, self.visit0, raBoresight, decBoresight,
                       self.fiberId, self.tract, self.patch,
-                      self.ra, self.dec, self.catId, self.objId, self.targetType,
+                      self.ra, self.dec, self.catId, self.objId, self.targetType, self.fiberStatus,
                       self.fiberMag, self.filterNames, pfiCenter, self.pfiNominal)
 
         pfiNominal = np.concatenate((self.pfiNominal, self.pfiNominal), axis=1)
         with self.assertRaises(RuntimeError):
             PfsConfig(self.pfsDesignId, self.visit0, raBoresight, decBoresight,
                       self.fiberId, self.tract, self.patch,
-                      self.ra, self.dec, self.catId, self.objId, self.targetType,
+                      self.ra, self.dec, self.catId, self.objId, self.targetType, self.fiberStatus,
                       self.fiberMag, self.filterNames, self.pfiCenter, pfiNominal)
 
 
