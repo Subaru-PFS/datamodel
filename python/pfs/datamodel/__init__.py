@@ -4,5 +4,6 @@ from .pfsSimpleSpectrum import *
 from .pfsFiberArray import *
 from .pfsFiberArraySet import *
 from .target import *
+from .identity import *
 from .drp import *
 from .fluxTable import *
