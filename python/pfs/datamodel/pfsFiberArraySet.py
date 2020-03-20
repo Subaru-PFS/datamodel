@@ -2,14 +2,15 @@ import os
 import re
 import numpy as np
 
-from .utils import astropyHeaderToDict, astropyHeaderFromDict
+from .utils import astropyHeaderToDict, astropyHeaderFromDict, inheritDocstrings
 from .masks import MaskHelper
 from .target import TargetData, TargetObservations
 
-__all__ = ["PfsSpectra"]
+__all__ = ["PfsFiberArraySet"]
 
 
-class PfsSpectra:
+@inheritDocstrings
+class PfsFiberArraySet:
     """A collection of spectra from a common source
 
     The collection may be from a single arm within a single spectrograph, or
@@ -182,7 +183,7 @@ class PfsSpectra:
 
         Returns
         -------
-        self : `PfsSpectra`
+        self : `PfsFiberArraySet`
             Spectra read from file.
         """
         filename = os.path.join(dirName, cls.getFilename(identity))
@@ -252,14 +253,14 @@ class PfsSpectra:
         identityKeys : iterable of `str`
             Keys to select from the input spectra's ``identity`` for the
             combined spectra's ``identity``.
-        spectraList : iterable of `PfsSpectra`
+        spectraList : iterable of `PfsFiberArraySet`
             Spectra to combine.
         metadata : `dict` (`str`: POD), optional
             Keyword-value pairs for the header.
 
         Returns
         -------
-        self : `PfsSpectra`
+        self : `PfsFiberArraySet`
             Merged spectra.
         """
         num = sum(len(ss) for ss in spectraList)
@@ -287,15 +288,15 @@ class PfsSpectra:
         flags = MaskHelper.fromMerge(list(ss.flags for ss in spectraList))
         return cls(identity, fiberId, wavelength, flux, mask, sky, covar, flags, metadata if metadata else {})
 
-    def extractFiber(self, SpectrumClass, pfsConfig, fiberId):
+    def extractFiber(self, FiberArrayClass, pfsConfig, fiberId):
         """Extract a single fiber
 
-        Pulls a single fiber out into a ``PfsSpectrum``.
+        Pulls a single fiber out into a subclass of `pfs.datamodel.PfsFiberArray`.
 
         Parameters
         ----------
-        SpectrumClass : `type`
-            Subclass of `pfs.datamodel.PfsSpectrum` to which to export.
+        FiberArrayClass : `type`
+            Subclass of `pfs.datamodel.PfsFiberArray` to which to export.
         pfsConfig : `pfs.datamodel.PfsConfig`
             PFS top-end configuration.
         fiberId : `int`
@@ -308,7 +309,7 @@ class PfsSpectra:
         """
         ii = np.nonzero(self.fiberId == fiberId)[0]
         if len(ii) != 1:
-            raise RuntimeError("Number of fibers in PfsSpectra with fiberId = %d is not unity (%d)" %
+            raise RuntimeError("Number of fibers in PfsFiberArraySet with fiberId = %d is not unity (%d)" %
                                (fiberId, len(ii)))
         ii = ii[0]
         jj = np.nonzero(pfsConfig.fiberId == fiberId)[0]
@@ -327,5 +328,5 @@ class PfsSpectra:
         covar = np.zeros((3, self.length), dtype=self.covar.dtype)
         covar[:] = self.covar[ii]
         covar2 = np.zeros((1, 1), dtype=self.covar.dtype)
-        return SpectrumClass(target, obs, self.wavelength[ii], self.flux[ii], self.mask[ii], self.sky[ii],
-                             covar, covar2, self.flags)
+        return FiberArrayClass(target, obs, self.wavelength[ii], self.flux[ii], self.mask[ii], self.sky[ii],
+                               covar, covar2, self.flags)

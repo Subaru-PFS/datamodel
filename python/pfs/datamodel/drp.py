@@ -1,10 +1,11 @@
-from .pfsSpectra import PfsSpectra
-from .pfsSpectrum import PfsSimpleSpectrum, PfsSpectrum
+from .pfsSimpleSpectrum import PfsSimpleSpectrum
+from .pfsFiberArray import PfsFiberArray
+from .pfsFiberArraySet import PfsFiberArraySet
 
 __all__ = ["PfsArm", "PfsMerged", "PfsReference", "PfsSingle", "PfsObject"]
 
 
-class PfsArm(PfsSpectra):
+class PfsArm(PfsFiberArraySet):
     """Spectra from reducing a single arm
 
     Produced by ``reduceExposure``.
@@ -14,7 +15,7 @@ class PfsArm(PfsSpectra):
     filenameKeys = [("visit", int), ("arm", str), ("spectrograph", int)]
 
 
-class PfsMerged(PfsSpectra):
+class PfsMerged(PfsFiberArraySet):
     """Spectra from merging all arms within an exposure
 
     Produced by ``mergeArms``.
@@ -34,7 +35,7 @@ class PfsReference(PfsSimpleSpectrum):
     filenameKeys = [("catId", int), ("tract", int), ("patch", str), ("objId", int)]
 
 
-class PfsSingle(PfsSpectrum):
+class PfsSingle(PfsFiberArray):
     """Flux-calibrated, single epoch spectrum
 
     Produced by ``fluxCalibrate``.
@@ -44,7 +45,7 @@ class PfsSingle(PfsSpectrum):
     filenameKeys = [("catId", int), ("tract", int), ("patch", str), ("objId", int), ("visit", int)]
 
 
-class PfsObject(PfsSpectrum):
+class PfsObject(PfsFiberArray):
     """Coadded spectrum
 
     Produced by ``coaddSpectra``.
