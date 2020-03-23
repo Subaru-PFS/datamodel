@@ -47,24 +47,6 @@ class FluxTableTestCase(lsst.utils.tests.TestCase):
         """Test basic functions"""
         self.assertFluxTable(self.fluxTable)
 
-    def testPlotting(self):
-        """Test plotting
-
-        Not easy to test the actual result, but we can test that the API hasn't
-        been broken.
-        """
-        import matplotlib.pyplot as plt
-        plt.switch_backend("agg")  # In case someone has loaded a different backend that will cause trouble
-        ext = ".png"  # Extension to use for plot filenames
-
-        with lsst.utils.tests.getTempFilePath(ext) as filename:
-            figure, axes = self.fluxTable.plot(show=False)
-            figure.savefig(filename)
-
-        with lsst.utils.tests.getTempFilePath(ext) as filename:
-            figure, axes = self.fluxTable.plot(ignoreFlags=["missing"], show=False)
-            figure.savefig(filename)
-
     def testFits(self):
         """Test I/O with FITS"""
         from astropy.io.fits import HDUList
@@ -72,15 +54,6 @@ class FluxTableTestCase(lsst.utils.tests.TestCase):
         self.fluxTable.toFits(fits)
         ft = FluxTable.fromFits(fits)
         self.assertFluxTable(ft)
-
-    def testResample(self):
-        """Test resample method"""
-        wavelength = np.linspace(self.minWavelength, self.maxWavelength, self.length)
-        resampled = self.fluxTable.resample(wavelength)
-        nodata = resampled.flags.get("NO_DATA")
-        self.assertFloatsEqual(resampled.wavelength, wavelength)
-        self.assertGreater(((resampled.mask & nodata) != 0).sum(), 0)
-        self.assertGreater((resampled.flux > 0).sum(), 0)
 
 
 class TestMemory(lsst.utils.tests.MemoryTestCase):

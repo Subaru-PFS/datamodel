@@ -76,7 +76,6 @@ def makeFullCovariance(covar):
        covar[1, 0:-1]  +-1 off diagonal
        covar[2, 0:-2]  +-2 off diagonal
     """
-    nband = covar.shape[0]
     C = np.zeros(covar.shape[1]**2).reshape((covar.shape[1], covar.shape[1]))
 
     i = np.arange(C.shape[0])
@@ -140,6 +139,6 @@ def wraparoundNVisit(nVisit):
     Returns
     -------
     nVisit_wrapped : `int`
-        wraparound number of visits  
+        wraparound number of visits
     """
     return nVisit % 1000
