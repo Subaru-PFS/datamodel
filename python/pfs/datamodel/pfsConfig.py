@@ -212,7 +212,8 @@ class PfsDesign:
                 kwargs[nn] = data[nn]
 
             # Handle fiberStatus explicitly, for backwards compatibility
-            kwargs["fiberStatus"] = (data["fiberStatus"] if "fiberStatus" in data else
+            kwargs["fiberStatus"] = (data["fiberStatus"] if "fiberStatus" in (col.name for col in
+                                                                              data.columns) else
                                      np.full(len(data), FiberStatus.GOOD))
 
             photometry = fd["PHOTOMETRY"].data
