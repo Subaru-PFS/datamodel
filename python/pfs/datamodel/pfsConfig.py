@@ -96,6 +96,7 @@ class PfsDesign:
     # List of fields required, and their FITS type
     # Some elements of the code expect the following to be present:
     #     fiberId, targetType
+    # fiberStatus is handled separately, for backwards-compatibility
     _fields = {"fiberId": "J",
                "tract": "J",
                "patch": "A",
@@ -104,7 +105,6 @@ class PfsDesign:
                "catId": "J",
                "objId": "K",
                "targetType": "J",
-               "fiberStatus": "J",
                "pfiNominal": "2E",
                }
     _pointFields = ["pfiNominal"]  # List of point fields; should be in _fields too
@@ -211,6 +211,10 @@ class PfsDesign:
                 assert nn not in kwargs
                 kwargs[nn] = data[nn]
 
+            # Handle fiberStatus explicitly, for backwards compatibility
+            kwargs["fiberStatus"] = (data["fiberStatus"] if "fiberStatus" in data else
+                                     np.full(len(data), FiberStatus.GOOD))
+
             photometry = fd["PHOTOMETRY"].data
 
             fiberId = kwargs["fiberId"]
@@ -269,6 +273,7 @@ class PfsDesign:
                 maxLength = max(len(ss) for ss in getattr(self, name))
                 format = "A%d" % maxLength
             columns.append(pyfits.Column(name=name, format=format, array=getattr(self, name)))
+        columns.append(pyfits.Column(name="fiberStatus", format="J", array=self.fiberStatus))
         fits.append(pyfits.BinTableHDU.from_columns(columns, hdr, name=self._hduName))
 
         numRows = sum(len(mag) for mag in self.fiberMag)
@@ -512,6 +517,7 @@ class PfsConfig(PfsDesign):
     # List of fields required, and their FITS type
     # Some elements of the code expect the following to be present:
     #     fiberId, targetType
+    # fiberStatus is handled separately, for backwards-compatibility
     _fields = {"fiberId": "J",
                "tract": "J",
                "patch": "A",
@@ -520,7 +526,6 @@ class PfsConfig(PfsDesign):
                "catId": "J",
                "objId": "K",
                "targetType": "J",
-               "fiberStatus": "J",
                "pfiNominal": "2E",
                "pfiCenter": "2E",
                }
