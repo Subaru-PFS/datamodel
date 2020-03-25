@@ -1,13 +1,13 @@
 import types
 import numpy as np
 
-from .utils import astropyHeaderFromDict, astropyHeaderToDict, calculatePfsVisitHash, wraparoundNVisit
+from .utils import astropyHeaderFromDict, astropyHeaderToDict
 from .pfsConfig import TargetType
 
-__all__ = ["TargetData", "TargetObservations"]
+__all__ = ("Target",)
 
 
-class TargetData(types.SimpleNamespace):
+class Target(types.SimpleNamespace):
     """A spectroscopic target
 
     Parameters
@@ -20,19 +20,19 @@ class TargetData(types.SimpleNamespace):
         Patch in which the object resides.
     objId : `objId`
         Object identifier of the object.
-    ra : `float`
+    ra : `float`, optional
         Right Ascension of the object.
-    dec : `float`
+    dec : `float`, optional
         Declination of the object.
-    targetType : `TargetType`
+    targetType : `TargetType`, optional
         Type of target (typically ``SCIENCE``).
-    fiberMags : `dict` mapping `str` to `float`
+    fiberMags : `dict` mapping `str` to `float`, optional
         Filter names and corresponding fiber magnitudes.
     """
     _attributes = ("catId", "tract", "patch", "objId", "ra", "dec", "targetType")  # Read from header
     """Attributes to read from FITS header (iterable of `str`)"""
 
-    def __init__(self, catId, tract, patch, objId, ra, dec, targetType, fiberMags):
+    def __init__(self, catId, tract, patch, objId, ra=np.nan, dec=np.nan, targetType=-1, fiberMags=None):
         self.catId = catId
         self.tract = tract
         self.patch = patch
@@ -40,8 +40,8 @@ class TargetData(types.SimpleNamespace):
         self.ra = ra
         self.dec = dec
         self.targetType = targetType
-        self.fiberMags = fiberMags
-        self.identity = dict(catId=catId, tract=tract, patch=patch, objId=objId, targetType=targetType)
+        self.fiberMags = fiberMags if fiberMags is not None else {}
+        self.identity = dict(catId=catId, tract=tract, patch=patch, objId=objId)
 
     def __str__(self):
         """Stringify"""
@@ -58,8 +58,8 @@ class TargetData(types.SimpleNamespace):
 
         Returns
         -------
-        self : `TargetData`
-            Constructed `TargetData`.
+        self : `Target`
+            Constructed `Target`.
         """
         hdu = fits["TARGET"]
         header = astropyHeaderToDict(hdu.header)
@@ -87,123 +87,36 @@ class TargetData(types.SimpleNamespace):
         ], header=header, name="TARGET")
         fits.append(hdu)
 
-
-class TargetObservations(types.SimpleNamespace):
-    """A group of observations of a spectroscopic target
-
-    Parameters
-    ----------
-    identity : `list` of `dict`
-        A list of keyword-value pairs identifying each observation.
-    fiberId : `numpy.ndarray` of `int`
-        Array of fiber identifiers for this object in each observation.
-    pfiNominal : `numpy.ndarray` of `float`
-        Array of nominal fiber positions (x,y) for this object in each
-        observation.
-    pfiCenter : `numpy.ndarray` of `float`
-        Array of actual fiber positions (x,y) for this object in each
-        observation.
-    """
-    def __init__(self, identity, fiberId, pfiNominal, pfiCenter):
-        self.identity = identity
-        self.fiberId = fiberId
-        self.pfiNominal = pfiNominal
-        self.pfiCenter = pfiCenter
-
-        self.num = len(self.fiberId)
-        self.validate()
-
-    def __len__(self):
-        """Number of observations"""
-        return self.num
-
-    def validate(self):
-        """Validate that all arrays are of the expected shape"""
-        assert len(self.identity) == self.num
-        assert self.fiberId.shape == (self.num,)
-        assert self.pfiNominal.shape == (self.num, 2)
-        assert self.pfiNominal.shape == (self.num, 2)
-
-    def getVisits(self, visitKey="visit"):
-        """Return a list of visits
-
-        Parameters
-        ----------
-        visitKey : `str`, optional
-            Key in the ``identity`` to use in identifying the visit number.
-
-        Returns
-        -------
-        visits : `list` of `int`
-            List of visits.
-        """
-        return list(set(ident[visitKey] for ident in self.identity))
-
-    def calculateVisitHash(self, visitKey="visit"):
-        """Calculate hash of the exposure inputs
-
-        Parameters
-        ----------
-        visitKey : `str`, optional
-            Key in the ``identity`` to use in identifying the visit number.
-
-        Returns
-        -------
-        hash : `int`
-            Hash, truncated to 63 bits.
-        """
-        return calculatePfsVisitHash(self.getVisits(visitKey))
-
-    def getIdentity(self, visitKey="visit"):
-        """Return the identity of these observations
-
-        Parameters
-        ----------
-        visitKey : `str`, optional
-            Key in the ``identity`` to use in identifying the visit number.
-
-        Returns
-        -------
-        identity : `dict`
-            Keyword-value pairs identifying these observations.
-        """
-        return dict(nVisit=wraparoundNVisit(len(self.getVisits(visitKey))),
-                    pfsVisitHash=self.calculateVisitHash(visitKey),
-                    )
+    def __hash__(self):
+        return hash((self.catId, self.tract, self.patch, self.objId))
 
     @classmethod
-    def fromFits(cls, fits):
-        """Construct from a FITS file
+    def fromPfsConfig(cls, pfsConfig, index):
+        """Construct from a PfsConfig
 
         Parameters
         ----------
-        fits : `astropy.io.fits.HDUList`
-            Opened FITS file.
+        pfsConfig : `pfs.datamodel.PfsConfig`
+            Top-end configuration.
+        index : `int`
+            Index into the ``pfsConfig`` arrays for the target of interest.
 
         Returns
         -------
-        self : `TargetObservations`
-            Constructed observations.
+        self : cls
+            Constructed `Target`.
         """
-        hdu = fits["OBSERVATIONS"]
-        kwargs = {col: hdu.data[col] for col in ("fiberId", "pfiNominal", "pfiCenter")}
-        kwargs["identity"] = [eval(ident) for ident in hdu.data["identity"]]
-        return cls(**kwargs)
+        catId = pfsConfig.catId[index]
+        tract = pfsConfig.tract[index]
+        patch = pfsConfig.patch[index]
+        objId = pfsConfig.objId[index]
+        ra = pfsConfig.ra[index]
+        dec = pfsConfig.dec[index]
+        fiberMags = dict(zip(pfsConfig.filterNames[index], pfsConfig.fiberMag[index]))
+        targetType = pfsConfig.targetType[index]
+        return cls(catId, tract, patch, objId, ra, dec, targetType, fiberMags)
 
-    def toFits(self, fits):
-        """Write to a FITS file
-
-        Parameters
-        ----------
-        fits : `astropy.io.fits.HDUList`
-            Opened FITS file.
-        """
-        from astropy.io.fits import BinTableHDU, Column
-        identityLength = max(len(str(ident)) for ident in self.identity)
-        hdu = BinTableHDU.from_columns([
-            Column("identity", "%dA" % identityLength, array=self.identity),
-            Column("fiberId", "J", array=self.fiberId),
-            Column("pfiNominal", "2E", array=self.pfiNominal),
-            Column("pfiCenter", "2E", array=self.pfiCenter),
-        ], name="OBSERVATIONS")
-        fits.append(hdu)
+    def __reduce__(self):
+        """How to pickle"""
+        return type(self), (self.catId, self.tract, self.patch, self.objId, self.ra, self.dec,
+                            self.targetType, self.fiberMags)

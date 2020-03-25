@@ -315,7 +315,7 @@ HDU #3 FLUX         Flux (arbitrary units)                  [FLOAT]         NROW
 HDU #4 MASK         Pixel mask                              [32-bit INT]    NROW*NFIBER
 HDU #5 SKY          Sky flux                                [FLOAT]         NROW*NFIBER
 HDU #6 COVAR        Near-diagonal part of flux covariance   [FLOAT]         NROW*3*NFIBER
-HDU #7 CONFIG       Keyword-value pairs identifying data    [BINARY TABLE]
+HDU #7 CONFIG       Identification of the exposure          [BINARY TABLE]
 
 Note that the data need not be resampled onto a uniform grid, as a wavelength is provided for each pixel.
 
@@ -395,7 +395,10 @@ HDU #5 COVAR       Near-diagonal part of FLUX's covariance    [FLOAT]        NRO
 HDU #6 COVAR2      Low-resolution non-sparse estimate covariance [FLOAT]      NCOARSE*NCOARSE
 HDU #7 OBSERVATIONS    Binary table                            [FITS BINARY TABLE] NOBS
                Columns for:
-               identity of the observation             [STRING]
+               visit                                   [32-bit INT]
+               arm                                     [STRING]
+               spectrograph                            [32-bit INT]
+               pfsDesignId                             [64-bit INT]
                fiberId                                 [32-bit INT]
                nominal PFI position (microns)          [FLOAT]*2
                actual PFI position (microns)           [FLOAT]*2

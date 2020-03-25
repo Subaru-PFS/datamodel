@@ -4,7 +4,9 @@ import numpy as np
 
 from .utils import astropyHeaderToDict, astropyHeaderFromDict, inheritDocstrings
 from .masks import MaskHelper
-from .target import TargetData, TargetObservations
+from .target import Target
+from .observations import Observations
+from .identity import Identity
 
 __all__ = ["PfsFiberArraySet"]
 
@@ -19,9 +21,8 @@ class PfsFiberArraySet:
 
     Parameters
     ----------
-    identity : `dict`
-        Keyword-value pairs identifying the data of interest. Common keywords
-        include ``visit``, ``pfsDesignId``, ``spectrograph``, ``arm``.
+    identity : `pfs.datamodel.Identity`
+        Identity of the data.
     fiberId : `numpy.ndarray` of `int`
         Fiber identifiers for each spectrum.
     wavelength : `numpy.ndarray` of `float`
@@ -68,6 +69,7 @@ class PfsFiberArraySet:
 
         self.numSpectra = wavelength.shape[0]
         self.length = wavelength.shape[1]
+        self.validate()
 
     def validate(self):
         """Validate that all the arrays are of the expected shape"""
@@ -102,16 +104,15 @@ class PfsFiberArraySet:
 
         Parameters
         ----------
-        identity : `dict`
-            Keyword-value pairs identifying the data of interest. Common keywords
-            include ``visit``, ``pfsDesignId``, ``spectrograph``, ``arm``.
+        identity : `pfs.datamodel.Identity`
+            Identity of the data.
 
         Returns
         -------
         filename : `str`
             Filename, without directory.
         """
-        return cls.filenameFormat % identity
+        return cls.filenameFormat % identity.getDict()
 
     @classmethod
     def _parseFilename(cls, path):
@@ -127,14 +128,14 @@ class PfsFiberArraySet:
 
         Returns
         -------
-        identity : `dict`
-            Keyword-value pairs identifying the data of interest.
+        identity : `pfs.datamodel.Identity`
+            Identity of the data of interest.
         """
         dirName, fileName = os.path.split(path)
         matches = re.search(cls.filenameRegex, fileName)
         if not matches:
             raise RuntimeError("Unable to parse filename: %s" % (fileName,))
-        return {kk: tt(vv) for (kk, tt), vv in zip(cls.filenameKeys, matches.groups())}
+        return Identity.fromDict({kk: tt(vv) for (kk, tt), vv in zip(cls.filenameKeys, matches.groups())})
 
     @classmethod
     def readFits(cls, filename):
@@ -160,7 +161,7 @@ class PfsFiberArraySet:
             for attr in ("fiberId", "wavelength", "flux", "mask", "sky", "covar"):
                 hduName = attr.upper()
                 data[attr] = fd[hduName].data
-            data["identity"] = {nn: fd["CONFIG"].data.field(nn)[0] for nn in fd["CONFIG"].data.names}
+            data["identity"] = Identity.fromFits(fd)
 
         data["flags"] = MaskHelper.fromFitsHeader(data["metadata"])
         return cls(**data)
@@ -170,14 +171,13 @@ class PfsFiberArraySet:
         """Read file given an identity
 
         This API is intended for use by science users, as it allows selection
-        of the correct file from parameters that make sense, such as which
-        exposure, spectrograph, etc.
+        of the correct file by identity (e.g., visit, arm, spectrograph),
+        without knowing the file naming convention.
 
         Parameters
         ----------
-        identity : `dict`
-            Keyword-value pairs identifying the data of interest. Common keywords
-            include ``visit``, ``pfsDesignId``, ``spectrograph``, ``arm``.
+        identity : `pfs.datamodel.Identity`
+            Identification of the data of interest.
         dirName : `str`, optional
             Directory from which to read.
 
@@ -211,21 +211,7 @@ class PfsFiberArraySet:
             data = getattr(self, attr)
             fits.append(astropy.io.fits.ImageHDU(data, name=hduName))
 
-        # CONFIG table
-        def columnFormat(data):
-            """Return appropriate column format for some data"""
-            if isinstance(data, str):
-                return f"{len(data)}A"
-            if isinstance(data, (float, np.float32, np.float64)):
-                return "E"  # Don't expect to need double precision
-            if isinstance(data, (int, np.int32, np.int64)):
-                return "K"  # Use 64 bits because space is not a concern, and we need to support pfsDesignId
-            raise TypeError(f"Unable to determine suitable column format for {data}")
-
-        columns = [astropy.io.fits.Column(name=kk, format=columnFormat(vv), array=[vv]) for
-                   kk, vv in self.identity.items()]
-        fits.append(astropy.io.fits.BinTableHDU.from_columns(columns, name="CONFIG"))
-
+        self.identity.toFits(fits)
         with open(filename, "wb") as fd:
             fits.writeto(fd)
 
@@ -245,14 +231,11 @@ class PfsFiberArraySet:
         return self.writeFits(filename)
 
     @classmethod
-    def fromMerge(cls, identityKeys, spectraList, metadata=None):
+    def fromMerge(cls, spectraList, metadata=None):
         """Construct from merging multiple spectra
 
         Parameters
         ----------
-        identityKeys : iterable of `str`
-            Keys to select from the input spectra's ``identity`` for the
-            combined spectra's ``identity``.
         spectraList : iterable of `PfsFiberArraySet`
             Spectra to combine.
         metadata : `dict` (`str`: POD), optional
@@ -268,7 +251,6 @@ class PfsFiberArraySet:
         if len(length) != 1:
             raise RuntimeError("Multiple lengths when merging spectra: %s" % (length,))
         length = length.pop()
-        identity = {kk: spectraList[0].identity[kk]for kk in identityKeys}
         fiberId = np.empty(num, dtype=int)
         wavelength = np.empty((num, length), dtype=float)
         flux = np.empty((num, length), dtype=float)
@@ -285,8 +267,10 @@ class PfsFiberArraySet:
             sky[select] = ss.sky
             covar[select] = ss.covar
             index += len(ss)
+        identity = Identity.fromMerge([ss.identity for ss in spectraList])
         flags = MaskHelper.fromMerge(list(ss.flags for ss in spectraList))
-        return cls(identity, fiberId, wavelength, flux, mask, sky, covar, flags, metadata if metadata else {})
+        return cls(identity, fiberId, wavelength, flux, mask, sky, covar, flags,
+                   metadata if metadata else {})
 
     def extractFiber(self, FiberArrayClass, pfsConfig, fiberId):
         """Extract a single fiber
@@ -319,11 +303,11 @@ class PfsFiberArraySet:
         jj = jj[0]
 
         fiberMag = dict(zip(pfsConfig.filterNames[jj], pfsConfig.fiberMag[jj]))
-        target = TargetData(pfsConfig.catId[jj], pfsConfig.tract[jj], pfsConfig.patch[jj],
-                            pfsConfig.objId[jj], pfsConfig.ra[jj], pfsConfig.dec[jj],
-                            pfsConfig.targetType[jj], fiberMag)
-        obs = TargetObservations([self.identity], np.array([fiberId]), np.array([pfsConfig.pfiNominal[jj]]),
-                                 np.array([pfsConfig.pfiCenter[jj]]))
+        target = Target(pfsConfig.catId[jj], pfsConfig.tract[jj], pfsConfig.patch[jj],
+                        pfsConfig.objId[jj], pfsConfig.ra[jj], pfsConfig.dec[jj],
+                        pfsConfig.targetType[jj], fiberMag)
+        obs = Observations.makeSingle(self.identity, pfsConfig, fiberId)
+
         # XXX not dealing with covariance properly.
         covar = np.zeros((3, self.length), dtype=self.covar.dtype)
         covar[:] = self.covar[ii]
