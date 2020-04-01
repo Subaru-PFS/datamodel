@@ -574,6 +574,7 @@ class PfsConfig(PfsDesign):
         """
         keywords = ["pfsDesignId", "raBoresight", "decBoresight"]
         kwargs = {kk: getattr(pfsDesign, kk) for kk in pfsDesign._keywords + keywords}
+        kwargs["fiberStatus"] = pfsDesign.fiberStatus
         kwargs["visit0"] = visit0
         kwargs["pfiCenter"] = pfiCenter
         return PfsConfig(**kwargs)

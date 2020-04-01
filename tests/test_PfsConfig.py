@@ -7,7 +7,7 @@ import numpy as np
 import lsst.utils.tests
 import lsst.geom
 
-from pfs.datamodel.pfsConfig import PfsConfig, TargetType, FiberStatus
+from pfs.datamodel.pfsConfig import PfsConfig, TargetType, FiberStatus, PfsDesign
 
 display = None
 
@@ -240,6 +240,18 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
                       self.fiberId, self.tract, self.patch,
                       self.ra, self.dec, self.catId, self.objId, self.targetType, self.fiberStatus,
                       self.fiberMag, self.filterNames, self.pfiCenter, pfiNominal)
+
+    def testFromPfsDesign(self):
+        """Test PfsConfig.fromPfsDesign"""
+        design = PfsDesign(self.pfsDesignId, self.raBoresight.asDegrees(), self.decBoresight.asDegrees(),
+                           self.fiberId, self.tract, self.patch, self.ra, self.dec,
+                           self.catId, self.objId, self.targetType, self.fiberStatus,
+                           self.fiberMag, self.filterNames, self.pfiNominal)
+        config = PfsConfig(self.pfsDesignId, self.visit0, self.raBoresight.asDegrees(),
+                           self.decBoresight.asDegrees(), self.fiberId, self.tract, self.patch,
+                           self.ra, self.dec, self.catId, self.objId, self.targetType, self.fiberStatus,
+                           self.fiberMag, self.filterNames, self.pfiCenter, self.pfiNominal)
+        self.assertPfsConfig(PfsConfig.fromPfsDesign(design, self.visit0, self.pfiCenter), config)
 
 
 class TestMemory(lsst.utils.tests.MemoryTestCase):
