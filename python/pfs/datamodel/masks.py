@@ -1,3 +1,8 @@
+from collections import Counter
+
+__all__ = ("MaskHelper",)
+
+
 class MaskHelper:
     """Helper for dealing with symbolic names for mask values
 
@@ -119,3 +124,34 @@ class MaskHelper:
                 else:
                     maskPlanes[name] = value
         return cls(**maskPlanes)
+
+    def interpret(self, value):
+        """Interpret a value from the mask
+
+        Breaks down the provided value into the corresponding mask plane names.
+
+        Parameters
+        ----------
+        value : `int`
+            Value to interpret.
+
+        names : `list` of `str`
+            List of mask planes that are set in the provided value.
+        """
+        return [nn for nn, vv in self.flags.items() if (value & 2**vv) != 0]
+
+    def count(self, mask):
+        """Return counts of each mask plane
+
+        Parameters
+        ----------
+        mask : `numpy.ndarray`
+            Mask array.
+
+        Returns
+        -------
+        counts : `dict` (`str`: `int`)
+            Counts for each mask plane. An additional result indexed by an empty
+            string corresponds to the number of pixels with no mask plane set.
+        """
+        return {",".join(self.interpret(value)): num for value, num in Counter(mask.flatten()).items()}
