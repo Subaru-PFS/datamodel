@@ -6,6 +6,9 @@ import inspect
 import functools
 import numpy as np
 
+__all__ = ("calculatePfsVisitHash", "createHash", "astropyHeaderToDict", "astropyHeaderFromDict",
+           "wraparoundNVisit", "inheritDocstrings",)
+
 
 def calculatePfsVisitHash(visits):
     """Calculate and return a hash from a list of visits
