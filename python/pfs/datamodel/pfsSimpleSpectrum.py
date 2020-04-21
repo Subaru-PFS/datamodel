@@ -88,7 +88,7 @@ class PfsSimpleSpectrum:
             wavelength = WavelengthArray.fromFitsHeader(fits["FLUX"].header, len(fits["FLUX"].data))
         data["wavelength"] = wavelength
 
-        data["flags"] = MaskHelper.fromFitsHeader(fits["FLUX"].header)
+        data["flags"] = MaskHelper.fromFitsHeader(fits["MASK"].header)
         data["target"] = Target.fromFits(fits)
         return data
 
