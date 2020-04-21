@@ -49,6 +49,10 @@ class PfsSimpleSpectrum:
         assert self.flux.shape == (self.length,)
         assert self.mask.shape == (self.length,)
 
+    def __len__(self):
+        """Return the length of the arrays"""
+        return self.length
+
     def getIdentity(self):
         """Return the identity of the spectrum
 
