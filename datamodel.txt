@@ -446,6 +446,41 @@ the medium arm, and to omit the data from the blue and IR arms.
 
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
+Line-spread functions
+
+The line-spread function (LSF) is the response of the spectrograph to a single
+narrow line; it is the one-dimensional equivalent of the point-spread function
+(PSF).
+
+The datamodel representation for the LSF has not yet been settled. However, they
+are temporarily represented as python pickles of instances of classes defined in
+drp_stella (subclasses of pfs.drp.stella.Lsf; see the docstrings for API
+details) so that they can be used in the mean time.
+
+The LSFs will be saved to:
+    "pfsArmLsf-%06d-%1s%1d.pickle" % (visit, arm, spectrograph)
+    "pfsMergedLsf-%06d.pickle" % (visit,)
+    "pfsSingleLsf-%03d-%05d-%s-%016x-%06d.pickle" % (catId, tract, patch, objId, visit)
+    "pfsObjectLsf-%03d-%05d-%s-%016x-%03d-0x%016x.pickle" % (catId, tract, patch, objId, nVisit, pfsVisitHash)
+
+These correspond to the corresponding FITS product without the "Lsf", e.g.
+    "pfsArm-%06d-%1s%1d.fits" % (visit, arm, spectrograph)
+
+The pickle files can be read in python using the following function:
+
+    def readLsfPickle(filename):
+        """Read the line-spread function from a pickle file"""
+        import pickle
+        import pfs.drp.stella  # Load class definitions
+        with open(filename, "rb") as fd:
+            return pickle.load(fd)
+
+This will return either a single Lsf object (for pfsSingleLsf and pfsObjectLsf
+files) or a python dictionary of Lsf objects, indexed by fiberId (in the case of
+pfsArmLsf and pfsMergedLsf files).
+
+-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
 Simulations
 
 We need to specify a format for the spectra going into the simulator.  At first glance we could adopt the
