@@ -299,7 +299,7 @@ The PHOTOMETRY table is the same as for the PfsDesign.
 
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-Reduced but not combined single spectra from a single exposure (flux and wavelength calibrated)
+Reduced but not combined single spectra from a single exposure (wavelength calibrated but not flux-calibrated)
 
    "pfsArm-%06d-%1s%1d.fits" % (visit, arm, spectrograph)
 
