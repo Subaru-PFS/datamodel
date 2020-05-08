@@ -49,6 +49,10 @@ class PfsSimpleSpectrum:
         assert self.flux.shape == (self.length,)
         assert self.mask.shape == (self.length,)
 
+    def __len__(self):
+        """Return the length of the arrays"""
+        return self.length
+
     def getIdentity(self):
         """Return the identity of the spectrum
 
@@ -84,7 +88,7 @@ class PfsSimpleSpectrum:
             wavelength = WavelengthArray.fromFitsHeader(fits["FLUX"].header, len(fits["FLUX"].data))
         data["wavelength"] = wavelength
 
-        data["flags"] = MaskHelper.fromFitsHeader(fits["FLUX"].header)
+        data["flags"] = MaskHelper.fromFitsHeader(fits["MASK"].header)
         data["target"] = Target.fromFits(fits)
         return data
 

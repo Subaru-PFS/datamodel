@@ -177,6 +177,22 @@ class PfsDesign:
         """String representation"""
         return "PfsDesign(%d, ...)" % (self.pfsDesignId)
 
+    def __getitem__(self, index):
+        """Get target by index
+
+        Parameters
+        ----------
+        index : `int`
+            Index of interest.
+
+        Returns
+        -------
+        target : `pfs.datamodel.Target`
+            Target data.
+        """
+        from pfs.datamodel.target import Target  # noqa: prevent circular import dependency
+        return Target.fromPfsConfig(self, index)
+
     @property
     def filename(self):
         """Usual filename"""
