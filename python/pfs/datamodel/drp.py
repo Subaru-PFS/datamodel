@@ -34,8 +34,8 @@ class PfsReference(PfsSimpleSpectrum):
 
     Produced by ``calculateReferenceFlux``.
     """
-    filenameFormat = "pfsReference-%(catId)03d-%(tract)05d-%(patch)s-%(objId)016x.fits"
-    filenameRegex = r"^pfsReference-(\d{3})-(\d{5})-(.*)-([0-9a-f]{16})\.fits.*$"
+    filenameFormat = "pfsReference-%(catId)05d-%(tract)05d-%(patch)s-%(objId)016x.fits"
+    filenameRegex = r"^pfsReference-(\d{5})-(\d{5})-(.*)-([0-9a-f]{16})\.fits.*$"
     filenameKeys = [("catId", int), ("tract", int), ("patch", str), ("objId", int)]
 
 
@@ -45,8 +45,8 @@ class PfsSingle(PfsFiberArray):
 
     Produced by ``fluxCalibrate``.
     """
-    filenameFormat = "pfsSingle-%(catId)03d-%(tract)05d-%(patch)s-%(objId)016x-%(visit)06d.fits"
-    filenameRegex = r"^pfsSingle-(\d{3})-(\d{5})-(.*)-([0-9a-f]{16})-(\d{6})\.fits.*$"
+    filenameFormat = "pfsSingle-%(catId)05d-%(tract)05d-%(patch)s-%(objId)016x-%(visit)06d.fits"
+    filenameRegex = r"^pfsSingle-(\d{5})-(\d{5})-(.*)-([0-9a-f]{16})-(\d{6})\.fits.*$"
     filenameKeys = [("catId", int), ("tract", int), ("patch", str), ("objId", int), ("visit", int)]
 
 
@@ -56,8 +56,8 @@ class PfsObject(PfsFiberArray):
 
     Produced by ``coaddSpectra``.
     """
-    filenameFormat = ("pfsObject-%(catId)03d-%(tract)05d-%(patch)s-%(objId)016x"
+    filenameFormat = ("pfsObject-%(catId)05d-%(tract)05d-%(patch)s-%(objId)016x"
                       "-%(nVisit)03d-0x%(pfsVisitHash)016x.fits")
-    filenameRegex = r"^pfsObject-(\d{3})-(\d{5})-(.*)-([0-9a-f]{16})-(\d{3})-0x([0-9a-f]{16})\.fits.*$"
+    filenameRegex = r"^pfsObject-(\d{5})-(\d{5})-(.*)-([0-9a-f]{16})-(\d{3})-0x([0-9a-f]{16})\.fits.*$"
     filenameKeys = [("catId", int), ("tract", int), ("patch", str), ("objId", int),
                     ("nVisit", int), ("pfsVisitHash", int)]
