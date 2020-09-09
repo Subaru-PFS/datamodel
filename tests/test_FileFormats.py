@@ -56,28 +56,28 @@ class FileFormatTestCase(unittest.TestCase):
 
     def testPfsReference(self):
         d = self.extractAttributes(
-            PfsReference, 'pfsReference-001-07621-2,2-02468ace1234abcd.fits')
+            PfsReference, 'pfsReference-00100-07621-2,2-02468ace1234abcd.fits')
         self.assertEqual(d['tract'], 7621)
         self.assertEqual(d['patch'], '2,2')
-        self.assertEqual(d['catId'], 1)
+        self.assertEqual(d['catId'], 100)
         self.assertEqual(d['objId'], 0x02468ace1234abcd)
 
     def testPfsSingle(self):
         d = self.extractAttributes(
-            PfsSingle, 'pfsSingle-123-76210-2,2-02468ace1234abcd-123450.fits')
+            PfsSingle, 'pfsSingle-12300-76210-2,2-02468ace1234abcd-123450.fits')
         self.assertEqual(d['tract'], 76210)
         self.assertEqual(d['patch'], '2,2')
-        self.assertEqual(d['catId'], 123)
+        self.assertEqual(d['catId'], 12300)
         self.assertEqual(d['objId'], 0x02468ace1234abcd)
         self.assertEqual(d['visit'], 123450)
 
     def testPfsObject(self):
         d = self.extractAttributes(
             PfsObject,
-            'pfsObject-001-07621-2,2-02468ace1234abcd-003-0x1234abcddeadbeef.fits')
+            'pfsObject-12345-07621-2,2-02468ace1234abcd-003-0x1234abcddeadbeef.fits')
         self.assertEqual(d['tract'], 7621)
         self.assertEqual(d['patch'], '2,2')
         self.assertEqual(d['objId'], 0x02468ace1234abcd)
-        self.assertEqual(d['catId'], 1)
+        self.assertEqual(d['catId'], 12345)
         self.assertEqual(d['nVisit'], 3)
         self.assertEqual(d['pfsVisitHash'], 0x1234abcddeadbeef)
