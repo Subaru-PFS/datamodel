@@ -157,42 +157,38 @@ Single extension fits files of size NCOLUMN*NROW
 
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-The positions and widths of fiber traces in the 2-D flat-field images.
+The profile of fibers in the 2-D flat-field image:
 
-  "pfsFiberTrace-%s-%06d-%1s%1d.fits" % (calibDate, visit0, arm, spectrograph)
+  "pfsFiberProfiles-%s-%06d-%1s%1d.fits" % (calibDate, visit0, arm, spectrograph)
 
 Note that visit0 is defined under "Calibration products"
 
-Each fiber trace is represented as a MaskedImage, with the "image" consisting of the amplitude of the trace,
-and a bit FIBERTRACE set in the "mask" to identify which pixels belong to the trace.
-
-In the pfsFiberTrace file, these fibre profiles are stored as a subimage of a single large MaskedImage, packed
-from left to right and all with the same number of rows (n.b. because of trace curvature and overlap this
-MaskedImage may have more then the number of columns in a flat-fielded data image).  The image/mask/variance
-are stored in 3 HDUs, followed by an HDU describing where fibre traces appear in the flat-fielded images (this
-information is also used to pack/unpack the traces into the image/mask/variance HDUs).  FiberTraces which
-could not be traced in the Quartz image will have zero widths.
+For each fiber, an empirical, oversampled profile (in the spatial dimension, columns) is recorded for several
+positions along the fiber trace in the spectral dimension (rows).
 
 HDU #0 PDU
-HDU #1 IMAGE      Image representing the FiberTrace profiles     [FLOAT]               NROW*sum_i(NCOL_i)
-HDU #2 MASK       Mask  representing the FiberTrace profiles     [INT32]               NROW*sum_i(NCOL_i)
-HDU #3 VARIANCE   Variance representing the FiberTrace profiles  [FLOAT]               NROW*sum_i(NCOL_i)
-HDU #4 ID_BOX     Fiber ID and bounding boxes                    [BINARY FITS TABLE]   NFIBER*5
+HDU #1 FIBERS     Profile parameters for each fiber              [BINARY FITS TABLE]   NFIBER
+HDU #2 PROFILES   Profile measurements                           [BINARY FITS TABLE]   NPROFILES
+
+Profile parameters in the FIBERS HDU are:
+        fiberId     32-bit int              Fiber identifier (primary key)
+        radius      32-bit int              Half-size of profiles, in native pixels
+        oversample  32-bit float            Oversampling factor (> 1)
+        norm        32-bit float vector     Normalisation to apply to extracted spectra
+
+Profile measurements in the PROFILES HDU are:
+        fiberId     32-bit int              Fiber identifier (primary key)
+        rows        32-bit float            Detector row at which the profile is measured (primary key)
+        profiles    32-bit float vector     Measured profile
+        masks       boolean vector          Whether values in the profiles should be used (1 = don't use)
+
+The length of a profile (and mask) vector is: int(2*(radius + 1)*oversample) + 1.
 
 The PDU has keys to define which data were used to construct the FiberTrace:
    SPECTROGRAPH       Which spectrograph
    ARM                The arm of the spectrograph
    CALIB_INPUT_%d     Visits which were used
 I.e. if only visit 5830 were used, the r1 file would have ARM='r', SPECTROGRAPH=1, CALIB_INPUT_0=5830
-
-The individual parameters per fiber are stored in HDU #4:
-        FIBERID     NFIBER*32-bit               int
-        MINX        NFIBER*32-bit               int
-        MAXX        NFIBER*32-bit               int
-        MINY        NFIBER*32-bit               int
-        MAXY        NFIBER*32-bit               int
-where the bounding box of the trace is defined by the lower left and upper right corners (MINX, MINY) and
-(MAXX, MAXY) respectively.
 
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
