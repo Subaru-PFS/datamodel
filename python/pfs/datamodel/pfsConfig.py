@@ -1,6 +1,7 @@
 import numpy as np
 import os
 import enum
+import lsst.log
 
 try:
     import astropy.io.fits as pyfits
@@ -9,6 +10,8 @@ except ImportError:
 
 
 __all__ = ("TargetType", "FiberStatus", "PfsDesign", "PfsConfig")
+
+logger = lsst.log.Log.getLogger("pfs.datamodel.pfsConfig")
 
 
 class DocEnum(enum.IntEnum):
@@ -617,6 +620,7 @@ class PfsConfig(PfsDesign):
             Constructed `PfsConfig`.
         """
         filename = os.path.join(dirName, cls.fileNameFormat % (pfsDesignId, visit0))
+        logger.debugf('Reading file {}', filename)
         return cls._readImpl(filename, pfsDesignId=pfsDesignId, visit0=visit0)
 
     def extractCenters(self, fiberId):
