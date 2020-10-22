@@ -91,6 +91,16 @@ class PfsDesign:
         (which limits the range of values).
     fiberFlux : `list` of `numpy.ndarray` of `float`
         Array of fiber fluxes for each fiber, in [nJy].
+    psfFlux : `list` of `numpy.ndarray` of `float`
+        Array of PSF fluxes for each target/fiber in [nJy]
+    totalFlux : `list` of `numpy.ndarray` of `float`
+        Array of total fluxes for each target/fiber in [nJy].
+    fiberFluxErr : `list` of `numpy.ndarray` of `float`
+        Array of fiber flux errors for each fiber in [nJy].
+    psfFluxErr : `list` of `numpy.ndarray` of `float`
+        Array of PSF flux errors for each target/fiber in [nJy].
+    totalFluxErr : `list` of `numpy.ndarray` of `float`
+        Array of total flux errors for each target/fiber in [nJy].
     filterNames : `list` of `list` of `str`
         List of filters used to measure the fiber fluxes for each filter.
     pfiNominal : `numpy.ndarray` of `float`
@@ -111,7 +121,13 @@ class PfsDesign:
                "pfiNominal": "2E",
                }
     _pointFields = ["pfiNominal"]  # List of point fields; should be in _fields too
-    _photometry = ["fiberFlux", "filterNames"]  # List of photometry fields
+    _photometry = ["fiberFlux",
+                   "psfFlux",
+                   "totalFlux",
+                   "fiberFluxErr",
+                   "psfFluxErr",
+                   "totalFluxErr",
+                   "filterNames"]  # List of photometry fields
     _keywords = list(_fields) + _photometry
     _hduName = "DESIGN"
 
@@ -146,6 +162,26 @@ class PfsDesign:
             if len(mag) != len(names):
                 raise RuntimeError("Inconsistent lengths between fiberFlux (%d) and filterNames (%d) "
                                    "for fiberId=%d" % (len(mag), len(names), self.fiberId[ii]))
+        for ii, (pFlux, names) in enumerate(zip(self.psfFlux, self.filterNames)):
+            if len(pFlux) != len(names):
+                raise RuntimeError("Inconsistent lengths between psfFlux (%d) and filterNames (%d) "
+                                   "for fiberId=%d" % (len(pFlux), len(names), self.fiberId[ii]))
+        for ii, (tFlux, names) in enumerate(zip(self.totalFlux, self.filterNames)):
+            if len(tFlux) != len(names):
+                raise RuntimeError("Inconsistent lengths between totalFlux (%d) and filterNames (%d) "
+                                   "for fiberId=%d" % (len(tFlux), len(names), self.fiberId[ii]))
+        for ii, (ffErr, names) in enumerate(zip(self.fiberFluxErr, self.filterNames)):
+            if len(ffErr) != len(names):
+                raise RuntimeError("Inconsistent lengths between fiberFluxErr (%d) and filterNames (%d) "
+                                   "for fiberId=%d" % (len(ffErr), len(names), self.fiberId[ii]))
+        for ii, (pfErr, names) in enumerate(zip(self.psfFluxErr, self.filterNames)):
+            if len(pfErr) != len(names):
+                raise RuntimeError("Inconsistent lengths between psfFluxErr (%d) and filterNames (%d) "
+                                   "for fiberId=%d" % (len(pfErr), len(names), self.fiberId[ii]))
+        for ii, (tfErr, names) in enumerate(zip(self.totalFluxErr, self.filterNames)):
+            if len(tfErr) != len(names):
+                raise RuntimeError("Inconsistent lengths between totalFluxErr (%d) and filterNames (%d) "
+                                   "for fiberId=%d" % (len(tfErr), len(names), self.fiberId[ii]))
         for nn in self._pointFields:
             matrix = getattr(self, nn)
             if matrix.shape != (len(self.fiberId), 2):
@@ -153,7 +189,14 @@ class PfsDesign:
 
     def __init__(self, pfsDesignId, raBoresight, decBoresight,
                  fiberId, tract, patch, ra, dec, catId, objId,
-                 targetType, fiberStatus, fiberFlux, filterNames, pfiNominal):
+                 targetType, fiberStatus,
+                 fiberFlux,
+                 psfFlux,
+                 totalFlux,
+                 fiberFluxErr,
+                 psfFluxErr,
+                 totalFluxErr,
+                 filterNames, pfiNominal):
         self.pfsDesignId = pfsDesignId
         self.raBoresight = raBoresight
         self.decBoresight = decBoresight
@@ -168,6 +211,11 @@ class PfsDesign:
         self.targetType = np.array(targetType)
         self.fiberStatus = np.array(fiberStatus)
         self.fiberFlux = [np.array(flux) for flux in fiberFlux]
+        self.psfFlux = [np.array(pflux) for pflux in psfFlux]
+        self.totalFlux = [np.array(tflux) for tflux in totalFlux]
+        self.fiberFluxErr = [np.array(ffErr) for ffErr in fiberFluxErr]
+        self.psfFluxErr = [np.array(pfErr) for pfErr in psfFluxErr]
+        self.totalFluxErr = [np.array(tfErr) for tfErr in totalFluxErr]
         self.filterNames = filterNames
         self.pfiNominal = np.array(pfiNominal)
         self.validate()
@@ -239,13 +287,28 @@ class PfsDesign:
 
             fiberId = kwargs["fiberId"]
             fiberFlux = {ii: [] for ii in fiberId}
+            psfFlux = {ii: [] for ii in fiberId}
+            totalFlux = {ii: [] for ii in fiberId}
+            fiberFluxErr = {ii: [] for ii in fiberId}
+            psfFluxErr = {ii: [] for ii in fiberId}
+            totalFluxErr = {ii: [] for ii in fiberId}
             filterNames = {ii: [] for ii in fiberId}
             for row in photometry:
                 fiberFlux[row['fiberId']].append(row['fiberFlux'])
+                psfFlux[row['fiberId']].append(row['psfFlux'])
+                totalFlux[row['fiberId']].append(row['totalFlux'])
+                fiberFluxErr[row['fiberId']].append(row['fiberFluxErr'])
+                psfFluxErr[row['fiberId']].append(row['psfFluxErr'])
+                totalFluxErr[row['fiberId']].append(row['totalFluxErr'])
                 filterNames[row['fiberId']].append(row['filterName'])
 
         return cls(**kwargs, raBoresight=raBoresight, decBoresight=decBoresight,
                    fiberFlux=[np.array(fiberFlux[ii]) for ii in fiberId],
+                   psfFlux=[np.array(psfFlux[ii]) for ii in fiberId],
+                   totalFlux=[np.array(totalFlux[ii]) for ii in fiberId],
+                   fiberFluxErr=[np.array(fiberFluxErr[ii]) for ii in fiberId],
+                   psfFluxErr=[np.array(psfFluxErr[ii]) for ii in fiberId],
+                   totalFluxErr=[np.array(totalFluxErr[ii]) for ii in fiberId],
                    filterNames=[filterNames[ii] for ii in fiberId])
 
     @classmethod
@@ -296,18 +359,33 @@ class PfsDesign:
         columns.append(pyfits.Column(name="fiberStatus", format="J", array=self.fiberStatus))
         fits.append(pyfits.BinTableHDU.from_columns(columns, hdr, name=self._hduName))
 
-        numRows = sum(len(mag) for mag in self.fiberFlux)
+        numRows = sum(len(fFlux) for fFlux in self.fiberFlux)
         fiberId = np.array(sum(([ii]*len(mags) for ii, mags in zip(self.fiberId, self.fiberFlux)), []))
-        fiberFlux = np.array(sum((mag.tolist() for mag in self.fiberFlux), []))
+        fiberFlux = np.array(sum((fFlux.tolist() for fFlux in self.fiberFlux), []))
+        psfFlux = np.array(sum((pflux.tolist() for pflux in self.psfFlux), []))
+        totalFlux = np.array(sum((tflux.tolist() for tflux in self.totalFlux), []))
+        fiberFluxErr = np.array(sum((ffErr.tolist() for ffErr in self.fiberFluxErr), []))
+        psfFluxErr = np.array(sum((pfErr.tolist() for pfErr in self.psfFluxErr), []))
+        totalFluxErr = np.array(sum((tfErr.tolist() for tfErr in self.totalFluxErr), []))
         filterNames = sum(self.filterNames, [])
         assert(len(fiberId) == numRows)
         assert(len(fiberFlux) == numRows)
+        assert(len(psfFlux) == numRows)
+        assert(len(totalFlux) == numRows)
+        assert(len(fiberFluxErr) == numRows)
+        assert(len(psfFluxErr) == numRows)
+        assert(len(totalFluxErr) == numRows)
         assert(len(filterNames) == numRows)
         maxLength = max(len(ff) for ff in filterNames) if filterNames else 1
 
         fits.append(pyfits.BinTableHDU.from_columns([
             pyfits.Column(name='fiberId', format='J', array=fiberId),
-            pyfits.Column(name='fiberFlux', format='E', array=fiberFlux),
+            pyfits.Column(name='fiberFlux', format='E', array=fiberFlux, unit='nJy'),
+            pyfits.Column(name='psfFlux', format='E', array=psfFlux, unit='nJy'),
+            pyfits.Column(name='totalFlux', format='E', array=totalFlux, unit='nJy'),
+            pyfits.Column(name='fiberFluxErr', format='E', array=fiberFluxErr, unit='nJy'),
+            pyfits.Column(name='psfFluxErr', format='E', array=psfFluxErr, unit='nJy'),
+            pyfits.Column(name='totalFluxErr', format='E', array=totalFluxErr, unit='nJy'),
             pyfits.Column(name='filterName', format='A%d' % maxLength, array=filterNames),
         ], hdr, name='PHOTOMETRY'))
 
@@ -527,6 +605,16 @@ class PfsConfig(PfsDesign):
         (which limits the range of values).
     fiberFlux : `list` of `numpy.ndarray` of `float`
         Array of fiber fluxes for each fiber, in [nJy].
+    psfFlux : `list` of `numpy.ndarray` of `float`
+        Array of PSF fluxes for each target/fiber in [nJy].
+    totalFlux : `list` of `numpy.ndarray` of `float`
+        Array of total fluxes for each target/fiber in [nJy].
+    fiberFluxErr : `list` of `numpy.ndarray` of `float`
+        Array of fiber flux errors for each fiber in [nJy].
+    psfFluxErr : `list` of `numpy.ndarray` of `float`
+        Array of PSF flux errors for each target/fiber in [nJy].
+    totalFluxErr : `list` of `numpy.ndarray` of `float`
+        Array of total flux errors for each target/fiber in [nJy].
     filterNames : `list` of `list` of `str`
         List of filters used to measure the fiber fluxes for each filter.
     pfiCenter : `numpy.ndarray` of `float`
@@ -550,7 +638,13 @@ class PfsConfig(PfsDesign):
                "pfiCenter": "2E",
                }
     _pointFields = ["pfiNominal", "pfiCenter"]  # List of point fields; should be in _fields too
-    _photometry = ["fiberFlux", "filterNames"]  # List of photometry fields
+    _photometry = ["fiberFlux",
+                   "psfFlux",
+                   "totalFlux",
+                   "fiberFluxErr",
+                   "psfFluxErr",
+                   "totalFluxErr",
+                   "filterNames"]  # List of photometry fields
     _keywords = list(_fields) + _photometry
     _hduName = "CONFIG"
 
@@ -558,11 +652,25 @@ class PfsConfig(PfsDesign):
 
     def __init__(self, pfsDesignId, visit0, raBoresight, decBoresight,
                  fiberId, tract, patch, ra, dec, catId, objId,
-                 targetType, fiberStatus, fiberFlux, filterNames, pfiCenter, pfiNominal):
+                 targetType, fiberStatus,
+                 fiberFlux,
+                 psfFlux,
+                 totalFlux,
+                 fiberFluxErr,
+                 psfFluxErr,
+                 totalFluxErr,
+                 filterNames, pfiCenter, pfiNominal):
         self.visit0 = visit0
         self.pfiCenter = np.array(pfiCenter)
         super().__init__(pfsDesignId, raBoresight, decBoresight, fiberId, tract, patch, ra, dec,
-                         catId, objId, targetType, fiberStatus, fiberFlux, filterNames, pfiNominal)
+                         catId, objId, targetType, fiberStatus,
+                         fiberFlux,
+                         psfFlux,
+                         totalFlux,
+                         fiberFluxErr,
+                         psfFluxErr,
+                         totalFluxErr,
+                         filterNames, pfiNominal)
 
     def __str__(self):
         """String representation"""
