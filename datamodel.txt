@@ -428,7 +428,7 @@ The TARGET HDU must contain at least the keywords
 
 (N.b. the keywords are case-insensitive).  Other HDUs should specify INHERIT=T.
 
-See pfsObject for definition of the COVAR data
+See pfsArm for definition of the COVAR data
 
 What resolution should we use for HDU #1?  The instrument has a dispersion per pixel which is roughly constant
 (in the blue arm Jim-sensei calculates that it varies from 0.70 to 0.65 (going red) A/pix; in the red, 0.88 to
