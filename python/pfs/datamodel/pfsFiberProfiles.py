@@ -1,61 +1,12 @@
 import os
 import re
-from types import SimpleNamespace
 
 import numpy as np
 
 from .utils import astropyHeaderToDict, astropyHeaderFromDict
+from .identity import CalibIdentity
 
-__all__ = ("CalibIdentity", "PfsFiberProfiles")
-
-
-class CalibIdentity(SimpleNamespace):
-    """Keyword-value pairs describing a calibration
-
-    Parameters
-    ----------
-    obsDate : `str`
-        Observation date of calibration, in ISO-8601 format.
-    spectrograph : `int`
-        Spectrograph number.
-    arm : `str`
-        Arm letter: ``b``, ``r``, ``n``, ``m``.
-    visit0 : `int`
-        First visit number calibration was constructed from.
-    """
-
-    elements = ("obsDate", "spectrograph", "arm", "visit0")
-    """Required keywords"""
-
-    def __init__(self, obsDate, spectrograph, arm, visit0):
-        super().__init__(obsDate=obsDate, spectrograph=int(spectrograph), arm=arm, visit0=int(visit0))
-
-    @classmethod
-    def fromDict(cls, identity):
-        """Build from a `dict`
-
-        Parameters
-        ----------
-        identity : `dict`
-            The data identifier.
-
-        Returns
-        -------
-        self : `CalibIdentity`
-            Calibration identity.s
-        """
-        kwargs = {elem: identity[elem] for elem in cls.elements}
-        return cls(**kwargs)
-
-    def toDict(self):
-        """Convert to a `dict`
-
-        Returns
-        -------
-        calibId : `dict`
-            Data identity for calibration.
-        """
-        return {elem: getattr(self, elem) for elem in self.elements}
+__all__ = ("PfsFiberProfiles",)
 
 
 class PfsFiberProfiles:
