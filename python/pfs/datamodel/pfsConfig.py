@@ -90,7 +90,7 @@ class PfsDesign:
         Status of each fiber. Values must be convertible to `FiberStatus`
         (which limits the range of values).
     fiberFlux : `list` of `numpy.ndarray` of `float`
-        Array of fiber fluxes for each fiber.
+        Array of fiber fluxes for each fiber, in [nJy].
     filterNames : `list` of `list` of `str`
         List of filters used to measure the fiber fluxes for each filter.
     pfiNominal : `numpy.ndarray` of `float`
@@ -526,7 +526,7 @@ class PfsConfig(PfsDesign):
         Status of each fiber. Values must be convertible to `FiberStatus`
         (which limits the range of values).
     fiberFlux : `list` of `numpy.ndarray` of `float`
-        Array of fiber fluxes for each fiber.
+        Array of fiber fluxes for each fiber, in [nJy].
     filterNames : `list` of `list` of `str`
         List of filters used to measure the fiber fluxes for each filter.
     pfiCenter : `numpy.ndarray` of `float`
