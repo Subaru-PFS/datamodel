@@ -1,6 +1,7 @@
 import numpy as np
 import os
 import enum
+import lsst.log
 
 try:
     import astropy.io.fits as pyfits
@@ -9,6 +10,8 @@ except ImportError:
 
 
 __all__ = ("TargetType", "FiberStatus", "PfsDesign", "PfsConfig")
+
+logger = lsst.log.Log.getLogger("pfs.datamodel.pfsConfig")
 
 
 class DocEnum(enum.IntEnum):
@@ -86,10 +89,10 @@ class PfsDesign:
     fiberStatus : `numpy.ndarray` of `int`
         Status of each fiber. Values must be convertible to `FiberStatus`
         (which limits the range of values).
-    fiberMag : `list` of `numpy.ndarray` of `float`
-        Array of fiber magnitudes for each fiber.
+    fiberFlux : `list` of `numpy.ndarray` of `float`
+        Array of fiber fluxes for each fiber, in [nJy].
     filterNames : `list` of `list` of `str`
-        List of filters used to measure the fiber magnitudes for each filter.
+        List of filters used to measure the fiber fluxes for each filter.
     pfiNominal : `numpy.ndarray` of `float`
         Intended target position (2-vector) of each fiber on the PFI, microns.
     """
@@ -108,7 +111,7 @@ class PfsDesign:
                "pfiNominal": "2E",
                }
     _pointFields = ["pfiNominal"]  # List of point fields; should be in _fields too
-    _photometry = ["fiberMag", "filterNames"]  # List of photometry fields
+    _photometry = ["fiberFlux", "filterNames"]  # List of photometry fields
     _keywords = list(_fields) + _photometry
     _hduName = "DESIGN"
 
@@ -139,9 +142,9 @@ class PfsDesign:
                 FiberStatus(tt)
             except ValueError as exc:
                 raise ValueError("fiberStatus[%d] = %d is not a recognised FiberStatus" % (ii, tt)) from exc
-        for ii, (mag, names) in enumerate(zip(self.fiberMag, self.filterNames)):
+        for ii, (mag, names) in enumerate(zip(self.fiberFlux, self.filterNames)):
             if len(mag) != len(names):
-                raise RuntimeError("Inconsistent lengths between fiberMag (%d) and filterNames (%d) "
+                raise RuntimeError("Inconsistent lengths between fiberFlux (%d) and filterNames (%d) "
                                    "for fiberId=%d" % (len(mag), len(names), self.fiberId[ii]))
         for nn in self._pointFields:
             matrix = getattr(self, nn)
@@ -150,7 +153,7 @@ class PfsDesign:
 
     def __init__(self, pfsDesignId, raBoresight, decBoresight,
                  fiberId, tract, patch, ra, dec, catId, objId,
-                 targetType, fiberStatus, fiberMag, filterNames, pfiNominal):
+                 targetType, fiberStatus, fiberFlux, filterNames, pfiNominal):
         self.pfsDesignId = pfsDesignId
         self.raBoresight = raBoresight
         self.decBoresight = decBoresight
@@ -164,7 +167,7 @@ class PfsDesign:
         self.objId = np.array(objId)
         self.targetType = np.array(targetType)
         self.fiberStatus = np.array(fiberStatus)
-        self.fiberMag = [np.array(mags) for mags in fiberMag]
+        self.fiberFlux = [np.array(flux) for flux in fiberFlux]
         self.filterNames = filterNames
         self.pfiNominal = np.array(pfiNominal)
         self.validate()
@@ -235,14 +238,14 @@ class PfsDesign:
             photometry = fd["PHOTOMETRY"].data
 
             fiberId = kwargs["fiberId"]
-            fiberMag = {ii: [] for ii in fiberId}
+            fiberFlux = {ii: [] for ii in fiberId}
             filterNames = {ii: [] for ii in fiberId}
             for row in photometry:
-                fiberMag[row['fiberId']].append(row['fiberMag'])
+                fiberFlux[row['fiberId']].append(row['fiberFlux'])
                 filterNames[row['fiberId']].append(row['filterName'])
 
         return cls(**kwargs, raBoresight=raBoresight, decBoresight=decBoresight,
-                   fiberMag=[np.array(fiberMag[ii]) for ii in fiberId],
+                   fiberFlux=[np.array(fiberFlux[ii]) for ii in fiberId],
                    filterNames=[filterNames[ii] for ii in fiberId])
 
     @classmethod
@@ -293,18 +296,18 @@ class PfsDesign:
         columns.append(pyfits.Column(name="fiberStatus", format="J", array=self.fiberStatus))
         fits.append(pyfits.BinTableHDU.from_columns(columns, hdr, name=self._hduName))
 
-        numRows = sum(len(mag) for mag in self.fiberMag)
-        fiberId = np.array(sum(([ii]*len(mags) for ii, mags in zip(self.fiberId, self.fiberMag)), []))
-        fiberMag = np.array(sum((mag.tolist() for mag in self.fiberMag), []))
+        numRows = sum(len(mag) for mag in self.fiberFlux)
+        fiberId = np.array(sum(([ii]*len(mags) for ii, mags in zip(self.fiberId, self.fiberFlux)), []))
+        fiberFlux = np.array(sum((mag.tolist() for mag in self.fiberFlux), []))
         filterNames = sum(self.filterNames, [])
         assert(len(fiberId) == numRows)
-        assert(len(fiberMag) == numRows)
+        assert(len(fiberFlux) == numRows)
         assert(len(filterNames) == numRows)
         maxLength = max(len(ff) for ff in filterNames) if filterNames else 1
 
         fits.append(pyfits.BinTableHDU.from_columns([
             pyfits.Column(name='fiberId', format='J', array=fiberId),
-            pyfits.Column(name='fiberMag', format='E', array=fiberMag),
+            pyfits.Column(name='fiberFlux', format='E', array=fiberFlux),
             pyfits.Column(name='filterName', format='A%d' % maxLength, array=filterNames),
         ], hdr, name='PHOTOMETRY'))
 
@@ -522,10 +525,10 @@ class PfsConfig(PfsDesign):
     fiberStatus : `numpy.ndarray` of `int`
         Status of each fiber. Values must be convertible to `FiberStatus`
         (which limits the range of values).
-    fiberMag : `list` of `numpy.ndarray` of `float`
-        Array of fiber magnitudes for each fiber.
+    fiberFlux : `list` of `numpy.ndarray` of `float`
+        Array of fiber fluxes for each fiber, in [nJy].
     filterNames : `list` of `list` of `str`
-        List of filters used to measure the fiber magnitudes for each filter.
+        List of filters used to measure the fiber fluxes for each filter.
     pfiCenter : `numpy.ndarray` of `float`
         Actual position (2-vector) of each fiber on the PFI, microns.
     pfiNominal : `numpy.ndarray` of `float`
@@ -547,7 +550,7 @@ class PfsConfig(PfsDesign):
                "pfiCenter": "2E",
                }
     _pointFields = ["pfiNominal", "pfiCenter"]  # List of point fields; should be in _fields too
-    _photometry = ["fiberMag", "filterNames"]  # List of photometry fields
+    _photometry = ["fiberFlux", "filterNames"]  # List of photometry fields
     _keywords = list(_fields) + _photometry
     _hduName = "CONFIG"
 
@@ -555,11 +558,11 @@ class PfsConfig(PfsDesign):
 
     def __init__(self, pfsDesignId, visit0, raBoresight, decBoresight,
                  fiberId, tract, patch, ra, dec, catId, objId,
-                 targetType, fiberStatus, fiberMag, filterNames, pfiCenter, pfiNominal):
+                 targetType, fiberStatus, fiberFlux, filterNames, pfiCenter, pfiNominal):
         self.visit0 = visit0
         self.pfiCenter = np.array(pfiCenter)
         super().__init__(pfsDesignId, raBoresight, decBoresight, fiberId, tract, patch, ra, dec,
-                         catId, objId, targetType, fiberStatus, fiberMag, filterNames, pfiNominal)
+                         catId, objId, targetType, fiberStatus, fiberFlux, filterNames, pfiNominal)
 
     def __str__(self):
         """String representation"""
@@ -617,6 +620,7 @@ class PfsConfig(PfsDesign):
             Constructed `PfsConfig`.
         """
         filename = os.path.join(dirName, cls.fileNameFormat % (pfsDesignId, visit0))
+        logger.debugf('Reading file {}', filename)
         return cls._readImpl(filename, pfsDesignId=pfsDesignId, visit0=visit0)
 
     def extractCenters(self, fiberId):

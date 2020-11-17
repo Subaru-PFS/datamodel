@@ -302,10 +302,10 @@ class PfsFiberArraySet:
                                (fiberId, len(jj)))
         jj = jj[0]
 
-        fiberMag = dict(zip(pfsConfig.filterNames[jj], pfsConfig.fiberMag[jj]))
+        fiberFlux = dict(zip(pfsConfig.filterNames[jj], pfsConfig.fiberFlux[jj]))
         target = Target(pfsConfig.catId[jj], pfsConfig.tract[jj], pfsConfig.patch[jj],
                         pfsConfig.objId[jj], pfsConfig.ra[jj], pfsConfig.dec[jj],
-                        pfsConfig.targetType[jj], fiberMag)
+                        pfsConfig.targetType[jj], fiberFlux)
         obs = Observations.makeSingle(self.identity, pfsConfig, fiberId)
 
         # XXX not dealing with covariance properly.
