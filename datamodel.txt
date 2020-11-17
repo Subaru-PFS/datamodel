@@ -239,9 +239,24 @@ The 'fiberStatus' in the DESIGN table is an enumerated type, with values:
       UNILLUMINATED = 5: the fiber is not being illuminated.
 
 The PHOTOMETRY table lists:
-      fiberId        32-bit int
-      fiberFlux      32-bit float
-      filterName     string
+      fiberId            32-bit int
+      fiberFlux    [nJy] 32-bit float
+      psfFlux      [nJy] 32-bit float
+      totalFlux    [nJy] 32-bit float
+      fiberFluxErr [nJy] 32-bit float
+      psfFluxErr   [nJy] 32-bit float
+      totalFluxErr [nJy] 32-bit float
+      filterName         string
+
+Where the:
+    * fiberFlux corresponds to the integrated flux within an aperture of a fiber 
+        (approx 1 arcsec in diameter). This is seeing-corrected.
+    * psfFlux is the flux computed by fitting the appropriate PSF to the image, 
+        to an infinite radius. 
+    * totalFlux is the complete flux for that object. This is the same as the psfFlux
+        for unresolved sources, but for extended sources the appropriate extended model
+        is applied to compute the flux.
+
 
 A fiberId may be listed multiple times in the PHOTOMETRY table in order to
 provide measurements in multiple filters for a single object.
