@@ -17,6 +17,7 @@ __all__ = (
     "SplinedDetectorMap",
     "GlobalDetectorMapScaling",
     "GlobalDetectorMap",
+    "DifferentialDetectorMap",
 )
 
 
@@ -698,6 +699,142 @@ class GlobalDetectorMap(PfsDetectorMap):
             astropy.io.fits.Column(name="spectralOffsets", format="E", array=self.spectralOffsets),
         ], header=tableHeader, name="FIBERS")
         fits.append(table)
+
+        table = astropy.io.fits.BinTableHDU.from_columns([
+            astropy.io.fits.Column(name="x", format="E", array=self.xCoeff),
+            astropy.io.fits.Column(name="y", format="E", array=self.yCoeff),
+        ], header=tableHeader, name="COEFFICIENTS")
+        fits.append(table)
+
+        table = astropy.io.fits.BinTableHDU.from_columns([
+            astropy.io.fits.Column(name="coefficients", format="E", array=self.highCcdCoeff),
+        ], header=tableHeader, name="HIGHCCD")
+        fits.append(table)
+
+        return fits
+
+
+class DifferentialDetectorMap(PfsDetectorMap):
+    """DetectorMap implemented as a model relative to another detectorMap
+
+    This implementation handles I/O only. For a fully-functional implementation
+    that includes evaluation of the mappings, see the drp_stella package.
+
+    Parameters
+    ----------
+    identity : `pfs.datamodel.CalibIdentity`
+        Identity of the data of interest.
+    box : `Box`
+        Bounding box for detector.
+    base : `pfs.datamodel.SplinedDetectorMap`
+        Base detectorMap.
+    order : `int`
+        Polynomial order.
+    fiberId : `numpy.ndarray` of `int`, shape ``(N,)``
+        Fiber identifiers.
+    scaling : `GlobalDetectorMapScaling`
+        Scaling parameters.
+    fiberCenter : `float`
+        Central fiberId, separating low- and high-fiberId CCDs.
+    xCoeff : `numpy.ndarray` of `float`, shape ``(M,)``
+        Coefficients for x distortion polynomial.
+    yCoeff : `numpy.ndarray` of `float`, shape ``(M,)``
+        Coefficients for y distortion polynomial.
+    highCcdCoeff : `numpy.ndarray` of `float`, shape ``(6,)``
+        Coefficients for high-fiberId CCD affine transform.
+    metadata : `dict`
+        Keyword-value pairs to put in the header.
+    """
+    def __init__(self, identity, box, base, order, fiberId, scaling, fiberCenter,
+                 xCoeff, yCoeff, highCcdCoeff, metadata):
+        self.identity = identity
+        self.box = box
+        self.base = base
+        self.order = order
+        self.fiberId = fiberId
+        self.scaling = scaling
+        self.fiberCenter = fiberCenter
+        self.xCoeff = xCoeff
+        self.yCoeff = yCoeff
+        self.highCcdCoeff = highCcdCoeff
+        self.metadata = metadata
+        self.validate()
+
+    def validate(self):
+        """Ensure that array lengths are as expected
+
+        Raises
+        ------
+        AssertionError
+            When an array length doesn't match that expected.
+        """
+        numCoeff = (self.order + 1)*(self.order + 2)//2
+        assert len(self.xCoeff) == numCoeff
+        assert len(self.yCoeff) == numCoeff
+        assert len(self.highCcdCoeff) == 6
+
+    def __len__(self):
+        """Number of fibers"""
+        return len(self.fiberId)
+
+    @classmethod
+    def _readImpl(cls, fits, identity):
+        """Implementation of reading from a FITS file in memory
+
+        Parameters
+        ----------
+        fits : `astropy.io.fits.HDUList`
+            FITS file in memory.
+        identity : `pfs.datamodel.CalibIdentity`
+            Identity of the calib data.
+
+        Returns
+        -------
+        self : `GlobalDetectorMap`
+            DetectorMap read from FITS file.
+        """
+        header = astropyHeaderToDict(fits[0].header)
+        box = Box.fromFitsHeader(header)
+        order = header["ORDER"]
+
+        base = SplinedDetectorMap._readImpl(fits, identity)
+        fiberId = fits["MODEL_FIBERID"].data.astype(np.int32)   # astype() forces machine-native byte order
+        scaling = GlobalDetectorMapScaling.fromFitsHeader(header)
+        fiberCenter = header["FIBERCENTER"]
+
+        xCoeff = fits["COEFFICIENTS"].data["x"].astype(float)
+        yCoeff = fits["COEFFICIENTS"].data["y"].astype(float)
+        rightCcd = fits["HIGHCCD"].data["coefficients"].astype(float)
+
+        return cls(identity, box, base, order, fiberId, scaling, fiberCenter,
+                   xCoeff, yCoeff, rightCcd, header)
+
+    def _writeImpl(self):
+        """Implementation of writing to FITS file
+
+        Returns
+        -------
+        fits : `astropy.io.fits.HDUList`
+            FITS file representation.
+        """
+        fits = self.base._writeImpl()
+
+        header = self.metadata.copy()
+        header.update(self.box.toFitsHeader())
+        header.update(astropyHeaderFromDict(self.scaling.toFitsHeader()))
+        if "pfs_detectorMap_class" in header:
+            del header["pfs_detectorMap_class"]
+        header["OBSTYPE"] = "detectorMap"
+        header["HIERARCH pfs_detectorMap_class"] = "DifferentialDetectorMap"
+        header["ORDER"] = self.order
+        header["HIERARCH FIBERCENTER"] = self.fiberCenter
+        fits[0].header.update(astropyHeaderFromDict(header))
+
+        tableHeader = astropy.io.fits.Header()
+        tableHeader["INHERIT"] = True
+
+        fiberId = astropy.io.fits.ImageHDU(self.fiberId, header=tableHeader, name="MODEL_FIBERID")
+        fits.append(fiberId)
 
         table = astropy.io.fits.BinTableHDU.from_columns([
             astropy.io.fits.Column(name="x", format="E", array=self.xCoeff),
