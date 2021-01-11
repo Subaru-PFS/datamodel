@@ -225,7 +225,7 @@ GlobalDetectorMap format:
 HDU #0 PDU
 HDU #1 FIBERS       Details of individual fibers            [BINARY FITS TABLE]     NFIBER
 HDU #2 COEFFICIENTS Distortion coefficients                 [BINARY FITS TABLE]     NCOEFF
-HDU #3 RIGHTCCD     Coefficients for right-hand CCD         [BINARY FITS TABLE]     6
+HDU #3 HIGHCCD      Coefficients for high-fiberId CCD       [BINARY FITS TABLE]     6
 
 
 The primary header records the dimensions of the detector in the MINX,MINY,MAXX,MAXY keywords.
@@ -247,8 +247,8 @@ The COEFFICIENTS table contains:
         x                   32-bit float    x coefficients
         y                   32-bit float    y coefficients
 
-The RIGHTCCD table contains:
-        coeff               32-bit float    Affine transform coefficients
+The HIGHCCD table contains:
+        coefficients        32-bit float    Affine transform coefficients
 
 
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-

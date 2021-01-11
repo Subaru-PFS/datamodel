@@ -581,12 +581,14 @@ class GlobalDetectorMap(PfsDetectorMap):
         Fiber identifiers.
     scaling : `GlobalDetectorMapScaling`
         Scaling parameters.
+    fiberCenter : `float`
+        Central fiberId, separating low- and high-fiberId CCDs.
     xCoeff : `numpy.ndarray` of `float`, shape ``(M,)``
         Coefficients for x distortion polynomial.
     yCoeff : `numpy.ndarray` of `float`, shape ``(M,)``
         Coefficients for y distortion polynomial.
-    rightCcdCoeff : `numpy.ndarray` of `float`, shape ``(6,)``
-        Coefficients for right CCD affine transform.
+    highCcdCoeff : `numpy.ndarray` of `float`, shape ``(6,)``
+        Coefficients for high-fiberId CCD affine transform.
     spatialOffsets : `numpy.ndarray` of `float`, shape ``(N,)``
         Slit offsets in the spatial dimension for each fiber.
     spectralOffsets : `numpy.ndarray` of `float`, shape ``(N,)``
@@ -594,16 +596,17 @@ class GlobalDetectorMap(PfsDetectorMap):
     metadata : `dict`
         Keyword-value pairs to put in the header.
     """
-    def __init__(self, identity, box, order, fiberId, scaling, xCoeff, yCoeff, rightCcdCoeff,
+    def __init__(self, identity, box, order, fiberId, scaling, fiberCenter, xCoeff, yCoeff, highCcdCoeff,
                  spatialOffsets, spectralOffsets, metadata):
         self.identity = identity
         self.box = box
         self.order = order
         self.fiberId = fiberId
         self.scaling = scaling
+        self.fiberCenter = fiberCenter
         self.xCoeff = xCoeff
         self.yCoeff = yCoeff
-        self.rightCcdCoeff = rightCcdCoeff
+        self.highCcdCoeff = highCcdCoeff
         self.spatialOffsets = spatialOffsets
         self.spectralOffsets = spectralOffsets
         self.metadata = metadata
@@ -623,7 +626,7 @@ class GlobalDetectorMap(PfsDetectorMap):
         numCoeff = (self.order + 1)*(self.order + 2)//2
         assert len(self.xCoeff) == numCoeff
         assert len(self.yCoeff) == numCoeff
-        assert len(self.rightCcdCoeff) == 6
+        assert len(self.highCcdCoeff) == 6
 
     def __len__(self):
         """Number of fibers"""
@@ -650,6 +653,7 @@ class GlobalDetectorMap(PfsDetectorMap):
         order = header["ORDER"]
 
         scaling = GlobalDetectorMapScaling.fromFitsHeader(header)
+        fiberCenter = header["FIBERCENTER"]
 
         fiberTable = fits["FIBERS"].data
         # array.astype() required to force byte swapping (e.g., dtype('>f4') --> np.float32)
@@ -659,9 +663,9 @@ class GlobalDetectorMap(PfsDetectorMap):
         spectralOffsets = fiberTable["spectralOffsets"].astype(float)
         xCoeff = fits["COEFFICIENTS"].data["x"].astype(float)
         yCoeff = fits["COEFFICIENTS"].data["y"].astype(float)
-        rightCcd = fits["RIGHTCCD"].data["coeff"].astype(float)
+        rightCcd = fits["HIGHCCD"].data["coefficients"].astype(float)
 
-        return cls(identity, box, order, fiberId, scaling, xCoeff, yCoeff, rightCcd,
+        return cls(identity, box, order, fiberId, scaling, fiberCenter, xCoeff, yCoeff, rightCcd,
                    spatialOffsets, spectralOffsets, header)
 
     def _writeImpl(self):
@@ -681,6 +685,7 @@ class GlobalDetectorMap(PfsDetectorMap):
         header["OBSTYPE"] = "detectorMap"
         header["HIERARCH pfs_detectorMap_class"] = "GlobalDetectorMap"
         header["ORDER"] = self.order
+        header["HIERARCH FIBERCENTER"] = self.fiberCenter
 
         phu = astropy.io.fits.PrimaryHDU(header=astropyHeaderFromDict(header))
         fits.append(phu)
@@ -701,8 +706,8 @@ class GlobalDetectorMap(PfsDetectorMap):
         fits.append(table)
 
         table = astropy.io.fits.BinTableHDU.from_columns([
-            astropy.io.fits.Column(name="coeff", format="E", array=self.rightCcdCoeff),
-        ], header=tableHeader, name="RIGHTCCD")
+            astropy.io.fits.Column(name="coefficients", format="E", array=self.highCcdCoeff),
+        ], header=tableHeader, name="HIGHCCD")
         fits.append(table)
 
         return fits
