@@ -536,13 +536,13 @@ class GlobalDetectorMapScaling(SimpleNamespace):
             Constructed object.
         """
         return cls(
-            fiberPitch=header["scaling.fiberPitch"],
-            dispersion=header["scaling.dispersion"],
-            wavelengthCenter=header["scaling.wavelengthCenter"],
-            minFiberId=header["scaling.minFiberId"],
-            maxFiberId=header["scaling.maxFiberId"],
-            height=header["scaling.height"],
-            buffer=header["scaling.buffer"],
+            fiberPitch=header["SCALING.fiberPitch"],
+            dispersion=header["SCALING.dispersion"],
+            wavelengthCenter=header["SCALING.wavelengthCenter"],
+            minFiberId=int(header["SCALING.minFiberId"]),
+            maxFiberId=int(header["SCALING.maxFiberId"]),
+            height=int(header["SCALING.height"]),
+            buffer=header["SCALING.buffer"],
         )
 
     def toFitsHeader(self):
@@ -554,13 +554,13 @@ class GlobalDetectorMapScaling(SimpleNamespace):
             FITS header.
         """
         return {
-            "scaling.fiberPitch": self.fiberPitch,
-            "scaling.dispersion": self.dispersion,
-            "scaling.wavelengthCenter": self.wavelengthCenter,
-            "scaling.minFiberId": self.minFiberId,
-            "scaling.maxFiberId": self.maxFiberId,
-            "scaling.height": self.height,
-            "scaling.buffer": self.buffer,
+            "SCALING.fiberPitch": self.fiberPitch,
+            "SCALING.dispersion": self.dispersion,
+            "SCALING.wavelengthCenter": self.wavelengthCenter,
+            "SCALING.minFiberId": self.minFiberId,
+            "SCALING.maxFiberId": self.maxFiberId,
+            "SCALING.height": self.height,
+            "SCALING.buffer": self.buffer,
         }
 
 
