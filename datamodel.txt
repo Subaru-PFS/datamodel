@@ -728,28 +728,67 @@ The path would be
 
 The file will have several HDUs:
 
-HDU#0 PDU
+HDU#0 PHDU
+     D1D_VER      KEYWORD     Version of the DRP_1D library
+     D1DP_VER     KEYWORD     Version of the DRP_1DPIPE pipeline
+     DAMD_VER     KEYWORD     Version of the data model
+     PAR_FILE     KEYWORD     Parameters file name
+     ZWARNING     INT64       Quality flag
 
-HDU#1 ZCANDIDATES               Binary table            [FITS BINARY TABLE]     NCANDIDATE
+HDU#1 CLASSIFICATION
+     CLASS        KEYWORD     Spectro classification: GALAXY, QSO, STAR
+     P_GALAXY     KEYWORD     Probability to be a galaxy
+     P_QSO        KEYWORD     Probability to be a QSO
+     P_STAR       KEYWORD     Probability to be a star
+
+HDU#1 GALAXY_CANDIDATES         Binary table            [FITS BINARY TABLE]     NGALAXY_CANDIDATES
         Colums for :
+        CRANK                   INT32                   Rank of galaxy candidate (best=0)
         Z                       FLOAT                   Redshift
         Z_ERR                   FLOAT                   Redshift error
-        ZRANK                   INT32                   Rank of redshift candidate ( best = 1 )
-        RELIABILITY             FLOAT                   Area of the PDF peak (dz=+/-3.e-3)
-        CLASS                   STR                     Spectro classification: GALAXY, QSO, STAR
+        Z_PROBA                 FLOAT                   Areak of the PDF peak (dz=+/-3.e-3)
+        SUBCLASS                STR                     Subclassifications
+        CFILE                   STR                     Continuum template file name
+        LFILE                   STR                     Linecatalog ratio template file name
+        MODELFLUX               FLOAT[NROW]             Spectrum model (unit: nJy)
+
+HDU#2 GALAXY_PDF                Binary table            [FITS BINARY TABLE]     NPIX
+        Colums for :
+        REDSHIFT                FLOAT[NPIX]             Redshift grid
+        PDF                     FLOAT[NPIX]             PDF marginalised over all models
+
+HDU#3 GALAXY_LINES              Binary table            [FITS BINARY TABLE]     NLINE
+        Columns for :
+        LINENAME                STR                     Line name
+        LINEWAVE                FLOAT                   Catalog wavelength for this line in vacuum (unit: nm)
+        LINEZ                   FLOAT                   Redshift
+        LINEZ_ERR               FLOAT                   Redshift error
+        LINESIGMA               FLOAT                   Gaussian width (unit: nm)
+        LINESIGMA_ERR           FLOAT                   Error in gaussian width
+        LINEVEL                 FLOAT                   Gaussian width (unit: km/sec)
+        LINEVEL_ERR             FLOAT                   Error in gaussian width
+        LINEFLUX                FLOAT                   Area in gaussian fit (unit: 10^-35 W/m2)
+        LINEFLUX_ERR            FLOAT                   Flux error
+        LINEEW                  FLOAT                   Equivalent width (unit: nm)
+        LINEEW_ERR              FLOAT                   Equivalent width error
+        LINECONTLEVEL           FLOAT                   Continuum level at line center (unit: nJy)
+        LINECONTLEVEL_ERR       FLOAT                   Error in continuum level at line center
+
+HDU#4 QSO_CANDIDATES            Binary table            [FITS BINARY TABLE]     NQSO_CANDIDATES
+        Colums for :
+        CRANK                   INT32                   Rank of QSO candidate (best=0)
+        Z                       FLOAT                   Redshift
+        Z_ERR                   FLOAT                   Redshift error
+        Z_PROBA                 FLOAT                   Areak of the PDF peak (dz=+/-3.e-3)
         SUBCLASS                STR                     Subclassifications
         MODELFLUX               FLOAT[NROW]             Spectrum model (unit: nJy)
 
-HDU#2 MODELWL                   Binary table            [FITS BINARY TABLE]     NROW
-        Columns for :
-        WAVELENGTH              FLOAT                   Wavelength scale (unit: nm)
-
-HDU#3 ZPDF                      Binary table            [FITS BINARY TABLE]     NPIX
+HDU#5 QSO_PDF                   Binary table            [FITS BINARY TABLE]     NPIX
         Colums for :
-        REDSHIFT                FLOAT                   Redshift scale
-        PDF                     FLOAT                   PDF marginalised over all models
+        REDSHIFT                FLOAT[NPIX]             Redshift grid
+        PDF                     FLOAT[NPIX]             PDF marginalised over all models
 
-HDU#4 ZLINES                    Binary table            [FITS BINARY TABLE]     NLINE
+HDU#6 QSO_LINES                 Binary table            [FITS BINARY TABLE]     NLINE
         Columns for :
         LINENAME                STR                     Line name
         LINEWAVE                FLOAT                   Catalog wavelength for this line in vacuum (unit: nm)
@@ -766,8 +805,20 @@ HDU#4 ZLINES                    Binary table            [FITS BINARY TABLE]     
         LINECONTLEVEL           FLOAT                   Continuum level at line center (unit: nJy)
         LINECONTLEVEL_ERR       FLOAT                   Error in continuum level at line center
 
+HDU#7 STAR_CANDIDATES            Binary table            [FITS BINARY TABLE]        NSTAR_CANDIDATES
+        Columns for :
+        CRANK                   INT32                   Rank of star candidate (best=0)
+        V                       FLOAT                   Star velocity (unit: kms-1)
+        V_ERR                   FLOAT                   Star velocity error
+        T_PROBA                 FLOAT                   Area of the PDF peak
+        SUBCLASS                STR                     Subclassifications
+        TFILE                   STR                     Template file name
+        MODELFLUX               FLOAT[NROW]             Spectrum model (unit: nJy)
 
-
+HDU#8 STAR_PDF                   Binary table            [FITS BINARY TABLE]     NPIX
+        Colums for :
+        REDSHIFT                FLOAT[NPIX]             Redshift grid
+        PDF                     FLOAT[NPIX]             PDF related to best model
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 
