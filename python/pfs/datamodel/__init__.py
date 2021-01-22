@@ -11,3 +11,4 @@ from .fluxTable import *
 from .utils import *
 from .pfsFiberProfiles import *
 from .pfsDetectorMap import *
+from .guideStars import *

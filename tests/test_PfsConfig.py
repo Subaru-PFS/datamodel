@@ -8,7 +8,7 @@ import astropy.units as u
 import lsst.utils.tests
 import lsst.geom
 
-from pfs.datamodel.pfsConfig import PfsConfig, TargetType, FiberStatus, PfsDesign
+from pfs.datamodel.pfsConfig import PfsConfig, TargetType, FiberStatus, PfsDesign, GuideStars
 
 display = None
 
@@ -105,6 +105,8 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
         self.filterNames = [["g", "i", "y", "H"] if tt in (TargetType.SCIENCE, TargetType.FLUXSTD) else []
                             for tt in self.targetType]
 
+        self.guideStars = GuideStars.empty()
+
     def assertPfsConfig(self, lhs, rhs):
         for value in ("pfsDesignId", "visit0"):
             self.assertEqual(getattr(lhs, value), getattr(rhs, value), value)
@@ -135,7 +137,8 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
                            self.fiberFlux,
                            self.psfFlux, self.totalFlux,
                            self.fiberFluxErr, self.psfFluxErr, self.totalFluxErr,
-                           self.filterNames, self.pfiCenter, self.pfiNominal)
+                           self.filterNames, self.pfiCenter, self.pfiNominal,
+                           self.guideStars)
 
         dirName = os.path.splitext(__file__)[0]
         if not os.path.exists(dirName):
@@ -175,7 +178,8 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
                       self.ra, self.dec, self.catId, self.objId, self.targetType, self.fiberStatus,
                       self.fiberFlux,
                       self.psfFlux, self.totalFlux, self.fiberFluxErr, self.psfFluxErr, self.totalFluxErr,
-                      self.filterNames, self.pfiCenter, self.pfiNominal)
+                      self.filterNames, self.pfiCenter, self.pfiNominal,
+                      self.guideStars),
         with self.assertRaises(RuntimeError):
             PfsConfig(self.pfsDesignId, self.visit0, raBoresight, decBoresight,
                       self.posAng,
@@ -184,7 +188,8 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
                       self.ra, self.dec, self.catId, self.objId, self.targetType, self.fiberStatus,
                       self.fiberFlux,
                       self.psfFlux, self.totalFlux, self.fiberFluxErr, self.psfFluxErr, self.totalFluxErr,
-                      self.filterNames, self.pfiCenter, self.pfiNominal)
+                      self.filterNames, self.pfiCenter, self.pfiNominal,
+                      self.guideStars)
         with self.assertRaises(RuntimeError):
             PfsConfig(self.pfsDesignId, self.visit0, raBoresight, decBoresight,
                       self.posAng,
@@ -194,7 +199,8 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
                       self.fiberStatus,
                       self.fiberFlux,
                       self.psfFlux, self.totalFlux, self.fiberFluxErr, self.psfFluxErr, self.totalFluxErr,
-                      self.filterNames, self.pfiCenter, self.pfiNominal)
+                      self.filterNames, self.pfiCenter, self.pfiNominal,
+                      self.guideStars)
         with self.assertRaises(RuntimeError):
             PfsConfig(self.pfsDesignId, self.visit0, raBoresight, decBoresight,
                       self.posAng,
@@ -204,7 +210,8 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
                       self.fiberStatus,
                       self.fiberFlux,
                       self.psfFlux, self.totalFlux, self.fiberFluxErr, self.psfFluxErr, self.totalFluxErr,
-                      self.filterNames, self.pfiCenter, self.pfiNominal)
+                      self.filterNames, self.pfiCenter, self.pfiNominal,
+                      self.guideStars)
         with self.assertRaises(RuntimeError):
             PfsConfig(self.pfsDesignId, self.visit0, raBoresight, decBoresight,
                       self.posAng,
@@ -214,7 +221,8 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
                       self.fiberStatus,
                       self.fiberFlux,
                       self.psfFlux, self.totalFlux, self.fiberFluxErr, self.psfFluxErr, self.totalFluxErr,
-                      self.filterNames, self.pfiCenter, self.pfiNominal)
+                      self.filterNames, self.pfiCenter, self.pfiNominal,
+                      self.guideStars)
         with self.assertRaises(RuntimeError):
             PfsConfig(self.pfsDesignId, self.visit0, raBoresight, decBoresight,
                       self.posAng,
@@ -224,7 +232,8 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
                       self.fiberStatus,
                       self.fiberFlux,
                       self.psfFlux, self.totalFlux, self.fiberFluxErr, self.psfFluxErr, self.totalFluxErr,
-                      self.filterNames, self.pfiCenter, self.pfiNominal)
+                      self.filterNames, self.pfiCenter, self.pfiNominal,
+                      self.guideStars)
         with self.assertRaises(RuntimeError):
             PfsConfig(self.pfsDesignId, self.visit0, raBoresight, decBoresight,
                       self.posAng,
@@ -234,7 +243,8 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
                       self.fiberStatus,
                       self.fiberFlux,
                       self.psfFlux, self.totalFlux, self.fiberFluxErr, self.psfFluxErr, self.totalFluxErr,
-                      self.filterNames, self.pfiCenter, self.pfiNominal)
+                      self.filterNames, self.pfiCenter, self.pfiNominal,
+                      self.guideStars)
         with self.assertRaises(RuntimeError):
             PfsConfig(self.pfsDesignId, self.visit0, raBoresight, decBoresight,
                       self.posAng,
@@ -243,7 +253,8 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
                       self.ra, self.dec, self.catId, self.objId, self.targetType, self.fiberStatus,
                       self.fiberFlux,
                       self.psfFlux, self.totalFlux, self.fiberFluxErr, self.psfFluxErr, self.totalFluxErr,
-                      self.filterNames, extendArray(self.pfiCenter), self.pfiNominal)
+                      self.filterNames, extendArray(self.pfiCenter), self.pfiNominal,
+                      self.guideStars)
         with self.assertRaises(RuntimeError):
             PfsConfig(self.pfsDesignId, self.visit0, raBoresight, decBoresight,
                       self.posAng,
@@ -252,7 +263,8 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
                       self.ra, self.dec, self.catId, self.objId, self.targetType, self.fiberStatus,
                       self.fiberFlux,
                       self.psfFlux, self.totalFlux, self.fiberFluxErr, self.psfFluxErr, self.totalFluxErr,
-                      self.filterNames, self.pfiCenter, extendArray(self.pfiNominal))
+                      self.filterNames, self.pfiCenter, extendArray(self.pfiNominal),
+                      self.guideStars)
         with self.assertRaises(RuntimeError):
             PfsConfig(self.pfsDesignId, self.visit0, raBoresight, decBoresight,
                       self.posAng,
@@ -261,7 +273,8 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
                       self.ra, self.dec, self.catId, self.objId, self.targetType, self.fiberStatus,
                       self.fiberFlux,
                       self.psfFlux, self.totalFlux, self.fiberFluxErr, self.psfFluxErr, self.totalFluxErr,
-                      self.filterNames, self.pfiCenter, self.pfiNominal)
+                      self.filterNames, self.pfiCenter, self.pfiNominal,
+                      self.guideStars)
         with self.assertRaises(RuntimeError):
             PfsConfig(self.pfsDesignId, self.visit0, raBoresight, decBoresight,
                       self.posAng,
@@ -270,7 +283,8 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
                       self.ra, self.dec, self.catId, self.objId, self.targetType, self.fiberStatus,
                       extendList(self.fiberFlux),
                       self.psfFlux, self.totalFlux, self.fiberFluxErr, self.psfFluxErr, self.totalFluxErr,
-                      self.filterNames, self.pfiCenter, self.pfiNominal)
+                      self.filterNames, self.pfiCenter, self.pfiNominal,
+                      self.guideStars)
         with self.assertRaises(RuntimeError):
             PfsConfig(self.pfsDesignId, self.visit0, raBoresight, decBoresight,
                       self.posAng,
@@ -280,7 +294,8 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
                       self.fiberFlux,
                       extendList(self.psfFlux), self.totalFlux,
                       self.fiberFluxErr, self.psfFluxErr, self.totalFluxErr,
-                      self.filterNames, self.pfiCenter, self.pfiNominal)
+                      self.filterNames, self.pfiCenter, self.pfiNominal,
+                      self.guideStars)
         with self.assertRaises(RuntimeError):
             PfsConfig(self.pfsDesignId, self.visit0, raBoresight, decBoresight,
                       self.posAng,
@@ -290,7 +305,8 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
                       self.fiberFlux,
                       self.psfFlux, extendList(self.totalFlux),
                       self.fiberFluxErr, self.psfFluxErr, self.totalFluxErr,
-                      self.filterNames, self.pfiCenter, self.pfiNominal)
+                      self.filterNames, self.pfiCenter, self.pfiNominal,
+                      self.guideStars)
         with self.assertRaises(RuntimeError):
             PfsConfig(self.pfsDesignId, self.visit0, raBoresight, decBoresight,
                       self.posAng,
@@ -300,7 +316,8 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
                       self.fiberFlux,
                       self.psfFlux, self.totalFlux,
                       extendList(self.fiberFluxErr), self.psfFluxErr, self.totalFluxErr,
-                      self.filterNames, self.pfiCenter, self.pfiNominal)
+                      self.filterNames, self.pfiCenter, self.pfiNominal,
+                      self.guideStars)
         with self.assertRaises(RuntimeError):
             PfsConfig(self.pfsDesignId, self.visit0, raBoresight, decBoresight,
                       self.posAng,
@@ -310,7 +327,8 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
                       self.fiberFlux,
                       self.psfFlux, self.totalFlux,
                       self.fiberFluxErr, extendList(self.psfFluxErr), self.totalFluxErr,
-                      self.filterNames, self.pfiCenter, self.pfiNominal)
+                      self.filterNames, self.pfiCenter, self.pfiNominal,
+                      self.guideStars)
         with self.assertRaises(RuntimeError):
             PfsConfig(self.pfsDesignId, self.visit0, raBoresight, decBoresight,
                       self.posAng,
@@ -320,7 +338,8 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
                       self.fiberFlux,
                       self.psfFlux, self.totalFlux,
                       self.fiberFluxErr, self.psfFluxErr, extendList(self.totalFluxErr),
-                      self.filterNames, self.pfiCenter, self.pfiNominal)
+                      self.filterNames, self.pfiCenter, self.pfiNominal,
+                      self.guideStars)
         with self.assertRaises(RuntimeError):
             PfsConfig(self.pfsDesignId, self.visit0, raBoresight, decBoresight,
                       self.posAng,
@@ -330,7 +349,8 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
                       self.fiberFlux,
                       self.psfFlux, self.totalFlux,
                       self.fiberFluxErr, self.psfFluxErr, self.totalFluxErr,
-                      extendList(self.filterNames), self.pfiCenter, self.pfiNominal)
+                      extendList(self.filterNames), self.pfiCenter, self.pfiNominal,
+                      self.guideStars)
 
         targetType = self.targetType.copy()
         targetType[self.numFibers//2] = -1
@@ -342,7 +362,8 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
                       self.ra, self.dec, self.catId, self.objId, targetType, self.fiberStatus,
                       self.fiberFlux,
                       self.psfFlux, self.totalFlux, self.fiberFluxErr, self.psfFluxErr, self.totalFluxErr,
-                      self.filterNames, self.pfiCenter, self.pfiNominal)
+                      self.filterNames, self.pfiCenter, self.pfiNominal,
+                      self.guideStars)
 
         fiberStatus = self.fiberStatus.copy()
         fiberStatus[self.numFibers//2] = -1
@@ -354,7 +375,8 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
                       self.ra, self.dec, self.catId, self.objId, self.targetType, fiberStatus,
                       self.fiberFlux,
                       self.psfFlux, self.totalFlux, self.fiberFluxErr, self.psfFluxErr, self.totalFluxErr,
-                      self.filterNames, self.pfiCenter, self.pfiNominal)
+                      self.filterNames, self.pfiCenter, self.pfiNominal,
+                      self.guideStars)
 
         fiberFlux = [extendArray(mag) if ii == self.numFibers//2 else mag
                      for ii, mag in enumerate(self.fiberFlux)]
@@ -366,7 +388,8 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
                       self.ra, self.dec, self.catId, self.objId, self.targetType, self.fiberStatus,
                       fiberFlux,
                       self.psfFlux, self.totalFlux, self.fiberFluxErr, self.psfFluxErr, self.totalFluxErr,
-                      self.filterNames, self.pfiCenter, self.pfiNominal)
+                      self.filterNames, self.pfiCenter, self.pfiNominal,
+                      self.guideStars)
 
         psfFlux = [extendArray(pFlux) if ii == self.numFibers//2 else pFlux
                    for ii, pFlux in enumerate(self.psfFlux)]
@@ -378,7 +401,8 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
                       self.ra, self.dec, self.catId, self.objId, self.targetType, self.fiberStatus,
                       self.fiberFlux,
                       psfFlux, self.totalFlux, self.fiberFluxErr, self.psfFluxErr, self.totalFluxErr,
-                      self.filterNames, self.pfiCenter, self.pfiNominal)
+                      self.filterNames, self.pfiCenter, self.pfiNominal,
+                      self.guideStars)
 
         totalFlux = [extendArray(tFlux) if ii == self.numFibers//2 else tFlux
                      for ii, tFlux in enumerate(self.totalFlux)]
@@ -390,7 +414,8 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
                       self.ra, self.dec, self.catId, self.objId, self.targetType, self.fiberStatus,
                       self.fiberFlux,
                       self.psfFlux, totalFlux, self.fiberFluxErr, self.psfFluxErr, self.totalFluxErr,
-                      self.filterNames, self.pfiCenter, self.pfiNominal)
+                      self.filterNames, self.pfiCenter, self.pfiNominal,
+                      self.guideStars)
 
         fiberFluxErr = [extendArray(ffErr) if ii == self.numFibers//2 else ffErr
                         for ii, ffErr in enumerate(self.fiberFluxErr)]
@@ -403,7 +428,8 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
                       self.fiberFlux,
                       self.psfFlux, self.totalFlux,
                       fiberFluxErr, self.psfFluxErr, self.totalFluxErr,
-                      self.filterNames, self.pfiCenter, self.pfiNominal)
+                      self.filterNames, self.pfiCenter, self.pfiNominal,
+                      self.guideStars)
 
         psfFluxErr = [extendArray(pfErr) if ii == self.numFibers//2 else pfErr
                       for ii, pfErr in enumerate(self.psfFluxErr)]
@@ -417,7 +443,8 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
                       self.psfFlux, self.totalFlux,
                       self.fiberFluxErr,
                       psfFluxErr, self.totalFluxErr,
-                      self.filterNames, self.pfiCenter, self.pfiNominal)
+                      self.filterNames, self.pfiCenter, self.pfiNominal,
+                      self.guideStars)
 
         totalFluxErr = [extendArray(tfErr) if ii == self.numFibers//2 else tfErr
                         for ii, tfErr in enumerate(self.totalFluxErr)]
@@ -432,7 +459,8 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
                       self.fiberFluxErr,
                       self.psfFluxErr,
                       totalFluxErr,
-                      self.filterNames, self.pfiCenter, self.pfiNominal)
+                      self.filterNames, self.pfiCenter, self.pfiNominal,
+                      self.guideStars)
 
         filterNames = [extendList(ff) if ii == self.numFibers//5 else ff
                        for ii, ff in enumerate(self.filterNames)]
@@ -444,7 +472,8 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
                       self.ra, self.dec, self.catId, self.objId, self.targetType, self.fiberStatus,
                       self.fiberFlux,
                       self.psfFlux, self.totalFlux, self.fiberFluxErr, self.psfFluxErr, self.totalFluxErr,
-                      filterNames, self.pfiCenter, self.pfiNominal)
+                      filterNames, self.pfiCenter, self.pfiNominal,
+                      self.guideStars)
 
         pfiCenter = np.concatenate((self.pfiCenter, self.pfiCenter), axis=1)
         with self.assertRaises(RuntimeError):
@@ -455,7 +484,8 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
                       self.ra, self.dec, self.catId, self.objId, self.targetType, self.fiberStatus,
                       self.fiberFlux,
                       self.psfFlux, self.totalFlux, self.fiberFluxErr, self.psfFluxErr, self.totalFluxErr,
-                      self.filterNames, pfiCenter, self.pfiNominal)
+                      self.filterNames, pfiCenter, self.pfiNominal,
+                      self.guideStars)
 
         pfiNominal = np.concatenate((self.pfiNominal, self.pfiNominal), axis=1)
         with self.assertRaises(RuntimeError):
@@ -466,7 +496,19 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
                       self.ra, self.dec, self.catId, self.objId, self.targetType, self.fiberStatus,
                       self.fiberFlux,
                       self.psfFlux, self.totalFlux, self.fiberFluxErr, self.psfFluxErr, self.totalFluxErr,
-                      self.filterNames, self.pfiCenter, pfiNominal)
+                      self.filterNames, self.pfiCenter, pfiNominal,
+                      self.guideStars)
+
+        with self.assertRaises(RuntimeError):
+            PfsConfig(self.pfsDesignId, self.visit0, raBoresight, decBoresight,
+                      self.posAng,
+                      self.arms,
+                      self.fiberId, self.tract, self.patch,
+                      self.ra, self.dec, self.catId, self.objId, self.targetType, self.fiberStatus,
+                      self.fiberFlux,
+                      self.psfFlux, self.totalFlux, self.fiberFluxErr, self.psfFluxErr, self.totalFluxErr,
+                      self.filterNames, self.pfiCenter, pfiNominal,
+                      None)
 
     def testFromPfsDesign(self):
         """Test PfsConfig.fromPfsDesign"""
@@ -478,7 +520,8 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
                            self.fiberFlux,
                            self.psfFlux, self.totalFlux,
                            self.fiberFluxErr, self.psfFluxErr, self.totalFluxErr,
-                           self.filterNames, self.pfiNominal)
+                           self.filterNames, self.pfiNominal,
+                           self.guideStars)
         config = PfsConfig(self.pfsDesignId, self.visit0, self.raBoresight.asDegrees(),
                            self.decBoresight.asDegrees(),
                            self.posAng,
@@ -488,7 +531,8 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
                            self.fiberFlux,
                            self.psfFlux, self.totalFlux,
                            self.fiberFluxErr, self.psfFluxErr, self.totalFluxErr,
-                           self.filterNames, self.pfiCenter, self.pfiNominal)
+                           self.filterNames, self.pfiCenter, self.pfiNominal,
+                           self.guideStars)
         self.assertPfsConfig(PfsConfig.fromPfsDesign(design, self.visit0, self.pfiCenter), config)
 
 
