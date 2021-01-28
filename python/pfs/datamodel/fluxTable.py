@@ -64,9 +64,9 @@ class FluxTable:
         from astropy.io.fits import BinTableHDU, Column
         header = self.flags.toFitsHeader()
         hdu = BinTableHDU.from_columns([
-            Column("wavelength", "E", array=self.wavelength),
-            Column("flux", "E", array=self.flux),
-            Column("error", "E", array=self.error),
+            Column("wavelength", "D", array=self.wavelength),
+            Column("flux", "D", array=self.flux),
+            Column("error", "D", array=self.error),
             Column("mask", "K", array=self.mask),
         ], header=astropyHeaderFromDict(header), name=self._hduName)
         fits.append(hdu)
@@ -88,4 +88,6 @@ class FluxTable:
         hdu = fits[cls._hduName]
         header = astropyHeaderToDict(hdu.header)
         flags = MaskHelper.fromFitsHeader(header)
-        return cls(hdu.data["wavelength"], hdu.data["flux"], hdu.data["error"], hdu.data["mask"], flags)
+        return cls(hdu.data["wavelength"].astype(float), hdu.data["flux"].astype(float),
+                   hdu.data["error"].astype(float), hdu.data["mask"].astype(np.int32),
+                   flags)

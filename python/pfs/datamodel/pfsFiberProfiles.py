@@ -153,14 +153,14 @@ class PfsFiberProfiles:
         metadata = astropyHeaderToDict(fits[0].header)
 
         hdu = fits["FIBERS"]
-        fiberId1 = hdu.data["fiberId"]
-        radius = hdu.data["radius"]
-        oversample = hdu.data["oversample"]
-        norm = hdu.data["norm"]
+        fiberId1 = hdu.data["fiberId"].astype(np.int32)
+        radius = hdu.data["radius"].astype(np.int32)
+        oversample = hdu.data["oversample"].astype(float)
+        norm = [nn.astype(float) for nn in hdu.data["norm"]]
 
         hdu = fits["PROFILES"]
-        fiberId2 = hdu.data["fiberId"]
-        rows = hdu.data["rows"]
+        fiberId2 = hdu.data["fiberId"].astype(np.int32)
+        rows = hdu.data["rows"].astype(float)
         profiles = hdu.data["profiles"]
         masks = hdu.data["masks"]
 
@@ -170,7 +170,7 @@ class PfsFiberProfiles:
         for ii in range(numFibers):
             select = fiberId2 == fiberId1[ii]
             fiberRows.append(rows[select])
-            fiberProfiles.append(np.ma.masked_array(np.array(profiles[select].tolist()),
+            fiberProfiles.append(np.ma.masked_array(np.array(profiles[select].tolist(), dtype=float),
                                                     mask=(np.array(masks[select].tolist(), dtype=bool) if
                                                           masks[select].size > 0 else False)))
 
@@ -267,8 +267,8 @@ class PfsFiberProfiles:
         fibersHdu = astropy.io.fits.BinTableHDU.from_columns([
             astropy.io.fits.Column("fiberId", format="J", array=self.fiberId),
             astropy.io.fits.Column("radius", format="J", array=self.radius),
-            astropy.io.fits.Column("oversample", format="E", array=self.oversample),
-            astropy.io.fits.Column("norm", format="PE()", array=self.norm),
+            astropy.io.fits.Column("oversample", format="D", array=self.oversample),
+            astropy.io.fits.Column("norm", format="PD()", array=self.norm),
         ], name="FIBERS")
         fibersHdu.header["INHERIT"] = True
 
@@ -295,8 +295,8 @@ class PfsFiberProfiles:
 
         profilesHdu = astropy.io.fits.BinTableHDU.from_columns([
             astropy.io.fits.Column("fiberId", format="J", array=fiberId),
-            astropy.io.fits.Column("rows", format="E", array=rows),
-            astropy.io.fits.Column("profiles", format="PE()", array=profiles),
+            astropy.io.fits.Column("rows", format="D", array=rows),
+            astropy.io.fits.Column("profiles", format="PD()", array=profiles),
             astropy.io.fits.Column("masks", format="PL()", array=masks),
         ], name="PROFILES")
         profilesHdu.header["INHERIT"] = True

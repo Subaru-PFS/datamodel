@@ -102,10 +102,10 @@ class PfsFiberArray(PfsSimpleSpectrum):
             Keyword arguments for constructing spectrum.
         """
         data = super()._readImpl(fits)
-        data["sky"] = fits["SKY"].data
+        data["sky"] = fits["SKY"].data.astype(float)
         data["observations"] = Observations.fromFits(fits)
-        data["covar"] = fits["COVAR"].data
-        data["covar2"] = fits["COVAR2"].data
+        data["covar"] = fits["COVAR"].data.astype(float)
+        data["covar2"] = fits["COVAR2"].data.astype(float)
         try:
             fluxTable = FluxTable.fromFits(fits)
         except KeyError as exc:

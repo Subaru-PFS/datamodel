@@ -1,5 +1,7 @@
 import os
 
+import numpy as np
+
 from .masks import MaskHelper
 from .target import Target
 from .utils import astropyHeaderFromDict, inheritDocstrings
@@ -78,12 +80,12 @@ class PfsSimpleSpectrum:
             Keyword arguments for constructing spectrum.
         """
         data = {}
-        data["flux"] = fits["FLUX"].data
-        data["mask"] = fits["MASK"].data
+        data["flux"] = fits["FLUX"].data.astype(float)
+        data["mask"] = fits["MASK"].data.astype(np.int32)
 
         # Wavelength can be specified in an explicit extension, or as a WCS in the header
         if "WAVELENGTH" in fits:
-            wavelength = fits["WAVELENGTH"].data
+            wavelength = fits["WAVELENGTH"].data.astype(float)
         else:
             wavelength = WavelengthArray.fromFitsHeader(fits["FLUX"].header, len(fits["FLUX"].data))
         data["wavelength"] = wavelength
