@@ -401,16 +401,16 @@ class SplinedDetectorMap(PfsDetectorMap):
         fiberId = fits["FIBERID"].data.astype(np.int32)   # astype() forces machine-native byte order
         numFibers = len(fiberId)
 
-        slitOffsets = fits["SLITOFF"].data.astype(np.float32)
-        spatialOffsets = slitOffsets[0]
-        spectralOffsets = slitOffsets[1]
+        slitOffsets = fits["SLITOFF"].data
+        spatialOffsets = slitOffsets[0].astype(float)
+        spectralOffsets = slitOffsets[1].astype(float)
 
         # array.astype() required to force byte swapping (dtype('>f4') --> np.float32)
         # otherwise pybind doesn't recognise them as the proper type.
         centerTable = fits["CENTER"].data
         centerIndexData = centerTable["index"]
-        centerKnotsData = centerTable["knot"].astype(np.float32)
-        centerValuesData = centerTable["value"].astype(np.float32)
+        centerKnotsData = centerTable["knot"].astype(float)
+        centerValuesData = centerTable["value"].astype(float)
         centerSplines = []
         for ii in range(numFibers):
             select = centerIndexData == ii
@@ -418,8 +418,8 @@ class SplinedDetectorMap(PfsDetectorMap):
 
         wavelengthTable = fits["WAVELENGTH"].data
         wavelengthIndexData = wavelengthTable["index"]
-        wavelengthKnotsData = wavelengthTable["knot"].astype(np.float32)
-        wavelengthValuesData = wavelengthTable["value"].astype(np.float32)
+        wavelengthKnotsData = wavelengthTable["knot"].astype(float)
+        wavelengthValuesData = wavelengthTable["value"].astype(float)
         wavelengthSplines = []
         for ii in range(numFibers):
             select = wavelengthIndexData == ii
@@ -478,16 +478,16 @@ class SplinedDetectorMap(PfsDetectorMap):
 
         hdu = astropy.io.fits.BinTableHDU.from_columns([
             astropy.io.fits.Column(name="index", format="K", array=centerIndex),
-            astropy.io.fits.Column(name="knot", format="E", array=centerKnots),
-            astropy.io.fits.Column(name="value", format="E", array=centerValues),
+            astropy.io.fits.Column(name="knot", format="D", array=centerKnots),
+            astropy.io.fits.Column(name="value", format="D", array=centerValues),
         ], name="CENTER")
         hdu.header["INHERIT"] = True
         fits.append(hdu)
 
         hdu = astropy.io.fits.BinTableHDU.from_columns([
             astropy.io.fits.Column(name="index", format="K", array=wavelengthIndex),
-            astropy.io.fits.Column(name="knot", format="E", array=wavelengthKnots),
-            astropy.io.fits.Column(name="value", format="E", array=wavelengthValues),
+            astropy.io.fits.Column(name="knot", format="D", array=wavelengthKnots),
+            astropy.io.fits.Column(name="value", format="D", array=wavelengthValues),
         ], name="WAVELENGTH")
         hdu.header["INHERIT"] = True
         fits.append(hdu)
@@ -655,8 +655,8 @@ class GlobalDetectorMap(PfsDetectorMap):
         # array.astype() required to force byte swapping (e.g., dtype('>f4') --> np.float32)
         # otherwise pybind doesn't recognise them as the proper type.
         fiberId = fiberTable["fiberId"].astype(np.int32)
-        spatialOffsets = fiberTable["spatialOffsets"].astype(np.float32)
-        spectralOffsets = fiberTable["spectralOffsets"].astype(np.float32)
+        spatialOffsets = fiberTable["spatialOffsets"].astype(float)
+        spectralOffsets = fiberTable["spectralOffsets"].astype(float)
         xCoeff = fits["COEFFICIENTS"].data["x"].astype(float)
         yCoeff = fits["COEFFICIENTS"].data["y"].astype(float)
         rightCcd = fits["RIGHTCCD"].data["coeff"].astype(float)

@@ -158,9 +158,15 @@ class PfsFiberArraySet:
         import astropy.io.fits
         with astropy.io.fits.open(filename) as fd:
             data["metadata"] = astropyHeaderToDict(fd[0].header)
-            for attr in ("fiberId", "wavelength", "flux", "mask", "sky", "covar"):
+            for attr, dtype in (("fiberId", np.int32),
+                                ("wavelength", float),
+                                ("flux", float),
+                                ("mask", np.int32),
+                                ("sky", float),
+                                ("covar", float)
+                                ):
                 hduName = attr.upper()
-                data[attr] = fd[hduName].data
+                data[attr] = fd[hduName].data.astype(dtype)
             data["identity"] = Identity.fromFits(fd)
 
         data["flags"] = MaskHelper.fromFitsHeader(data["metadata"])
