@@ -553,6 +553,35 @@ pfsArmLsf and pfsMergedLsf files).
 
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
+Pixel mask values
+
+We use bit masks to flag pixels in the images and spectra. The bit masks have
+symbolic names that are recorded in the FITS headers with a prefix "MP_" (or
+"HIERARCH MP_" for longer names), and a value equal to the power of two for the
+corresponding value. For example, "MP_FOO = 5" would mean that the symbolic name
+"FOO" has the corresponding value of 0x00000020.
+
+The meanings of the symbolic names are:
+
+BAD: the pixel is a known bad pixel
+SAT: the pixel was saturated
+INTRP: the pixel has been interpolated
+CR: the pixel is believed to be affected by a cosmic ray
+EDGE: the pixel is close to the edge of the image (from LSST; not relevant for PFS)
+DETECTED: the pixel has a positive value over threshold (from LSST; not relevant for PFS)
+DETECTED_NEGATIVE: the pixel has a negative value over threshold (from LSST; not relevant for PFS)
+SUSPECT: the pixel is suspected to be non-linear
+NO_DATA: there are no good value for this value
+UNMASKEDNAN: the pixel contained a NAN
+BAD_FLAT: the pixel is bad in the flat
+FIBERTRACE: the pixel is part of a fiber trace
+BAD_SKY: the pixel is bad in the sky model
+BAD_FLUXCAL: the pixel is bad in the flux calibration
+OVERLAP: the pixel is part of a wavelength overlap (dichroic)
+
+
+-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
 Simulations
 
 We need to specify a format for the spectra going into the simulator.  At first glance we could adopt the
