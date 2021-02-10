@@ -276,7 +276,11 @@ class PfsDesign:
             phu = fd[0].header
             raBoresight = phu['RA']
             decBoresight = phu['DEC']
-            arms = phu['ARMS']
+            # If ARM does not exist, use default.
+            # This action should be removed once the
+            # relevant test datasets have this keyword
+            # populated.
+            arms = phu.get('ARMS', 'brn')
             data = fd[cls._hduName].data
 
             for nn in cls._fields:
