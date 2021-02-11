@@ -22,8 +22,11 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
         self.numFluxStd = 300
         self.numUnassigned = 10
         self.numEngineering = 10
+        self.numSuNSS_Imaging = 5
+        self.numSuNSS_Diffuse = 3
         self.numObject = self.numFibers - (self.numSky + self.numFluxStd +
-                                           self.numUnassigned + self.numEngineering)
+                                           self.numUnassigned + self.numEngineering +
+                                           self.numSuNSS_Imaging + self.numSuNSS_Diffuse)
 
         # FiberStatus
         self.numBroken = 3
@@ -66,7 +69,9 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
                                    [int(TargetType.FLUXSTD)]*self.numFluxStd +
                                    [int(TargetType.SCIENCE)]*self.numObject +
                                    [int(TargetType.UNASSIGNED)]*self.numUnassigned +
-                                   [int(TargetType.ENGINEERING)]*self.numEngineering)
+                                   [int(TargetType.ENGINEERING)]*self.numEngineering +
+                                   [int(TargetType.SUNSS_DIFFUSE)]*self.numSuNSS_Diffuse +
+                                   [int(TargetType.SUNSS_IMAGING)]*self.numSuNSS_Imaging)
         rng.shuffle(self.targetType)
         self.fiberStatus = np.array([int(FiberStatus.BROKENFIBER)]*self.numBroken +
                                     [int(FiberStatus.BLOCKED)]*self.numBlocked +

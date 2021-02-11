@@ -279,8 +279,8 @@ The DESIGN table lists for each object:
       objId          64-bit int
       ra             64-bit float (degrees)
       dec            64-bit float (degrees)
-      targetType     32-bit int (enumerated type: SCIENCE,SKY,FLUXSTD,UNASSIGNED,ENGINEERING)
-      fiberStatus    32-bit int (enumerated type: GOOD,BROKENFIBER,BLOCKED,BLACKSPOT,UNILLUMINATED)
+      targetType     32-bit int (enumerated type: e.g. SCIENCE,SKY,FLUXSTD)
+      fiberStatus    32-bit int (enumerated type: e.g. GOOD,BROKENFIBER,BLOCKED,BLACKSPOT)
       pfiNominal     pair of 32-bit floats (microns on the PFI)
 
 N.b. fiberIds start at 1.
@@ -291,6 +291,8 @@ The 'targetType' in the DESIGN table is an enumerated type, with values:
       FLUXSTD = 3: the fiber is intended to be on a flux standard, and used for flux calibration.
       UNASSIGNED = 4: the fiber is not targeted on anything in particular.
       ENGINEERING = 5: the fiber is an engineering fiber.
+      SUNSS_IMAGING = 6: the fiber goes to the SuNSS imaging leg
+      SUNSS_DIFFUSE = 7: the fiber goes to the SuNSS diffuse leg
 
 The 'fiberStatus' in the DESIGN table is an enumerated type, with values:
       GOOD = 1: the fiber is working normally.
