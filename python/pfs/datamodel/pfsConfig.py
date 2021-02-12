@@ -42,6 +42,8 @@ class TargetType(DocEnum):
     FLUXSTD = 3, "flux standard; used for fluxcal"
     UNASSIGNED = 4, "no particular target"
     ENGINEERING = 5, "engineering fiber"
+    SUNSS_IMAGING = 6, "fiber goes to the SuNSS imaging leg"
+    SUNSS_DIFFUSE = 7, "fiber goes to the SuNSS diffuse leg"
 
 
 class FiberStatus(DocEnum):
@@ -64,7 +66,7 @@ class PfsDesign:
         Right Ascension of telescope boresight.
     decBoresight : `float`, degrees
         Declination of telescope boresight.
-    fiberId : `numpy.ndarary` of `int32`
+    fiberId : `numpy.ndarray` of `int32`
         Fiber identifier for each fiber.
     tract : `numpy.ndarray` of `int32`
         Tract index for each fiber.
@@ -155,6 +157,7 @@ class PfsDesign:
                 FiberStatus(tt)
             except ValueError as exc:
                 raise ValueError("fiberStatus[%d] = %d is not a recognised FiberStatus" % (ii, tt)) from exc
+
         for ii, (mag, names) in enumerate(zip(self.fiberFlux, self.filterNames)):
             if len(mag) != len(names):
                 raise RuntimeError("Inconsistent lengths between fiberFlux (%d) and filterNames (%d) "
