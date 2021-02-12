@@ -198,10 +198,11 @@ The mapping of fiberId,wavelength to x,y on the detector:
 
 Note that visit0 is defined under "Calibration products"
 
-We have two separate formats for representing the "detectorMap", which are distinguished by the value of the
-"HIERARCH pfs_detectorMap_class" header card:
+We have multiple separate formats for representing the "detectorMap", which are distinguished by the value of
+the "HIERARCH pfs_detectorMap_class" header card:
 * SplinedDetectorMap: splines for each fiber provide the wavelength and column as a function of row.
 * GlobalDetectorMap: a direct mapping of fiberId,wavelength to column,row position.
+* DifferentialDetectorMap: a mapping of fiberId,wavelength to x,y corrections to a SplinedDetectorMap.
 
 SplinedDetectorMap format:
 
@@ -225,7 +226,7 @@ GlobalDetectorMap format:
 HDU #0 PDU
 HDU #1 FIBERS       Details of individual fibers            [BINARY FITS TABLE]     NFIBER
 HDU #2 COEFFICIENTS Distortion coefficients                 [BINARY FITS TABLE]     NCOEFF
-HDU #3 RIGHTCCD     Coefficients for right-hand CCD         [BINARY FITS TABLE]     6
+HDU #3 HIGHCCD      Coefficients for high-fiberId CCD       [BINARY FITS TABLE]     6
 
 
 The primary header records the dimensions of the detector in the MINX,MINY,MAXX,MAXY keywords.
@@ -247,9 +248,25 @@ The COEFFICIENTS table contains:
         x                   32-bit float    x coefficients
         y                   32-bit float    y coefficients
 
-The RIGHTCCD table contains:
-        coeff               32-bit float    Affine transform coefficients
+The HIGHCCD table contains:
+        coefficients        32-bit float    Affine transform coefficients
 
+
+DifferentialDetectorMap format:
+
+HDU #0 PDU
+HDU #1 FIBERID          Identifier of each fiber                [32-bit INT]            NALLFIBER
+HDU #2 SLITOFF          Slit offsets in x,y,z                   [32-bit FLOAT]          3*NALLFIBER
+HDU #3 CENTER           Spline for column with trace center     [BINARY FITS TABLE]     NALLFIBER
+HDU #4 WAVELENGTH       Spline for wavelength (nm)              [BINARY FITS TABLE]     NALLFIBER
+HDU #5 MODEL_FIBERID    Fiber identifiers used in global model  [32-bit INT]            NFIBER
+HDU #6 COEFFICIENTS     Distortion coefficients                 [BINARY FITS TABLE]     NCOEFF
+HDU #7 HIGHCCD          Coefficients for high-fiberId CCD       [BINARY FITS TABLE]     6
+
+
+The FIBERID, SLITOFF, CENTER and WAVELENGTH HDUs are as for the SplinedDetectorMap.
+The MODEL_FIBERID HDU specifies which fibers are in the model.
+The COEFFICIENTS and HIGHCCD HDUs are as for the GlobalDetectorMap.
 
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
