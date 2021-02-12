@@ -2,6 +2,8 @@ import types
 
 import astropy.io.fits
 
+from .utils import combineArms
+
 __all__ = ("Identity", "CalibIdentity")
 
 
@@ -137,8 +139,8 @@ class Identity(types.SimpleNamespace):
             raise RuntimeError(f"pfsDesignId is non-unique: {pfsDesignId}")
         pfsDesignId = pfsDesignId.pop() if pfsDesignId else None
 
-        arm = set([ident._arm for ident in identities if ident._arm is not None])
-        arm = arm.pop() if len(arm) == 1 else None
+        armSet = set([ident._arm for ident in identities if ident._arm is not None])
+        arm = combineArms(armSet)
 
         spectrograph = set([ident._spectrograph for ident in identities if ident._spectrograph is not None])
         spectrograph = spectrograph.pop() if len(spectrograph) == 1 else None

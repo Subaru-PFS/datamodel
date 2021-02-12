@@ -195,3 +195,35 @@ def inheritDocstrings(cls):
         setattr(cls, name, override)
 
     return cls
+
+
+def combineArms(arms):
+    """Combine and order input arm identifications
+
+    Re-orders the input arms such that the 'b' arm
+    is rendered first, the 'r' arm next, followed
+    by 'm' and 'n' arms. For example, the input {'rnb'}
+    will be outputted as 'brn'.
+
+    As this method may be used multiple times during the
+    merging process, this needs to handle not just
+    sets of single arm characters, eg., {'b', 'n'} but
+    also pre-combined sets eg. {'brn', 'nb'}
+
+    Parameters
+    ----------
+    arms : set[`str`]
+        set of arm specifications, eg {'b', 'r'} or {'brn', 'b'}
+
+    Returns
+    -------
+    ordered_arms : `str`
+        ordered arm specification compressed into a string, eg 'br'
+    """
+    combinedSet = set()
+    for entry in arms:
+        for arm in entry:
+            combinedSet.add(arm)
+
+    armOrder = dict(b=1, r=2, m=3, n=4)
+    return "".join(sorted(combinedSet, key=lambda aa: armOrder[aa]))
