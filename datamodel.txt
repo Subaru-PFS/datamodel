@@ -287,6 +287,14 @@ The PDU has keys indicating the intended pointing of the telescope boresight.
 
       RA        Intended telescope boresight Right Ascension (degrees)
       DEC       Intended telescope boresight Declination (degrees)
+      ARMS      The arms that will be exposed.
+                    This can be any combination
+                    of the arms 'b', 'r', 'm', and 'n'
+                    (where each arm can 
+                    appear only once
+                    and 'r' and 'm' cannot be present
+                    in the same combination) 
+                    examples: 'brn', 'bmn', 'rb'.
 
 The DESIGN table lists for each object:
       fiberId        32-bit int

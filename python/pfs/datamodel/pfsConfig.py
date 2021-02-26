@@ -66,7 +66,9 @@ class PfsDesign:
         Right Ascension of telescope boresight.
     decBoresight : `float`, degrees
         Declination of telescope boresight.
-    fiberId : `numpy.ndarray` of `int32`
+    arms : `str`
+        arms to expose. Eg 'brn', 'bmn'.
+    fiberId : `numpy.ndarary` of `int32`
         Fiber identifier for each fiber.
     tract : `numpy.ndarray` of `int32`
         Tract index for each fiber.
@@ -188,6 +190,7 @@ class PfsDesign:
                 raise RuntimeError("Wrong shape for %s: %s vs (%d,2)" % (nn, matrix.shape, len(self.fiberId)))
 
     def __init__(self, pfsDesignId, raBoresight, decBoresight,
+                 arms,
                  fiberId, tract, patch, ra, dec, catId, objId,
                  targetType, fiberStatus,
                  fiberFlux,
@@ -200,6 +203,7 @@ class PfsDesign:
         self.pfsDesignId = pfsDesignId
         self.raBoresight = raBoresight
         self.decBoresight = decBoresight
+        self.arms = arms
 
         self.fiberId = np.array(fiberId)
         self.tract = np.array(tract)
@@ -272,6 +276,11 @@ class PfsDesign:
             phu = fd[0].header
             raBoresight = phu['RA']
             decBoresight = phu['DEC']
+            # If ARM does not exist, use default.
+            # This action should be removed once the
+            # relevant test datasets have this keyword
+            # populated.
+            arms = phu.get('ARMS', 'brn')
             data = fd[cls._hduName].data
 
             for nn in cls._fields:
@@ -303,6 +312,7 @@ class PfsDesign:
                 filterNames[row['fiberId']].append(row['filterName'])
 
         return cls(**kwargs, raBoresight=raBoresight, decBoresight=decBoresight,
+                   arms=arms,
                    fiberFlux=[np.array(fiberFlux[ii]) for ii in fiberId],
                    psfFlux=[np.array(psfFlux[ii]) for ii in fiberId],
                    totalFlux=[np.array(totalFlux[ii]) for ii in fiberId],
@@ -342,6 +352,7 @@ class PfsDesign:
         hdr = pyfits.Header()
         hdr['RA'] = (self.raBoresight, "Telescope boresight RA, degrees")
         hdr['DEC'] = (self.decBoresight, "Telescope boresight Dec, degrees")
+        hdr['ARMS'] = (self.arms, "Exposed arms")
         hdr.update(TargetType.getFitsHeaders())
         hdr.update(FiberStatus.getFitsHeaders())
         hdu = pyfits.PrimaryHDU(header=hdr)
@@ -581,6 +592,8 @@ class PfsConfig(PfsDesign):
         Right Ascension of telescope boresight.
     decBoresight : `float`, degrees
         Declination of telescope boresight.
+    arms : `str`
+        arms that are exposed. Eg 'brn', 'bmn'.
     fiberId : `numpy.ndarary` of `int32`
         Fiber identifier for each fiber.
     tract : `numpy.ndarray` of `int32`
@@ -651,6 +664,7 @@ class PfsConfig(PfsDesign):
     fileNameFormat = "pfsConfig-0x%016x-%06d.fits"
 
     def __init__(self, pfsDesignId, visit0, raBoresight, decBoresight,
+                 arms,
                  fiberId, tract, patch, ra, dec, catId, objId,
                  targetType, fiberStatus,
                  fiberFlux,
@@ -662,7 +676,9 @@ class PfsConfig(PfsDesign):
                  filterNames, pfiCenter, pfiNominal):
         self.visit0 = visit0
         self.pfiCenter = np.array(pfiCenter)
-        super().__init__(pfsDesignId, raBoresight, decBoresight, fiberId, tract, patch, ra, dec,
+        super().__init__(pfsDesignId, raBoresight, decBoresight,
+                         arms,
+                         fiberId, tract, patch, ra, dec,
                          catId, objId, targetType, fiberStatus,
                          fiberFlux,
                          psfFlux,
@@ -699,7 +715,7 @@ class PfsConfig(PfsDesign):
         self : `PfsConfig`
             Constructed ``PfsConfig`.
         """
-        keywords = ["pfsDesignId", "raBoresight", "decBoresight"]
+        keywords = ["pfsDesignId", "raBoresight", "decBoresight", "arms"]
         kwargs = {kk: getattr(pfsDesign, kk) for kk in pfsDesign._keywords + keywords}
         kwargs["fiberStatus"] = pfsDesign.fiberStatus
         kwargs["visit0"] = visit0
