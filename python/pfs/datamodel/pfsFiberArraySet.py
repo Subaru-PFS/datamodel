@@ -206,12 +206,17 @@ class PfsFiberArraySet:
         filename : `str`
             Filename of FITS file.
         """
+        # NOTE: When making any changes to this method that modify the output
+        # format, increment the DAMD_VER header value and record the change in
+        # the versions.txt file.
         self.validate()
         import astropy.io.fits
         fits = astropy.io.fits.HDUList()
         header = self.metadata.copy()
         header.update(self.flags.toFitsHeader())
-        fits.append(astropy.io.fits.PrimaryHDU(header=astropyHeaderFromDict(header)))
+        header = astropyHeaderFromDict(header)
+        header['DAMD_VER'] = (1, "PfsFiberArraySet datamodel version")
+        fits.append(astropy.io.fits.PrimaryHDU(header=header))
         for attr in ("fiberId", "wavelength", "flux", "mask", "sky", "covar"):
             hduName = attr.upper()
             data = getattr(self, attr)

@@ -1,7 +1,7 @@
 import types
 
 import numpy as np
-from astropy.io.fits import BinTableHDU, Column
+from astropy.io.fits import BinTableHDU, Column, Header
 
 from .utils import calculatePfsVisitHash, wraparoundNVisit
 
@@ -106,6 +106,11 @@ class Observations(types.SimpleNamespace):
         fits : `astropy.io.fits.HDUList`
             Opened FITS file.
         """
+        # NOTE: When making any changes to this method that modify the output
+        # format, increment the DAMD_VER header value and record the change in
+        # the versions.txt file.
+        header = Header()
+        header['DAMD_VER'] = (1, "Observations datamodel version")
         armLength = max(len(arm) for arm in self.arm)
         columns = [Column("visit", "J", array=self.visit),
                    Column("arm", f"{armLength}A", array=self.arm),
@@ -115,7 +120,7 @@ class Observations(types.SimpleNamespace):
                    Column("pfiNominal", "2E", array=self.pfiNominal),
                    Column("pfiCenter", "2E", array=self.pfiCenter),
                    ]
-        hdu = BinTableHDU.from_columns(columns, name="OBSERVATIONS")
+        hdu = BinTableHDU.from_columns(columns, name="OBSERVATIONS", header=header)
         fits.append(hdu)
 
     @classmethod

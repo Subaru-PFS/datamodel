@@ -260,9 +260,13 @@ class PfsFiberProfiles:
         fits : `astropy.io.fits.HDUList`
             FITS file representation.
         """
+        # NOTE: When making any changes to this method that modify the output
+        # format, increment the DAMD_VER header value and record the change in
+        # the versions.txt file.
         import astropy.io.fits
         header = astropyHeaderFromDict(self.metadata)
         header["OBSTYPE"] = "fiberProfiles"
+        header['DAMD_VER'] = (1, "PfsFiberProfiles datamodel version")
 
         fibersHdu = astropy.io.fits.BinTableHDU.from_columns([
             astropy.io.fits.Column("fiberId", format="J", array=self.fiberId),

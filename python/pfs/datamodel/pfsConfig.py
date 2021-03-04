@@ -360,6 +360,9 @@ class PfsDesign:
         return cls._readImpl(filename, pfsDesignId=pfsDesignId)
 
     def _writeImpl(self, filename):
+        # NOTE: When making any changes to this method that modify the output
+        # format, increment the DAMD_VER header value and record the change in
+        # the versions.txt file.
         if not pyfits:
             raise RuntimeError("I failed to import astropy.io.fits, so cannot write to disk")
 
@@ -370,6 +373,7 @@ class PfsDesign:
         hdr['DEC'] = (self.decBoresight, "Telescope boresight Dec, degrees")
         hdr['POSANG'] = (self.posAng, "PFI position angle, degrees")
         hdr['ARMS'] = (self.arms, "Exposed arms")
+        hdr['DAMD_VER'] = (1, "PfsDesign/PfsConfig datamodel version")
         hdr.update(TargetType.getFitsHeaders())
         hdr.update(FiberStatus.getFitsHeaders())
         hdu = pyfits.PrimaryHDU(header=hdr)

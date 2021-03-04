@@ -61,6 +61,9 @@ class PfsFiberTrace:
             x0 += bbox.getWidth()
 
     def write(self, dirName=".", fileName=None, metadata=None):
+        # NOTE: When making any changes to this method that modify the output
+        # format, increment the DAMD_VER header value and record the change in
+        # the versions.txt file.
         if not pyfits:
             raise RuntimeError("I failed to import astropy.io.fits, so cannot write to disk")
 
@@ -110,6 +113,7 @@ class PfsFiberTrace:
             hdr = metadata
 
         hdr.set('OBSTYPE', 'fiberTrace')
+        hdr.set('DAMD_VER', 1, "PfsFiberTrace datamodel version")
 
         # Write fits file from MaskedImage
         allTracesMI.writeFits(fullFileName, hdr)

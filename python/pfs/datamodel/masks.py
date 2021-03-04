@@ -97,6 +97,9 @@ class MaskHelper:
         header : `dict`
             FITS header keyword-value pairs.
         """
+        # NOTE: When making any changes to this method that modify the output
+        # format, increment the DAMD_VER header value and record the change in
+        # the versions.txt file FOR ALL CLASSES THAT USE THIS.
         return {self.maskPlanePrefix + key: value for key, value in self.flags.items()}
 
     @classmethod

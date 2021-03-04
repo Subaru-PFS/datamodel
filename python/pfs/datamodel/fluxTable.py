@@ -61,14 +61,18 @@ class FluxTable:
         fits : `astropy.io.fits.HDUList`
             Opened FITS file.
         """
+        # NOTE: When making any changes to this method that modify the output
+        # format, increment the DAMD_VER header value and record the change in
+        # the versions.txt file.
         from astropy.io.fits import BinTableHDU, Column
-        header = self.flags.toFitsHeader()
+        header = astropyHeaderFromDict(self.flags.toFitsHeader())
+        header['DAMD_VER'] = (1, "FluxTable datamodel version")
         hdu = BinTableHDU.from_columns([
             Column("wavelength", "D", array=self.wavelength),
             Column("flux", "D", array=self.flux),
             Column("error", "D", array=self.error),
             Column("mask", "K", array=self.mask),
-        ], header=astropyHeaderFromDict(header), name=self._hduName)
+        ], header=header, name=self._hduName)
         fits.append(hdu)
 
     @classmethod

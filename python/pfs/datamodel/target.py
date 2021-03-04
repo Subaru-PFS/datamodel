@@ -77,10 +77,14 @@ class Target(types.SimpleNamespace):
         fits : `astropy.io.fits.HDUList`
             Opened FITS file.
         """
+        # NOTE: When making any changes to this method that modify the output
+        # format, increment the DAMD_VER header value and record the change in
+        # the versions.txt file.
         from astropy.io.fits import BinTableHDU, Column
         maxLength = max(len(ff) for ff in self.fiberFlux.keys()) if self.fiberFlux else 1
         header = astropyHeaderFromDict({attr.upper(): getattr(self, attr) for attr in self._attributes})
         header.update(TargetType.getFitsHeaders())
+        header['DAMD_VER'] = (1, "Target datamodel version")
         hdu = BinTableHDU.from_columns([
             Column("filterName", "%dA" % maxLength, array=list(self.fiberFlux.keys())),
             Column("fiberFlux", "E", array=np.array(list(self.fiberFlux.values()))),
