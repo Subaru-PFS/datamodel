@@ -695,19 +695,19 @@ class GlobalDetectorMap(PfsDetectorMap):
         tableHeader["INHERIT"] = True
         table = astropy.io.fits.BinTableHDU.from_columns([
             astropy.io.fits.Column(name="fiberId", format="J", array=self.fiberId),
-            astropy.io.fits.Column(name="spatialOffsets", format="E", array=self.spatialOffsets),
-            astropy.io.fits.Column(name="spectralOffsets", format="E", array=self.spectralOffsets),
+            astropy.io.fits.Column(name="spatialOffsets", format="D", array=self.spatialOffsets),
+            astropy.io.fits.Column(name="spectralOffsets", format="D", array=self.spectralOffsets),
         ], header=tableHeader, name="FIBERS")
         fits.append(table)
 
         table = astropy.io.fits.BinTableHDU.from_columns([
-            astropy.io.fits.Column(name="x", format="E", array=self.xCoeff),
-            astropy.io.fits.Column(name="y", format="E", array=self.yCoeff),
+            astropy.io.fits.Column(name="x", format="D", array=self.xCoeff),
+            astropy.io.fits.Column(name="y", format="D", array=self.yCoeff),
         ], header=tableHeader, name="COEFFICIENTS")
         fits.append(table)
 
         table = astropy.io.fits.BinTableHDU.from_columns([
-            astropy.io.fits.Column(name="coefficients", format="E", array=self.highCcdCoeff),
+            astropy.io.fits.Column(name="coefficients", format="D", array=self.highCcdCoeff),
         ], header=tableHeader, name="HIGHCCD")
         fits.append(table)
 
@@ -837,13 +837,13 @@ class DifferentialDetectorMap(PfsDetectorMap):
         fits.append(fiberId)
 
         table = astropy.io.fits.BinTableHDU.from_columns([
-            astropy.io.fits.Column(name="x", format="E", array=self.xCoeff),
-            astropy.io.fits.Column(name="y", format="E", array=self.yCoeff),
+            astropy.io.fits.Column(name="x", format="D", array=self.xCoeff),
+            astropy.io.fits.Column(name="y", format="D", array=self.yCoeff),
         ], header=tableHeader, name="COEFFICIENTS")
         fits.append(table)
 
         table = astropy.io.fits.BinTableHDU.from_columns([
-            astropy.io.fits.Column(name="coefficients", format="E", array=self.highCcdCoeff),
+            astropy.io.fits.Column(name="coefficients", format="D", array=self.highCcdCoeff),
         ], header=tableHeader, name="HIGHCCD")
         fits.append(table)
 
