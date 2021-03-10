@@ -7,7 +7,7 @@ import functools
 import numpy as np
 
 __all__ = ("calculatePfsVisitHash", "createHash", "astropyHeaderToDict", "astropyHeaderFromDict",
-           "wraparoundNVisit", "inheritDocstrings",)
+           "wraparoundNVisit", "inheritDocstrings", "spectrographFromFiberId", "fiberHoleFromFiberId")
 
 
 def calculatePfsVisitHash(visits):
@@ -227,3 +227,37 @@ def combineArms(arms):
 
     armOrder = dict(b=1, r=2, m=3, n=4)
     return "".join(sorted(combinedSet, key=lambda aa: armOrder[aa]))
+
+
+def spectrographFromFiberId(fiberId):
+    """Calculate spectrograph number from fiberId
+
+    The definition of ``fiberId`` is:
+
+        fiberId = 651*(sp - 1) + fh
+
+    where ``sp`` is the spectrograph and ``fh`` is the fiber hole.
+
+    Parameters
+    ----------
+    fiberId : array_like
+        Fiber identifier.
+    """
+    return fiberId//651 + 1
+
+
+def fiberHoleFromFiberId(fiberId):
+    """Calculate fiber hole number from fiberId
+
+    The definition of ``fiberId`` is:
+
+        fiberId = 651*(sp - 1) + fh
+
+    where ``sp`` is the spectrograph and ``fh`` is the fiber hole.
+
+    Parameters
+    ----------
+    fiberId : array_like
+        Fiber identifier.
+    """
+    return fiberId % 651
