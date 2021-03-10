@@ -3,6 +3,7 @@ import re
 import numpy as np
 
 from .utils import astropyHeaderToDict, astropyHeaderFromDict, inheritDocstrings
+from .utils import spectrographFromFiberId, fiberHoleFromFiberId
 from .masks import MaskHelper
 from .target import Target
 from .observations import Observations
@@ -97,6 +98,16 @@ class PfsFiberArraySet:
     def filename(self):
         """Filename, without directory"""
         return self.getFilename(self.identity)
+
+    @property
+    def spectrograph(self):
+        """Return spectrograph number"""
+        return spectrographFromFiberId(self.fiberId)
+
+    @property
+    def fiberHole(self):
+        """Return fiber hole number"""
+        return fiberHoleFromFiberId(self.fiberId)
 
     @classmethod
     def getFilename(cls, identity):

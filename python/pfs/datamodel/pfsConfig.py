@@ -7,6 +7,8 @@ try:
 except ImportError:
     pyfits = None
 
+from .utils import spectrographFromFiberId, fiberHoleFromFiberId
+
 
 __all__ = ("TargetType", "FiberStatus", "PfsDesign", "PfsConfig")
 
@@ -259,6 +261,16 @@ class PfsDesign:
     def filename(self):
         """Usual filename"""
         return self.fileNameFormat % (self.pfsDesignId)
+
+    @property
+    def spectrograph(self):
+        """Return spectrograph number"""
+        return spectrographFromFiberId(self.fiberId)
+
+    @property
+    def fiberHole(self):
+        """Return fiber hole number"""
+        return fiberHoleFromFiberId(self.fiberId)
 
     @classmethod
     def _readImpl(cls, filename, **kwargs):
