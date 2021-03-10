@@ -101,12 +101,17 @@ class Identity(types.SimpleNamespace):
         fits : `astropy.io.fits.HDUList`
             Opened FITS file.
         """
+        # NOTE: When making any changes to this method that modify the output
+        # format, increment the DAMD_VER header value and record the change in
+        # the versions.txt file.
+        header = astropy.io.fits.Header()
+        header['DAMD_VER'] = (1, "Identity datamodel version")
         columns = [astropy.io.fits.Column(name="visit", format="J", array=[self.visit]),
                    astropy.io.fits.Column(name="arm", format=f"{len(self.arm)}A", array=[self.arm]),
                    astropy.io.fits.Column(name="spectrograph", format="J", array=[self.spectrograph]),
                    astropy.io.fits.Column(name="pfsDesignId", format="K", array=[self.pfsDesignId]),
                    ]
-        hdu = astropy.io.fits.BinTableHDU.from_columns(columns, name=self.fitsExtension)
+        hdu = astropy.io.fits.BinTableHDU.from_columns(columns, name=self.fitsExtension, header=header)
         fits.append(hdu)
 
     @classmethod

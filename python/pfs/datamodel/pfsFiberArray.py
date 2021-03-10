@@ -125,8 +125,13 @@ class PfsFiberArray(PfsSimpleSpectrum):
             List of FITS HDUs. This has a Primary HDU already, the header of
             which may be supplemented with additional keywords.
         """
+        # NOTE: When making any changes to this method that modify the output
+        # format, increment the DAMD_VER header value in the
+        # PfsSimpleSpectrum._writeImpl method, and record the change in
+        # the versions.txt file.
         from astropy.io.fits import ImageHDU
         header = super()._writeImpl(fits)
+        header["DAMD_VER"] = (1, "PfsFiberArray datamodel version")
         fits.append(ImageHDU(self.sky, header=header, name="SKY"))
         fits.append(ImageHDU(self.covar, header=header, name="COVAR"))
         fits.append(ImageHDU(self.covar2, name="COVAR2"))

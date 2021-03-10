@@ -158,6 +158,9 @@ class PfsSimpleSpectrum:
         header : `astropy.io.fits.Header`
             FITS headers which may contain the wavelength WCS.
         """
+        # NOTE: When making any changes to this method that modify the output
+        # format, increment the DAMD_VER header value and record the change in
+        # the versions.txt file.
         from astropy.io.fits import ImageHDU, Header
         haveWavelengthHeader = False
         try:
@@ -165,6 +168,10 @@ class PfsSimpleSpectrum:
             haveWavelengthHeader = True
         except AttributeError:
             header = Header()
+
+        # NOTE: The datamodel version also gets incremented here for the PfsFiberArray
+        header['DAMD_VER'] = (1, "PfsSimpleSpectrum datamodel version")
+
         if self.metadata:
             header.extend(astropyHeaderFromDict(self.metadata))
         fits.append(ImageHDU(self.flux, header=header, name="FLUX"))

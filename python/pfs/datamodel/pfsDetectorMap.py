@@ -437,6 +437,10 @@ class SplinedDetectorMap(PfsDetectorMap):
         fits : `astropy.io.fits.HDUList`
             FITS file representation.
         """
+        # NOTE: When making any changes to this method that modify the output
+        # format, increment the DAMD_VER header value and record the change in
+        # the versions.txt file.
+
         numFibers = len(self)
         slitOffsets = np.zeros((3, numFibers))
         slitOffsets[0] = self.spatialOffsets
@@ -463,10 +467,14 @@ class SplinedDetectorMap(PfsDetectorMap):
         header.update(self.box.toFitsHeader())
         if "pfs_detectorMap_class" in header:
             del header["pfs_detectorMap_class"]
+        header = astropyHeaderFromDict(header)
         header["OBSTYPE"] = "detectorMap"
         header["HIERARCH pfs_detectorMap_class"] = "SplinedDetectorMap"
 
-        phu = astropy.io.fits.PrimaryHDU(header=astropyHeaderFromDict(header))
+        # NOTE: The datamodel version also gets incremented here for the DifferentialDetectorMap
+        header['DAMD_VER'] = (1, "SplinedDetectorMap datamodel version")
+
+        phu = astropy.io.fits.PrimaryHDU(header=header)
         fits.append(phu)
 
         hdu = astropy.io.fits.ImageHDU(self.fiberId, name="FIBERID")
@@ -677,18 +685,23 @@ class GlobalDetectorMap(PfsDetectorMap):
         fits : `astropy.io.fits.HDUList`
             FITS file representation.
         """
+        # NOTE: When making any changes to this method that modify the output
+        # format, increment the DAMD_VER header value and record the change in
+        # the versions.txt file.
         fits = astropy.io.fits.HDUList()
         header = self.metadata.copy()
         header.update(self.box.toFitsHeader())
         header.update(astropyHeaderFromDict(self.scaling.toFitsHeader()))
         if "pfs_detectorMap_class" in header:
             del header["pfs_detectorMap_class"]
+        header = astropyHeaderFromDict(header)
         header["OBSTYPE"] = "detectorMap"
         header["HIERARCH pfs_detectorMap_class"] = "GlobalDetectorMap"
         header["ORDER"] = self.order
         header["HIERARCH FIBERCENTER"] = self.fiberCenter
+        header['DAMD_VER'] = (1, "GlobalDetectorMap datamodel version")
 
-        phu = astropy.io.fits.PrimaryHDU(header=astropyHeaderFromDict(header))
+        phu = astropy.io.fits.PrimaryHDU(header=header)
         fits.append(phu)
 
         tableHeader = astropy.io.fits.Header()
@@ -817,6 +830,10 @@ class DifferentialDetectorMap(PfsDetectorMap):
         fits : `astropy.io.fits.HDUList`
             FITS file representation.
         """
+        # NOTE: When making any changes to this method that modify the output
+        # format, increment the DAMD_VER header value in the
+        # SplinedDetectorMap._writeImpl method, and record the change in
+        # the versions.txt file.
         fits = self.base._writeImpl()
 
         header = self.metadata.copy()
