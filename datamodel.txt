@@ -741,7 +741,7 @@ HDU#1 CLASSIFICATION
      P_QSO        KEYWORD     Probability to be a QSO
      P_STAR       KEYWORD     Probability to be a star
 
-HDU#1 GALAXY_CANDIDATES         Binary table            [FITS BINARY TABLE]     NGALAXY_CANDIDATES
+HDU#2 GALAXY_CANDIDATES         Binary table            [FITS BINARY TABLE]     NGALAXY_CANDIDATES
         Colums for :
         CRANK                   INT32                   Rank of galaxy candidate (best=0)
         Z                       FLOAT                   Redshift
@@ -752,12 +752,12 @@ HDU#1 GALAXY_CANDIDATES         Binary table            [FITS BINARY TABLE]     
         LFILE                   STR                     Linecatalog ratio template file name
         MODELFLUX               FLOAT[NROW]             Spectrum model (unit: nJy)
 
-HDU#2 GALAXY_PDF                Binary table            [FITS BINARY TABLE]     NPIX
+HDU#3 GALAXY_PDF                Binary table            [FITS BINARY TABLE]     NPIX
         Colums for :
         REDSHIFT                FLOAT[NPIX]             Redshift grid
         PDF                     FLOAT[NPIX]             PDF marginalised over all models
 
-HDU#3 GALAXY_LINES              Binary table            [FITS BINARY TABLE]     NLINE
+HDU#4 GALAXY_LINES              Binary table            [FITS BINARY TABLE]     NLINE
         Columns for :
         LINENAME                STR                     Line name
         LINEWAVE                FLOAT                   Catalog wavelength for this line in vacuum (unit: nm)
@@ -774,7 +774,7 @@ HDU#3 GALAXY_LINES              Binary table            [FITS BINARY TABLE]     
         LINECONTLEVEL           FLOAT                   Continuum level at line center (unit: nJy)
         LINECONTLEVEL_ERR       FLOAT                   Error in continuum level at line center
 
-HDU#4 QSO_CANDIDATES            Binary table            [FITS BINARY TABLE]     NQSO_CANDIDATES
+HDU#5 QSO_CANDIDATES            Binary table            [FITS BINARY TABLE]     NQSO_CANDIDATES
         Colums for :
         CRANK                   INT32                   Rank of QSO candidate (best=0)
         Z                       FLOAT                   Redshift
@@ -783,12 +783,12 @@ HDU#4 QSO_CANDIDATES            Binary table            [FITS BINARY TABLE]     
         SUBCLASS                STR                     Subclassifications
         MODELFLUX               FLOAT[NROW]             Spectrum model (unit: nJy)
 
-HDU#5 QSO_PDF                   Binary table            [FITS BINARY TABLE]     NPIX
+HDU#6 QSO_PDF                   Binary table            [FITS BINARY TABLE]     NPIX
         Colums for :
         REDSHIFT                FLOAT[NPIX]             Redshift grid
         PDF                     FLOAT[NPIX]             PDF marginalised over all models
 
-HDU#6 QSO_LINES                 Binary table            [FITS BINARY TABLE]     NLINE
+HDU#7 QSO_LINES                 Binary table            [FITS BINARY TABLE]     NLINE
         Columns for :
         LINENAME                STR                     Line name
         LINEWAVE                FLOAT                   Catalog wavelength for this line in vacuum (unit: nm)
@@ -805,7 +805,7 @@ HDU#6 QSO_LINES                 Binary table            [FITS BINARY TABLE]     
         LINECONTLEVEL           FLOAT                   Continuum level at line center (unit: nJy)
         LINECONTLEVEL_ERR       FLOAT                   Error in continuum level at line center
 
-HDU#7 STAR_CANDIDATES            Binary table            [FITS BINARY TABLE]        NSTAR_CANDIDATES
+HDU#8 STAR_CANDIDATES            Binary table            [FITS BINARY TABLE]        NSTAR_CANDIDATES
         Columns for :
         CRANK                   INT32                   Rank of star candidate (best=0)
         V                       FLOAT                   Star velocity (unit: kms-1)
@@ -815,7 +815,7 @@ HDU#7 STAR_CANDIDATES            Binary table            [FITS BINARY TABLE]    
         TFILE                   STR                     Template file name
         MODELFLUX               FLOAT[NROW]             Spectrum model (unit: nJy)
 
-HDU#8 STAR_PDF                   Binary table            [FITS BINARY TABLE]     NPIX
+HDU#9 STAR_PDF                   Binary table            [FITS BINARY TABLE]     NPIX
         Colums for :
         REDSHIFT                FLOAT[NPIX]             Redshift grid
         PDF                     FLOAT[NPIX]             PDF related to best model
