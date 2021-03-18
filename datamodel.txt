@@ -262,7 +262,7 @@ FITS file format:
 
 HDU #0 PDU
 HDU #1          FITS binary table named "DESIGN"
-HDU #1          FITS binary table named "PHOTOMETRY"
+HDU #2          FITS binary table named "PHOTOMETRY"
 
 The PDU has keys indicating the intended pointing of the telescope boresight.
 
@@ -354,7 +354,7 @@ FITS file format:
 
 HDU #0 PDU
 HDU #1          FITS binary table named "CONFIG"
-HDU #1          FITS binary table named "PHOTOMETRY"
+HDU #2          FITS binary table named "PHOTOMETRY"
 
 The PDU has keys indicating the actual pointing of the telescope boresight.
 
