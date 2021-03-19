@@ -32,9 +32,6 @@ SplinedDetectorMap, so their versions are incremented together.
 SplinedDetectorMap and DifferentialDetectorMap:
 * 1: Initial version.
 
-GlobalDetectorMap:
-* 1: Initial version.
-
 
 PfsSimpleSpectrum and PfsFiberArray
 -----------------------------------
