@@ -471,7 +471,7 @@ class SplinedDetectorMap(PfsDetectorMap):
         header["HIERARCH pfs_detectorMap_class"] = "SplinedDetectorMap"
 
         # NOTE: The datamodel version also gets incremented here for the DifferentialDetectorMap
-        header['DAMD_VER'] = (1, "SplinedDetectorMap datamodel version")
+        header['DAMD_VER'] = (2, "SplinedDetectorMap datamodel version")
 
         phu = astropy.io.fits.PrimaryHDU(header=header)
         fits.append(phu)
@@ -587,8 +587,6 @@ class DifferentialDetectorMap(PfsDetectorMap):
         Base detectorMap.
     order : `int`
         Polynomial order.
-    fiberId : `numpy.ndarray` of `int`, shape ``(N,)``
-        Fiber identifiers.
     scaling : `GlobalDetectorModelScaling`
         Scaling parameters.
     fiberCenter : `float`
@@ -602,13 +600,12 @@ class DifferentialDetectorMap(PfsDetectorMap):
     metadata : `dict`
         Keyword-value pairs to put in the header.
     """
-    def __init__(self, identity, box, base, order, fiberId, scaling, fiberCenter,
+    def __init__(self, identity, box, base, order, scaling, fiberCenter,
                  xCoeff, yCoeff, highCcdCoeff, metadata):
         self.identity = identity
         self.box = box
         self.base = base
         self.order = order
-        self.fiberId = fiberId
         self.scaling = scaling
         self.fiberCenter = fiberCenter
         self.xCoeff = xCoeff
@@ -655,7 +652,6 @@ class DifferentialDetectorMap(PfsDetectorMap):
         order = header["ORDER"]
 
         base = SplinedDetectorMap._readImpl(fits, identity)
-        fiberId = fits["MODEL_FIBERID"].data.astype(np.int32)   # astype() forces machine-native byte order
         scaling = GlobalDetectorModelScaling.fromFitsHeader(header)
         fiberCenter = header["FIBERCENTER"]
 
@@ -663,7 +659,7 @@ class DifferentialDetectorMap(PfsDetectorMap):
         yCoeff = fits["COEFFICIENTS"].data["y"].astype(float)
         rightCcd = fits["HIGHCCD"].data["coefficients"].astype(float)
 
-        return cls(identity, box, base, order, fiberId, scaling, fiberCenter,
+        return cls(identity, box, base, order, scaling, fiberCenter,
                    xCoeff, yCoeff, rightCcd, header)
 
     def _writeImpl(self):
@@ -693,9 +689,6 @@ class DifferentialDetectorMap(PfsDetectorMap):
 
         tableHeader = astropy.io.fits.Header()
         tableHeader["INHERIT"] = True
-
-        fiberId = astropy.io.fits.ImageHDU(self.fiberId, header=tableHeader, name="MODEL_FIBERID")
-        fits.append(fiberId)
 
         table = astropy.io.fits.BinTableHDU.from_columns([
             astropy.io.fits.Column(name="x", format="D", array=self.xCoeff),
