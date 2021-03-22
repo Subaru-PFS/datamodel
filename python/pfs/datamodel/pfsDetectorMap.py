@@ -2,6 +2,7 @@ import os
 import re
 from types import SimpleNamespace
 from abc import ABC, abstractmethod
+import warnings
 
 import numpy as np
 import astropy.io.fits
@@ -685,7 +686,9 @@ class DifferentialDetectorMap(PfsDetectorMap):
         header["HIERARCH pfs_detectorMap_class"] = "DifferentialDetectorMap"
         header["ORDER"] = self.order
         header["HIERARCH FIBERCENTER"] = self.fiberCenter
-        fits[0].header.update(astropyHeaderFromDict(header))
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=astropy.io.fits.verify.VerifyWarning)
+            fits[0].header.update(astropyHeaderFromDict(header))
 
         tableHeader = astropy.io.fits.Header()
         tableHeader["INHERIT"] = True
