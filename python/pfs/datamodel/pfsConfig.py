@@ -34,6 +34,10 @@ class DocEnum(enum.IntEnum):
         keyBase = "HIERARCH " + cls.__name__ + "."
         return {keyBase + member.name: (member.value, member.__doc__) for member in cls}
 
+    def __str__(self):
+        """Return the enum's name"""
+        return self.name
+
 
 class TargetType(DocEnum):
     """Enumerated options for what a fiber is targeting"""
