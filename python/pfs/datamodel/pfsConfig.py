@@ -7,6 +7,8 @@ try:
 except ImportError:
     pyfits = None
 
+from .guideStars import GuideStars
+
 
 __all__ = ("TargetType", "FiberStatus", "PfsDesign", "PfsConfig")
 
@@ -115,6 +117,8 @@ class PfsDesign:
         List of filters used to measure the fiber fluxes for each filter.
     pfiNominal : `numpy.ndarray` of `float`
         Intended target position (2-vector) of each fiber on the PFI, microns.
+    guideStars : `GuideStars`
+        Guide star data.
     """
     # List of fields required, and their FITS type
     # Some elements of the code expect the following to be present:
@@ -152,10 +156,15 @@ class PfsDesign:
         Raises
         ------
         RuntimeError
-            If there are inconsistent lengths.
+            If there are inconsistent lengths or the GuideStars instance passed is None.
         ValueError:
             If the ``targetType`` is not recognised.
         """
+        if self.guideStars is None:
+            raise RuntimeError('The GuideStars instance cannot be None. '
+                               'If no valid instance can be provided, '
+                               'pass and empty instance, eg., GuideStars.empty().')
+
         if len(set([len(getattr(self, nn)) for nn in self._keywords])) != 1:
             raise RuntimeError("Inconsistent lengths: %s" % ({nn: len(getattr(self, nn)) for
                                                               nn in self._keywords}))
@@ -210,7 +219,8 @@ class PfsDesign:
                  fiberFluxErr,
                  psfFluxErr,
                  totalFluxErr,
-                 filterNames, pfiNominal):
+                 filterNames, pfiNominal,
+                 guideStars):
         self.pfsDesignId = pfsDesignId
         self.raBoresight = raBoresight
         self.decBoresight = decBoresight
@@ -233,6 +243,7 @@ class PfsDesign:
         self.totalFluxErr = [np.array(tfErr) for tfErr in totalFluxErr]
         self.filterNames = filterNames
         self.pfiNominal = np.array(pfiNominal)
+        self.guideStars = guideStars
         self.validate()
 
     def __len__(self):
@@ -288,6 +299,12 @@ class PfsDesign:
             raBoresight = phu['RA']
             decBoresight = phu['DEC']
 
+            # If DAMD_VER does not exist, set to None.
+            # This default should be removed when the
+            # relevant test datasets have this keyword
+            # populated.
+            damdVer = phu.get('DAMD_VER', None)
+
             # If POSANG does not exist, use default.
             # This default should be removed when the
             # relevant test datasets have this keyword
@@ -330,6 +347,15 @@ class PfsDesign:
                 totalFluxErr[row['fiberId']].append(row['totalFluxErr'])
                 filterNames[row['fiberId']].append(row['filterName'])
 
+            if damdVer is not None and damdVer >= 2:
+                guideStars = GuideStars.fromFits(fd)
+            else:
+                # Create an empty HDU.
+                # This action should be removed once the
+                # relevant test datasets have this keyword
+                # populated.
+                guideStars = GuideStars.empty()
+
         return cls(**kwargs, raBoresight=raBoresight, decBoresight=decBoresight,
                    posAng=posAng,
                    arms=arms,
@@ -339,7 +365,8 @@ class PfsDesign:
                    fiberFluxErr=[np.array(fiberFluxErr[ii]) for ii in fiberId],
                    psfFluxErr=[np.array(psfFluxErr[ii]) for ii in fiberId],
                    totalFluxErr=[np.array(totalFluxErr[ii]) for ii in fiberId],
-                   filterNames=[filterNames[ii] for ii in fiberId])
+                   filterNames=[filterNames[ii] for ii in fiberId],
+                   guideStars=guideStars)
 
     @classmethod
     def read(cls, pfsDesignId, dirName="."):
@@ -377,7 +404,7 @@ class PfsDesign:
         hdr['DEC'] = (self.decBoresight, "Telescope boresight Dec, degrees")
         hdr['POSANG'] = (self.posAng, "PFI position angle, degrees")
         hdr['ARMS'] = (self.arms, "Exposed arms")
-        hdr['DAMD_VER'] = (1, "PfsDesign/PfsConfig datamodel version")
+        hdr['DAMD_VER'] = (2, "PfsDesign/PfsConfig datamodel version")
         hdr.update(TargetType.getFitsHeaders())
         hdr.update(FiberStatus.getFitsHeaders())
         hdu = pyfits.PrimaryHDU(header=hdr)
@@ -424,6 +451,9 @@ class PfsDesign:
             pyfits.Column(name='totalFluxErr', format='E', array=totalFluxErr, unit='nJy'),
             pyfits.Column(name='filterName', format='A%d' % maxLength, array=filterNames),
         ], hdr, name='PHOTOMETRY'))
+
+        assert(self.guideStars is not None)
+        self.guideStars.toFits(fits)
 
         # clobber=True in writeto prints a message, so use open instead
         with open(filename, "wb") as fd:
@@ -664,6 +694,8 @@ class PfsConfig(PfsDesign):
         Actual position (2-vector) of each fiber on the PFI, microns.
     pfiNominal : `numpy.ndarray` of `float`
         Intended target position (2-vector) of each fiber on the PFI, microns.
+    guideStars : `GuideStars`
+        Guide star data.
     """
     # List of fields required, and their FITS type
     # Some elements of the code expect the following to be present:
@@ -704,7 +736,8 @@ class PfsConfig(PfsDesign):
                  fiberFluxErr,
                  psfFluxErr,
                  totalFluxErr,
-                 filterNames, pfiCenter, pfiNominal):
+                 filterNames, pfiCenter, pfiNominal,
+                 guideStars):
         self.visit0 = visit0
         self.pfiCenter = np.array(pfiCenter)
         super().__init__(pfsDesignId, raBoresight, decBoresight,
@@ -718,7 +751,8 @@ class PfsConfig(PfsDesign):
                          fiberFluxErr,
                          psfFluxErr,
                          totalFluxErr,
-                         filterNames, pfiNominal)
+                         filterNames, pfiNominal,
+                         guideStars)
 
     def __str__(self):
         """String representation"""
@@ -752,6 +786,7 @@ class PfsConfig(PfsDesign):
         kwargs["fiberStatus"] = pfsDesign.fiberStatus
         kwargs["visit0"] = visit0
         kwargs["pfiCenter"] = pfiCenter
+        kwargs["guideStars"] = pfsDesign.guideStars
         return PfsConfig(**kwargs)
 
     @classmethod

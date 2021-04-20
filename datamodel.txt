@@ -262,7 +262,8 @@ FITS file format:
 
 HDU #0 PDU
 HDU #1          FITS binary table named "DESIGN"
-HDU #1          FITS binary table named "PHOTOMETRY"
+HDU #2          FITS binary table named "PHOTOMETRY"
+HDU #3          FITS binary table named "GUIDESTARS"
 
 The PDU has keys indicating the intended pointing of the telescope boresight.
 
@@ -340,6 +341,53 @@ transmission curves used by the pipeline, and therefore the range of
 permitted values is limited to a set to be specified by the DRP team.
 There will be a mechanism for adding to this set.
 
+The GUIDESTARS table lists:
+      objId          64-bit int
+      epoch          7-digit string
+      ra             64-bit float (degrees)
+      dec            64-bit float (degrees)
+      pmRa           32-bit float (mas/year)
+      pmDec          32-bit float (mas/year)
+      parallax       32-bit float (mas)
+      magnitude      32-bit float
+      passband       string
+      color          32-bit float
+      agId           32-bit int
+      agX            32-bit float (pixels)
+      agY            32-bit float (pixels)
+
+Where the:
+    * objId corresponds to the unique object identifer for the guide star
+    * epoch corresponds to the reference epoch for the stellar parameters,
+      in the form PYYYY.x, where P is the prefix (J for Julian or B for Besselian epochs),
+      YYYY is the whole year for the epoch,
+      and x is the fraction of Julian years from the whole year, or 0 for Besselian epochs.
+    * ra corresponds to the Right Ascension of the guide star
+    * dec corresponds to the Declination of the guide star
+    * pmRa is the proper motion of the guide star along the RA direction
+    * pmDec is the proper motion of the guide star along the DEC direction
+    * parallax is the observed parallax of the guide star
+    * magnitude is the magnitude for the guide star
+    * passband is the passband over which the magnitude is measured.
+    * color is the Gaia broadband BP-RP color for that guide star.
+    * agId is the identifier for the AG camera that will observe that guide star
+    * agX is the X-position on the corresponding AG camera where the guide star
+          is expected to be detected
+    * agY is the Y-position on the corresponding AG camera where the guide star
+          is expected to be detected
+
+Additional keywords are required for the GUIDESTARS HDU:
+    * EPOCH the reference epoch for the guide star data.
+        All the guide star information share the same epoch.
+        This should be accurate to the order of weeks to ensure that the
+        parallax can be incorporated into the measurements.
+        The format for the time is the ISO-8601 yyyy-mm-ddThh:mm:ss format 
+        and the time coordinate is TCB.
+    * TEL_ELEV the telescope elevation (degrees)
+    * GS_CATID the identifier of the catalogue containing the guide stars.
+        This implies that all the guide stars in this table originate from 
+        a single catalogue.
+
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 The realisation of a PfsDesign for a particular exposure is a PfsConfig.
@@ -354,7 +402,7 @@ FITS file format:
 
 HDU #0 PDU
 HDU #1          FITS binary table named "CONFIG"
-HDU #1          FITS binary table named "PHOTOMETRY"
+HDU #2          FITS binary table named "PHOTOMETRY"
 
 The PDU has keys indicating the actual pointing of the telescope boresight.
 

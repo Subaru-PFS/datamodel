@@ -18,6 +18,7 @@ These two classes are strongly related, reflected in PfsConfig inheriting from
 PfsDesign, and so their versions are incremented together.
 
 * 1: Initial version.
+* 2: Additional HDU added for guide star information, provided by ETS shuffle.
 
 
 PfsDetectorMap
@@ -108,3 +109,11 @@ MaskHelper
 This is written to the FITS header only, and so this class is not versioned
 independently. Changes to this class should be reflected in incremented versions
 for all classes that use it.
+
+
+GuideStars
+---------
+
+This is written as a FITS table inside other products.
+
+* 1: Initial version.
