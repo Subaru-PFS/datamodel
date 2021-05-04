@@ -202,6 +202,7 @@ We have multiple separate formats for representing the "detectorMap", which are 
 the "HIERARCH pfs_detectorMap_class" header card:
 * SplinedDetectorMap: splines for each fiber provide the wavelength and column as a function of row.
 * DifferentialDetectorMap: a mapping of fiberId,wavelength to x,y corrections to a SplinedDetectorMap.
+* DistortedDetectorMap: a mapping of x,y to dx,dy corrections to a SplinedDetectorMap.
 
 SplinedDetectorMap format:
 
@@ -248,6 +249,29 @@ The COEFFICIENTS table contains:
 
 The HIGHCCD table contains:
         coefficients        32-bit float    Affine transform coefficients
+
+
+DistortedDetectorMap format:
+
+HDU #0 PDU
+HDU #1 FIBERID          Identifier of each fiber                [32-bit INT]            NFIBER
+HDU #2 SLITOFF          Slit offsets in x,y,z                   [32-bit FLOAT]          3*NFIBER
+HDU #3 CENTER           Spline for column with trace center     [BINARY FITS TABLE]     NFIBER
+HDU #4 WAVELENGTH       Spline for wavelength (nm)              [BINARY FITS TABLE]     NFIBER
+HDU #5 COEFFICIENTS     Distortion coefficients                 [BINARY FITS TABLE]     NCOEFF
+HDU #6 RIGHTCCD         Coefficients for right CCD              [BINARY FITS TABLE]     6
+
+The primary header records the dimensions of the detector in the MINX,MINY,MAXX,MAXY keywords.
+
+The FIBERID, SLITOFF, CENTER and WAVELENGTH HDUs are as for the SplinedDetectorMap.
+
+The COEFFICIENTS table contains:
+        x                   32-bit float    x coefficients
+        y                   32-bit float    y coefficients
+
+The RIGHTCCD table contains:
+        coefficients        32-bit float    Affine transform coefficients
+
 
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 

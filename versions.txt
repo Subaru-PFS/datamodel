@@ -27,10 +27,11 @@ PfsDetectorMap
 These classes are used for the detectorMap product. There are different formats,
 supporting different kinds of detectorMap models.
 
-Note that the DifferentialDetectorMap is strongly coupled to the
+Note that the Differential/DistortedDetectorMap is strongly coupled to the
 SplinedDetectorMap, so their versions are incremented together.
 
-SplinedDetectorMap and DifferentialDetectorMap:
+
+SplinedDetectorMap and Differential/DistortedDetectorMap:
 * 1: Initial version.
 * 2: MODEL_FIBERID extension for DifferentialDetectorMap removed.
 
