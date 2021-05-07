@@ -213,4 +213,4 @@ class GuideStars:
                    np.array([], dtype=np.float32),
                    np.array([], dtype=np.float32),
                    0.0,
-                   0.0)
+                   0)
