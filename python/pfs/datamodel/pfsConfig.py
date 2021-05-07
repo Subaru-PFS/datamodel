@@ -118,7 +118,7 @@ class PfsDesign:
     pfiNominal : `numpy.ndarray` of `float`
         Intended target position (2-vector) of each fiber on the PFI, microns.
     guideStars : `GuideStars`
-        Guide star data.
+        Guide star data. If `None`, an empty GuideStars instance will be created.
     """
     # List of fields required, and their FITS type
     # Some elements of the code expect the following to be present:
@@ -243,7 +243,7 @@ class PfsDesign:
         self.totalFluxErr = [np.array(tfErr).astype(float) for tfErr in totalFluxErr]
         self.filterNames = filterNames
         self.pfiNominal = np.array(pfiNominal)
-        self.guideStars = guideStars
+        self.guideStars = guideStars if guideStars is not None else GuideStars.empty()
         self.validate()
 
     def __len__(self):
@@ -695,7 +695,7 @@ class PfsConfig(PfsDesign):
     pfiNominal : `numpy.ndarray` of `float`
         Intended target position (2-vector) of each fiber on the PFI, microns.
     guideStars : `GuideStars`
-        Guide star data.
+        Guide star data. If `None`, an empty GuideStars instance will be created.
     """
     # List of fields required, and their FITS type
     # Some elements of the code expect the following to be present:

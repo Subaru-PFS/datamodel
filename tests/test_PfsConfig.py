@@ -535,6 +535,80 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
                            self.guideStars)
         self.assertPfsConfig(PfsConfig.fromPfsDesign(design, self.visit0, self.pfiCenter), config)
 
+    def testFromEmptyGuideStars(self):
+        """Check that an empty GuideStars instance is correctly instantiated
+        if a None value is passed to the corresponding constructor argument
+        """
+        design = PfsDesign(self.pfsDesignId, self.raBoresight.asDegrees(), self.decBoresight.asDegrees(),
+                           self.posAng,
+                           self.arms,
+                           self.fiberId, self.tract, self.patch, self.ra, self.dec,
+                           self.catId, self.objId, self.targetType, self.fiberStatus,
+                           self.fiberFlux,
+                           self.psfFlux, self.totalFlux,
+                           self.fiberFluxErr, self.psfFluxErr, self.totalFluxErr,
+                           self.filterNames, self.pfiNominal,
+                           None)
+        self.checkGsEmpty(design)
+
+        config = PfsConfig(self.pfsDesignId, self.visit0, self.raBoresight.asDegrees(),
+                           self.decBoresight.asDegrees(),
+                           self.posAng,
+                           self.arms,
+                           self.fiberId, self.tract, self.patch,
+                           self.ra, self.dec, self.catId, self.objId, self.targetType, self.fiberStatus,
+                           self.fiberFlux,
+                           self.psfFlux, self.totalFlux,
+                           self.fiberFluxErr, self.psfFluxErr, self.totalFluxErr,
+                           self.filterNames, self.pfiCenter, self.pfiNominal,
+                           None)
+        self.checkGsEmpty(config)
+
+        # Check that a non-empty GuideStar instance can be passed during construction.
+        gsNotEmpty = GuideStars.empty()  # Using a tweaked version of an empty GuideStars instance.
+        telElev = 123
+        gsNotEmpty.telElev = telElev
+
+        design = PfsDesign(self.pfsDesignId, self.raBoresight.asDegrees(), self.decBoresight.asDegrees(),
+                           self.posAng,
+                           self.arms,
+                           self.fiberId, self.tract, self.patch, self.ra, self.dec,
+                           self.catId, self.objId, self.targetType, self.fiberStatus,
+                           self.fiberFlux,
+                           self.psfFlux, self.totalFlux,
+                           self.fiberFluxErr, self.psfFluxErr, self.totalFluxErr,
+                           self.filterNames, self.pfiNominal,
+                           gsNotEmpty)
+
+        gs = design.guideStars
+        self.checkGsArrayAttributesEmpty(gs)
+        self.assertEqual(gs.telElev, telElev)
+
+    def checkGsEmpty(self, design):
+        """Check that the contents of the
+        GuideStars attribute of the PfsDesign is empty.
+        """
+        gs = design.guideStars
+        self.checkGsArrayAttributesEmpty(gs)
+        self.assertEqual(gs.telElev, 0.0)
+        self.assertEqual(gs.guideStarCatId, 0)
+
+    def checkGsArrayAttributesEmpty(self, gs):
+        """Check that the array-like
+        attributes of the passed GuideStars
+        instance are empty.
+        """
+        for att in ['objId', 'epoch',
+                    'ra', 'dec',
+                    'pmRa', 'pmDec',
+                    'parallax', 'magnitude',
+                    'passband', 'color',
+                    'agId', 'agX', 'agY',
+                    'epoch']:
+            value = getattr(gs, att)
+            self.assertTrue(value is not None)
+            self.assertTrue(len(value) == 0)
+
 
 class TestMemory(lsst.utils.tests.MemoryTestCase):
     pass
