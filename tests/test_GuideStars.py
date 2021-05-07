@@ -131,8 +131,6 @@ class GuideStarsTestCase(lsst.utils.tests.TestCase):
         fits = HDUList()
         self.guideStars.toFits(fits)
         gs = GuideStars.fromFits(fits)
-        print(f'self.epoch={self.guideStars.epoch}')
-        print(f'gs.epoch={gs.epoch}')
         self.assertGuideStars(gs)
 
 
