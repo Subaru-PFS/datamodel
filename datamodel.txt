@@ -18,7 +18,7 @@ NROW        The number of rows that spectra extend over in the dispersion direct
 	    In practice, the number of rows in the usable part of the CCD.
 NSIMROW     Number of rows for simulated data.  May be different in different files, depending
 	    on the desired oversampling.
-NCOARSE     Number of wavelengths used in computing the coarse 
+NCOARSE     Number of wavelengths used in computing the coarse
       (low-resolution) covariance matrix of the spectra
 
 The values of NCOLUMN and NROW may be different in the optical and IR arms, and will differ for
@@ -26,8 +26,8 @@ raw and reduced data.  Possible values are given in the section, "Parameters"
 
 In various places I refer to a SHA-1, which is a strong 160-bit hash, as used by e.g. git
 (https://en.wikipedia.org/wiki/SHA-1).  We truncate these hashes to 63bits (so as to fit
-in standard 64-bit signed integers). Sixty-three bits would produce up to 2^63 ~ 9e18 values. 
-These SHA-1 values are encoded into 16 hexadecimal digits in filenames.  
+in standard 64-bit signed integers). Sixty-three bits would produce up to 2^63 ~ 9e18 values.
+These SHA-1 values are encoded into 16 hexadecimal digits in filenames.
 In filenames, hexadecimal characters shall be
 written in lower case (0x12345abcdef not 0X12345ABCDEF or 0x12345ABCDEF).
 
@@ -98,9 +98,9 @@ pfsDesignId
   An alternative to a SHA-1 would be the visit number of the first data taken with this configuration but that
   would have the disadvantage that it would not be available until the data was taken.
 
-  Lab data may choose to set the pfsDesignId to 0x0.  As a convenience to simulators, if the fiberIds
-  in a pfsConfig file are consecutive integers starting at 1 and all ra/dec values are 0.0 the pfsDesignId
-  is taken to be 0x0
+  Lab data may choose to set the pfsDesignId to 0x0.
+  A pfsDesignId of 0x0 means that no fibres are illuminated.
+
 
 pfsVisitHash
 
@@ -301,10 +301,10 @@ The PDU has keys indicating the intended pointing of the telescope boresight.
       ARMS      The arms that will be exposed.
                     This can be any combination
                     of the arms 'b', 'r', 'm', and 'n'
-                    (where each arm can 
+                    (where each arm can
                     appear only once
                     and 'r' and 'm' cannot be present
-                    in the same combination) 
+                    in the same combination)
                     examples: 'brn', 'bmn', 'rb'.
 
 The DESIGN table lists for each object:
@@ -348,10 +348,10 @@ The PHOTOMETRY table lists:
       filterName         string
 
 Where the:
-    * fiberFlux corresponds to the integrated flux within an aperture of a fiber 
+    * fiberFlux corresponds to the integrated flux within an aperture of a fiber
         (approx 1 arcsec in diameter). This is seeing-corrected.
-    * psfFlux is the flux computed by fitting the appropriate PSF to the image, 
-        to an infinite radius. 
+    * psfFlux is the flux computed by fitting the appropriate PSF to the image,
+        to an infinite radius.
     * totalFlux is the complete flux for that object. This is the same as the psfFlux
         for unresolved sources, but for extended sources the appropriate extended model
         is applied to compute the flux.
@@ -405,11 +405,11 @@ Additional keywords are required for the GUIDESTARS HDU:
         All the guide star information share the same epoch.
         This should be accurate to the order of weeks to ensure that the
         parallax can be incorporated into the measurements.
-        The format for the time is the ISO-8601 yyyy-mm-ddThh:mm:ss format 
+        The format for the time is the ISO-8601 yyyy-mm-ddThh:mm:ss format
         and the time coordinate is TCB.
     * TEL_ELEV the telescope elevation (degrees)
     * GS_CATID the identifier of the catalogue containing the guide stars.
-        This implies that all the guide stars in this table originate from 
+        This implies that all the guide stars in this table originate from
         a single catalogue.
 
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
