@@ -120,6 +120,8 @@ class PfsDesign:
     guideStars : `GuideStars`
         Guide star data. If `None`, an empty GuideStars instance will be created.
     """
+    # Scalar values
+    _scalars = ["pfsDesignId", "raBoresight", "decBoresight", "posAng", "arms", "guideStars"]
     # List of fields required, and their FITS type
     # Some elements of the code expect the following to be present:
     #     fiberId, targetType
@@ -158,7 +160,7 @@ class PfsDesign:
         RuntimeError
             If there are inconsistent lengths or the GuideStars instance passed is None.
         ValueError:
-            If the ``targetType`` is not recognised.
+            If the ``targetType`` or ``fiberStatus`` is not recognised.
         """
         if self.guideStars is None:
             raise RuntimeError('The GuideStars instance cannot be None. '
@@ -699,6 +701,8 @@ class PfsConfig(PfsDesign):
     guideStars : `GuideStars`
         Guide star data. If `None`, an empty GuideStars instance will be created.
     """
+    # Scalar values
+    _scalars = ["pfsDesignId", "visit0", "raBoresight", "decBoresight", "posAng", "arms", "guideStars"]
     # List of fields required, and their FITS type
     # Some elements of the code expect the following to be present:
     #     fiberId, targetType
