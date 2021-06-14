@@ -411,12 +411,14 @@ class PfsDesign:
         hdr.update()
         fits.append(hdu)
 
-        maxLength = max(len(pp) for pp in self.patch)
+        lengths = [len(pp) for pp in self.patch]
+        maxLength = 1 if len(lengths) == 0 else max(lengths)
         columns = []
         for name in self._fields:
             format = self._fields[name]
             if format == "A":
-                maxLength = max(len(ss) for ss in getattr(self, name))
+                lengths = [len(ss) for ss in getattr(self, name)]
+                maxLength = 1 if len(lengths) == 0 else max(lengths)
                 format = "A%d" % maxLength
             columns.append(pyfits.Column(name=name, format=format, array=getattr(self, name)))
         columns.append(pyfits.Column(name="fiberStatus", format="J", array=self.fiberStatus))
