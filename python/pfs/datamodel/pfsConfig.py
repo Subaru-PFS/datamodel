@@ -230,7 +230,7 @@ class PfsDesign:
         self.arms = arms
         self.fiberId = np.array(fiberId).astype(np.int32)
         self.tract = np.array(tract)
-        self.patch = patch
+        self.patch = np.array(patch)
         self.ra = np.array(ra).astype(float)
         self.dec = np.array(dec).astype(float)
         self.catId = np.array(catId)
@@ -256,21 +256,35 @@ class PfsDesign:
         """String representation"""
         return "PfsDesign(%d, ...)" % (self.pfsDesignId)
 
-    def __getitem__(self, index):
-        """Get target by index
+    def __iter__(self):
+        """Iteration is unimplemented because it would be inefficient"""
+        return NotImplementedError(f"Cannot iterate on {self.__class__.__name__}")
+
+    def __getitem__(self, logical):
+        """Sub-selection
 
         Parameters
         ----------
-        index : `int`
-            Index of interest.
+        logical : `numpy.ndarray` of `bool`
+            Boolean array (of same length as ``self``) indicating which fibers
+            to select.
 
         Returns
         -------
-        target : `pfs.datamodel.Target`
-            Target data.
+        new : ``type(self)``
+            A new ``PfsDesign`` or ``PfsConfig`` containing only the selected
+            fibers.
         """
-        from pfs.datamodel.target import Target  # noqa: prevent circular import dependency
-        return Target.fromPfsConfig(self, index)
+        numOriginal = len(self)
+        kwargs = {name: getattr(self, name) for name in self._scalars}
+        for name in self._keywords + ["fiberStatus"]:
+            array = getattr(self, name)
+            if isinstance(array, np.ndarray):
+                subArray = array[logical]
+            else:
+                subArray = [array[ii] for ii in range(numOriginal) if logical[ii]]
+            kwargs[name] = subArray
+        return type(self)(**kwargs)
 
     @property
     def filename(self):
@@ -479,6 +493,81 @@ class PfsDesign:
         if fileName is None:
             fileName = self.filename
         self._writeImpl(os.path.join(dirName, fileName))
+
+    def getSelection(self, fiberId=None, targetType=None, fiberStatus=None,
+                     catId=None, tract=None, patch=None, objId=None):
+        """Return a boolean array indicating which fibers are selected
+
+        Multiple attributes will be combined with ``AND``.
+
+        Parameters
+        ----------
+        fiberId : `int`, optional
+            Fiber identifier to select.
+        targetType : `TargetType`, optional
+            Target type to select.
+        fiberStatus : `FiberStatus`, optional
+            Fiber status to select.
+        catId : `int`, optional
+            Catalog identifier to select.
+        tract : `int`, optional
+            Tract number to select.
+        patch : `str`, optional
+            Patch name to select.
+        objId : `int`
+            Object identifier to select.
+
+        Returns
+        -------
+        logical : `numpy.ndarray` of `bool`
+            A boolean array indicating which fibers are selected.
+        """
+        selection = np.ones(len(self), dtype=bool)
+        if fiberId is not None:
+            selection &= self.fiberId == fiberId
+        if targetType is not None:
+            selection &= self.targetType == targetType
+        if fiberStatus is not None:
+            selection &= self.fiberStatus == fiberStatus
+        if catId is not None:
+            selection &= self.catId == catId
+        if tract is not None:
+            selection &= self.tract == tract
+        if patch is not None:
+            selection &= self.patch == patch
+        if objId is not None:
+            selection &= self.objId == objId
+        return selection
+
+    def select(self, **kwargs):
+        """Return an instance containing only the selected attributes
+
+        Multiple attributes will be combined with ``AND``.
+
+        Parameters
+        ----------
+        fiberId : `int`, optional
+            Fiber identifier to select.
+        targetType : `TargetType`, optional
+            Target type to select.
+        fiberStatus : `FiberStatus`, optional
+            Fiber status to select.
+        catId : `int`, optional
+            Catalog identifier to select.
+        tract : `int`, optional
+            Tract number to select.
+        patch : `str`, optional
+            Patch name to select.
+        objId : `int`
+            Object identifier to select.
+
+        Returns
+        -------
+        selected : ``type(self)``
+            An instance containing only the selected attributes.
+        """
+        selection = self.getSelection(**kwargs)
+        return self[selection]
 
     def selectByTargetType(self, targetType, fiberId=None):
         """Select fibers by ``targetType``

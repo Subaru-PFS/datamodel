@@ -294,6 +294,45 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
             self.assertTrue(value is not None)
             self.assertTrue(len(value) == 0)
 
+    def testGetitem(self):
+        """Test __getitem__"""
+        select = np.array([ii % 2 == 0 for ii in range(self.numFibers)], dtype=bool)
+        numSelected = select.sum()
+        assert numSelected < self.numFibers
+        pfsConfig = self.makePfsConfig()
+        sub = pfsConfig[select]
+        self.assertEqual(len(sub), numSelected)
+        self.assertFloatsEqual(sub.fiberId, pfsConfig.fiberId[select])
+        self.assertFloatsEqual(sub.objId, pfsConfig.objId[select])
+
+    def testSelect(self):
+        """Test select method"""
+        pfsConfig = self.makePfsConfig()
+
+        fiberId = self.fiberId[3]
+        sub = pfsConfig.select(fiberId=fiberId)
+        self.assertEqual(len(sub), 1)
+        self.assertFloatsEqual(sub.fiberId, fiberId)
+
+        targetType = TargetType.FLUXSTD
+        sub = pfsConfig.select(targetType=targetType)
+        self.assertEqual(len(sub), self.numFluxStd)
+        self.assertFloatsEqual(sub.targetType, targetType)
+
+        fiberStatus = FiberStatus.BROKENFIBER
+        sub = pfsConfig.select(fiberStatus=fiberStatus)
+        self.assertEqual(len(sub), self.numBroken)
+        self.assertFloatsEqual(sub.fiberStatus, fiberStatus)
+
+        index = 2*self.numFibers//3
+        sub = pfsConfig.select(catId=pfsConfig.catId[index], tract=pfsConfig.tract[index],
+                               patch=pfsConfig.patch[index], objId=pfsConfig.objId[index])
+        self.assertEqual(len(sub), 1)
+        self.assertEqual(sub.catId[0], pfsConfig.catId[index])
+        self.assertEqual(sub.tract[0], pfsConfig.tract[index])
+        self.assertEqual(sub.patch[0], pfsConfig.patch[index])
+        self.assertEqual(sub.objId[0], pfsConfig.objId[index])
+
 
 class TestMemory(lsst.utils.tests.MemoryTestCase):
     pass
