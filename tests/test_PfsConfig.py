@@ -358,6 +358,36 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
         result = pfsConfig.selectFiber(pfsConfig.fiberId[index])
         self.assertFloatsEqual(result, sorted(index))  # Note the need to sort
 
+    def testSelectByTargetType(self):
+        """Test selectByTargetType"""
+        pfsConfig = self.makePfsConfig()
+        for name in TargetType.__members__:
+            targetType = getattr(TargetType, name)
+            indices = pfsConfig.selectByTargetType(targetType)
+            select = pfsConfig.targetType == targetType
+            self.assertEqual(len(indices), select.sum())
+            self.assertFloatsEqual(pfsConfig.fiberId[indices], pfsConfig.fiberId[select])
+
+            fiberId = pfsConfig.fiberId[::-1]
+            indices = pfsConfig.selectByTargetType(targetType, fiberId)
+            self.assertEqual(len(indices), select.sum())
+            self.assertFloatsEqual(pfsConfig.fiberId[indices], pfsConfig.fiberId[select[::-1]])
+
+    def testSelectByFiberStatus(self):
+        """Test selectByFiberStatus"""
+        pfsConfig = self.makePfsConfig()
+        for name in FiberStatus.__members__:
+            fiberStatus = getattr(FiberStatus, name)
+            indices = pfsConfig.selectByFiberStatus(fiberStatus)
+            select = pfsConfig.fiberStatus == fiberStatus
+            self.assertEqual(len(indices), select.sum())
+            self.assertFloatsEqual(pfsConfig.fiberId[indices], pfsConfig.fiberId[select])
+
+            fiberId = pfsConfig.fiberId[::-1]
+            indices = pfsConfig.selectByFiberStatus(fiberStatus, fiberId)
+            self.assertEqual(len(indices), select.sum())
+            self.assertFloatsEqual(pfsConfig.fiberId[indices], pfsConfig.fiberId[select[::-1]])
+
 
 class TestMemory(lsst.utils.tests.MemoryTestCase):
     pass
