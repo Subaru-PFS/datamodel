@@ -333,6 +333,18 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
         self.assertEqual(sub.patch[0], pfsConfig.patch[index])
         self.assertEqual(sub.objId[0], pfsConfig.objId[index])
 
+    def testSelectFiber(self):
+        """Test selectFiber"""
+        pfsConfig = self.makePfsConfig()
+
+        index = 37
+        result = pfsConfig.selectFiber(pfsConfig.fiberId[index])
+        self.assertEqual(result, 37)
+
+        index = np.array([42, 37, 1234])
+        result = pfsConfig.selectFiber(pfsConfig.fiberId[index])
+        self.assertFloatsEqual(result, sorted(index))  # Note the need to sort
+
 
 class TestMemory(lsst.utils.tests.MemoryTestCase):
     pass

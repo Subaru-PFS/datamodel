@@ -649,26 +649,22 @@ class PfsDesign:
     def selectFiber(self, fiberId):
         """Select fiber(s) by fiber identifier
 
-        Returns the index for the provided fiber identifier.
+        Returns the indices for the provided fiber identifiers.
+
+        Note that the order will not be consistent.
 
         Parameters
         ----------
-        fiberId : iterable of `int`
+        fiberId : `int` or iterable of `int`
             Fiber identifiers to select.
 
         Returns
         -------
         index : array-like of `int`
-            Indices for fiber.
+            Indices for fibers.
         """
-        def impl(fiberId):
-            """Implementation: get index of fiber"""
-            return np.nonzero(self.fiberId == fiberId)[0]
-
-        try:
-            return np.array([impl(ff) for ff in fiberId])
-        except TypeError:  # fiberId is not iterable
-            return impl(fiberId)
+        result = np.nonzero(np.isin(self.fiberId, fiberId))[0]
+        return result.item() if np.isscalar(fiberId) else result
 
     def getIdentityFromIndex(self, index):
         """Return the identity of the target indicated by the index
