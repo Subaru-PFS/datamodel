@@ -502,19 +502,19 @@ class PfsDesign:
 
         Parameters
         ----------
-        fiberId : `int`, optional
+        fiberId : `int` (scalar or array_like), optional
             Fiber identifier to select.
-        targetType : `TargetType`, optional
+        targetType : `TargetType` (scalar or array_like), optional
             Target type to select.
-        fiberStatus : `FiberStatus`, optional
+        fiberStatus : `FiberStatus` (scalar or array_like), optional
             Fiber status to select.
-        catId : `int`, optional
+        catId : `int` (scalar or array_like), optional
             Catalog identifier to select.
-        tract : `int`, optional
+        tract : `int` (scalar or array_like), optional
             Tract number to select.
-        patch : `str`, optional
+        patch : `str` (scalar or array_like), optional
             Patch name to select.
-        objId : `int`
+        objId : `int` (scalar or array_like), optional
             Object identifier to select.
 
         Returns
@@ -524,19 +524,19 @@ class PfsDesign:
         """
         selection = np.ones(len(self), dtype=bool)
         if fiberId is not None:
-            selection &= self.fiberId == fiberId
+            selection &= np.isin(self.fiberId, fiberId)
         if targetType is not None:
-            selection &= self.targetType == targetType
+            selection &= np.isin(self.targetType, targetType)
         if fiberStatus is not None:
-            selection &= self.fiberStatus == fiberStatus
+            selection &= np.isin(self.fiberStatus, fiberStatus)
         if catId is not None:
-            selection &= self.catId == catId
+            selection &= np.isin(self.catId, catId)
         if tract is not None:
-            selection &= self.tract == tract
+            selection &= np.isin(self.tract, tract)
         if patch is not None:
-            selection &= self.patch == patch
+            selection &= np.isin(self.patch, patch)
         if objId is not None:
-            selection &= self.objId == objId
+            selection &= np.isin(self.objId, objId)
         return selection
 
     def select(self, **kwargs):
@@ -546,19 +546,19 @@ class PfsDesign:
 
         Parameters
         ----------
-        fiberId : `int`, optional
+        fiberId : `int` (scalar or array_like), optional
             Fiber identifier to select.
-        targetType : `TargetType`, optional
+        targetType : `TargetType` (scalar or array_like), optional
             Target type to select.
-        fiberStatus : `FiberStatus`, optional
+        fiberStatus : `FiberStatus` (scalar or array_like), optional
             Fiber status to select.
-        catId : `int`, optional
+        catId : `int` (scalar or array_like), optional
             Catalog identifier to select.
-        tract : `int`, optional
+        tract : `int` (scalar or array_like), optional
             Tract number to select.
-        patch : `str`, optional
+        patch : `str` (scalar or array_like), optional
             Patch name to select.
-        objId : `int`
+        objId : `int` (scalar or array_like), optional
             Object identifier to select.
 
         Returns

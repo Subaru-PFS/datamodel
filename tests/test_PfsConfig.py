@@ -333,6 +333,19 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
         self.assertEqual(sub.patch[0], pfsConfig.patch[index])
         self.assertEqual(sub.objId[0], pfsConfig.objId[index])
 
+        indices = np.array([42, 37, 1234])
+        sub = pfsConfig.select(fiberId=self.fiberId[indices])
+        self.assertEqual(len(sub), len(indices))
+        self.assertFloatsEqual(sub.fiberId, pfsConfig.fiberId[np.sort(indices)])
+
+        fiberStatus = (FiberStatus.BROKENFIBER, FiberStatus.BLOCKED)
+        sub = pfsConfig.select(fiberStatus=fiberStatus)
+        self.assertEqual(len(sub), self.numBroken + self.numBlocked)
+        select = np.zeros(len(pfsConfig), dtype=bool)
+        for ff in fiberStatus:
+            select |= pfsConfig.fiberStatus == ff
+        self.assertFloatsEqual(sub.fiberStatus, pfsConfig[select].fiberStatus)
+
     def testSelectFiber(self):
         """Test selectFiber"""
         pfsConfig = self.makePfsConfig()
