@@ -591,8 +591,7 @@ class PfsDesign:
         select = self.targetType == targetType
         if fiberId is None:
             return np.nonzero(select)[0]
-        selected = set(self.fiberId[select])
-        return np.array([ii for ii, ff in enumerate(fiberId) if ff in selected])
+        return np.nonzero(np.isin(fiberId, self.fiberId[select]))[0]
 
     def selectByFiberStatus(self, fiberStatus, fiberId=None):
         """Select fibers by ``fiberStatus``
@@ -616,8 +615,7 @@ class PfsDesign:
         select = self.fiberStatus == fiberStatus
         if fiberId is None:
             return np.nonzero(select)[0]
-        selected = set(self.fiberId[select])
-        return np.array([ii for ii, ff in enumerate(fiberId) if ff in selected])
+        return np.nonzero(np.isin(fiberId, self.fiberId[select]))[0]
 
     def selectTarget(self, catId, tract, patch, objId):
         """Select fiber by target
@@ -717,7 +715,7 @@ class PfsDesign:
         nominal : `numpy.ndarray` of shape ``(N, 2)``
             Nominal position for each fiber.
         """
-        index = np.array([np.argwhere(self.fiberId == ff)[0][0] for ff in fiberId])
+        index = np.nonzero(np.isin(self.fiberId, fiberId))[0]
         return self.pfiNominal[index]
 
 
@@ -917,5 +915,5 @@ class PfsConfig(PfsDesign):
         centers : `numpy.ndarray` of shape ``(N, 2)``
             Center of each fiber.
         """
-        index = np.array([np.argwhere(self.fiberId == ff)[0][0] for ff in fiberId])
+        index = np.nonzero(np.isin(self.fiberId, fiberId))[0]
         return self.pfiCenter[index]
