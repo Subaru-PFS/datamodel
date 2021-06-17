@@ -125,19 +125,19 @@ class PfsFiberArraySet:
         ----------
         pfsConfig : `pfs.datamodel.PfsConfig`
             Top-end configuration.
-        fiberId : `int`, optional
+        fiberId : `int` (scalar or array_like), optional
             Fiber identifier to select.
-        targetType : `TargetType`, optional
+        targetType : `TargetType` (scalar or array_like), optional
             Target type to select.
-        fiberStatus : `FiberStatus`, optional
+        fiberStatus : `FiberStatus` (scalar or array_like), optional
             Fiber status to select.
-        catId : `int`, optional
+        catId : `int` (scalar or array_like), optional
             Catalog identifier to select.
-        tract : `int`, optional
+        tract : `int` (scalar or array_like), optional
             Tract number to select.
-        patch : `str`, optional
+        patch : `str` (scalar or array_like), optional
             Patch name to select.
-        objId : `int`
+        objId : `int` (scalar or array_like), optional
             Object identifier to select.
 
         Returns

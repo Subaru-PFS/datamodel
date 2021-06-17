@@ -333,6 +333,61 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
         self.assertEqual(sub.patch[0], pfsConfig.patch[index])
         self.assertEqual(sub.objId[0], pfsConfig.objId[index])
 
+        indices = np.array([42, 37, 1234])
+        sub = pfsConfig.select(fiberId=self.fiberId[indices])
+        self.assertEqual(len(sub), len(indices))
+        self.assertFloatsEqual(sub.fiberId, pfsConfig.fiberId[np.sort(indices)])
+
+        fiberStatus = (FiberStatus.BROKENFIBER, FiberStatus.BLOCKED)
+        sub = pfsConfig.select(fiberStatus=fiberStatus)
+        self.assertEqual(len(sub), self.numBroken + self.numBlocked)
+        select = np.zeros(len(pfsConfig), dtype=bool)
+        for ff in fiberStatus:
+            select |= pfsConfig.fiberStatus == ff
+        self.assertFloatsEqual(sub.fiberStatus, pfsConfig[select].fiberStatus)
+
+    def testSelectFiber(self):
+        """Test selectFiber"""
+        pfsConfig = self.makePfsConfig()
+
+        index = 37
+        result = pfsConfig.selectFiber(pfsConfig.fiberId[index])
+        self.assertEqual(result, 37)
+
+        index = np.array([42, 37, 1234])
+        result = pfsConfig.selectFiber(pfsConfig.fiberId[index])
+        self.assertFloatsEqual(result, sorted(index))  # Note the need to sort
+
+    def testSelectByTargetType(self):
+        """Test selectByTargetType"""
+        pfsConfig = self.makePfsConfig()
+        for name in TargetType.__members__:
+            targetType = getattr(TargetType, name)
+            indices = pfsConfig.selectByTargetType(targetType)
+            select = pfsConfig.targetType == targetType
+            self.assertEqual(len(indices), select.sum())
+            self.assertFloatsEqual(pfsConfig.fiberId[indices], pfsConfig.fiberId[select])
+
+            fiberId = pfsConfig.fiberId[::-1]
+            indices = pfsConfig.selectByTargetType(targetType, fiberId)
+            self.assertEqual(len(indices), select.sum())
+            self.assertFloatsEqual(pfsConfig.fiberId[indices], pfsConfig.fiberId[select[::-1]])
+
+    def testSelectByFiberStatus(self):
+        """Test selectByFiberStatus"""
+        pfsConfig = self.makePfsConfig()
+        for name in FiberStatus.__members__:
+            fiberStatus = getattr(FiberStatus, name)
+            indices = pfsConfig.selectByFiberStatus(fiberStatus)
+            select = pfsConfig.fiberStatus == fiberStatus
+            self.assertEqual(len(indices), select.sum())
+            self.assertFloatsEqual(pfsConfig.fiberId[indices], pfsConfig.fiberId[select])
+
+            fiberId = pfsConfig.fiberId[::-1]
+            indices = pfsConfig.selectByFiberStatus(fiberStatus, fiberId)
+            self.assertEqual(len(indices), select.sum())
+            self.assertFloatsEqual(pfsConfig.fiberId[indices], pfsConfig.fiberId[select[::-1]])
+
 
 class TestMemory(lsst.utils.tests.MemoryTestCase):
     pass

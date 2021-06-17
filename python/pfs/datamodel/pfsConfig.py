@@ -502,19 +502,19 @@ class PfsDesign:
 
         Parameters
         ----------
-        fiberId : `int`, optional
+        fiberId : `int` (scalar or array_like), optional
             Fiber identifier to select.
-        targetType : `TargetType`, optional
+        targetType : `TargetType` (scalar or array_like), optional
             Target type to select.
-        fiberStatus : `FiberStatus`, optional
+        fiberStatus : `FiberStatus` (scalar or array_like), optional
             Fiber status to select.
-        catId : `int`, optional
+        catId : `int` (scalar or array_like), optional
             Catalog identifier to select.
-        tract : `int`, optional
+        tract : `int` (scalar or array_like), optional
             Tract number to select.
-        patch : `str`, optional
+        patch : `str` (scalar or array_like), optional
             Patch name to select.
-        objId : `int`
+        objId : `int` (scalar or array_like), optional
             Object identifier to select.
 
         Returns
@@ -524,19 +524,19 @@ class PfsDesign:
         """
         selection = np.ones(len(self), dtype=bool)
         if fiberId is not None:
-            selection &= self.fiberId == fiberId
+            selection &= np.isin(self.fiberId, fiberId)
         if targetType is not None:
-            selection &= self.targetType == targetType
+            selection &= np.isin(self.targetType, targetType)
         if fiberStatus is not None:
-            selection &= self.fiberStatus == fiberStatus
+            selection &= np.isin(self.fiberStatus, fiberStatus)
         if catId is not None:
-            selection &= self.catId == catId
+            selection &= np.isin(self.catId, catId)
         if tract is not None:
-            selection &= self.tract == tract
+            selection &= np.isin(self.tract, tract)
         if patch is not None:
-            selection &= self.patch == patch
+            selection &= np.isin(self.patch, patch)
         if objId is not None:
-            selection &= self.objId == objId
+            selection &= np.isin(self.objId, objId)
         return selection
 
     def select(self, **kwargs):
@@ -546,19 +546,19 @@ class PfsDesign:
 
         Parameters
         ----------
-        fiberId : `int`, optional
+        fiberId : `int` (scalar or array_like), optional
             Fiber identifier to select.
-        targetType : `TargetType`, optional
+        targetType : `TargetType` (scalar or array_like), optional
             Target type to select.
-        fiberStatus : `FiberStatus`, optional
+        fiberStatus : `FiberStatus` (scalar or array_like), optional
             Fiber status to select.
-        catId : `int`, optional
+        catId : `int` (scalar or array_like), optional
             Catalog identifier to select.
-        tract : `int`, optional
+        tract : `int` (scalar or array_like), optional
             Tract number to select.
-        patch : `str`, optional
+        patch : `str` (scalar or array_like), optional
             Patch name to select.
-        objId : `int`
+        objId : `int` (scalar or array_like), optional
             Object identifier to select.
 
         Returns
@@ -591,8 +591,7 @@ class PfsDesign:
         select = self.targetType == targetType
         if fiberId is None:
             return np.nonzero(select)[0]
-        selected = set(self.fiberId[select])
-        return np.array([ii for ii, ff in enumerate(fiberId) if ff in selected])
+        return np.nonzero(np.isin(fiberId, self.fiberId[select]))[0]
 
     def selectByFiberStatus(self, fiberStatus, fiberId=None):
         """Select fibers by ``fiberStatus``
@@ -616,8 +615,7 @@ class PfsDesign:
         select = self.fiberStatus == fiberStatus
         if fiberId is None:
             return np.nonzero(select)[0]
-        selected = set(self.fiberId[select])
-        return np.array([ii for ii, ff in enumerate(fiberId) if ff in selected])
+        return np.nonzero(np.isin(fiberId, self.fiberId[select]))[0]
 
     def selectTarget(self, catId, tract, patch, objId):
         """Select fiber by target
@@ -649,26 +647,22 @@ class PfsDesign:
     def selectFiber(self, fiberId):
         """Select fiber(s) by fiber identifier
 
-        Returns the index for the provided fiber identifier.
+        Returns the indices for the provided fiber identifiers.
+
+        Note that the order will not be consistent.
 
         Parameters
         ----------
-        fiberId : iterable of `int`
+        fiberId : `int` or iterable of `int`
             Fiber identifiers to select.
 
         Returns
         -------
         index : array-like of `int`
-            Indices for fiber.
+            Indices for fibers.
         """
-        def impl(fiberId):
-            """Implementation: get index of fiber"""
-            return np.nonzero(self.fiberId == fiberId)[0]
-
-        try:
-            return np.array([impl(ff) for ff in fiberId])
-        except TypeError:  # fiberId is not iterable
-            return impl(fiberId)
+        result = np.nonzero(np.isin(self.fiberId, fiberId))[0]
+        return result.item() if np.isscalar(fiberId) else result
 
     def getIdentityFromIndex(self, index):
         """Return the identity of the target indicated by the index
@@ -721,7 +715,7 @@ class PfsDesign:
         nominal : `numpy.ndarray` of shape ``(N, 2)``
             Nominal position for each fiber.
         """
-        index = np.array([np.argwhere(self.fiberId == ff)[0][0] for ff in fiberId])
+        index = np.nonzero(np.isin(self.fiberId, fiberId))[0]
         return self.pfiNominal[index]
 
 
@@ -921,5 +915,5 @@ class PfsConfig(PfsDesign):
         centers : `numpy.ndarray` of shape ``(N, 2)``
             Center of each fiber.
         """
-        index = np.array([np.argwhere(self.fiberId == ff)[0][0] for ff in fiberId])
+        index = np.nonzero(np.isin(self.fiberId, fiberId))[0]
         return self.pfiCenter[index]
