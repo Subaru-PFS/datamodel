@@ -93,6 +93,63 @@ class PfsFiberArraySet:
         """Stringify"""
         return "%s{%d spectra of length %d}" % (self.__class__.__name__, self.numSpectra, self.length)
 
+    def __iter__(self):
+        """Iteration is unimplemented because it would be inefficient"""
+        return NotImplementedError(f"Cannot iterate on {self.__class__.__name__}")
+
+    def __getitem__(self, logical):
+        """Sub-selection
+
+        Parameters
+        ----------
+        logical : `numpy.ndarray` of `bool`
+            Boolean array (of same length as ``self``) indicating which fibers
+            to select.
+
+        Returns
+        -------
+        new : ``type(self)``
+            A new instance containing only the selected fibers.
+        """
+        kwargs = {name: getattr(self, name) for name in ("identity", "flags", "metadata")}
+        kwargs.update(**{name: getattr(self, name)[logical] for
+                         name in ("fiberId", "wavelength", "flux", "mask", "sky", "covar")})
+        return type(self)(**kwargs)
+
+    def select(self, pfsConfig, **kwargs):
+        """Return an instance containing only the selected attributes
+
+        Multiple attributes will be combined with ``AND``.
+
+        Parameters
+        ----------
+        pfsConfig : `pfs.datamodel.PfsConfig`
+            Top-end configuration.
+        fiberId : `int`, optional
+            Fiber identifier to select.
+        targetType : `TargetType`, optional
+            Target type to select.
+        fiberStatus : `FiberStatus`, optional
+            Fiber status to select.
+        catId : `int`, optional
+            Catalog identifier to select.
+        tract : `int`, optional
+            Tract number to select.
+        patch : `str`, optional
+            Patch name to select.
+        objId : `int`
+            Object identifier to select.
+
+        Returns
+        -------
+        selected : ``type(self)``
+            An instance containing only the selected attributes.
+        """
+        if len(pfsConfig) != len(self):
+            raise RuntimeError(f"Length mismatch for pfsConfig: {len(pfsConfig)} vs {len(self)}")
+        selection = pfsConfig.getSelection(**kwargs)
+        return self[selection]
+
     @property
     def filename(self):
         """Filename, without directory"""
