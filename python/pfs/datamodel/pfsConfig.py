@@ -257,8 +257,9 @@ class PfsDesign:
         return "PfsDesign(%d, ...)" % (self.pfsDesignId)
 
     def __iter__(self):
-        """Iteration is unimplemented because it would be inefficient"""
-        return NotImplementedError(f"Cannot iterate on {self.__class__.__name__}")
+        """Iteration returns the target for each fiber"""
+        for ii in range(len(self)):
+            yield self.getTarget(ii)
 
     def __getitem__(self, logical):
         """Sub-selection
