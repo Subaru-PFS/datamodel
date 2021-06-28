@@ -286,6 +286,22 @@ class PfsDesign:
             kwargs[name] = subArray
         return type(self)(**kwargs)
 
+    def getTarget(self, index):
+        """Return target by index
+
+        Parameters
+        ----------
+        index : `int`
+            Index of fiber of interest.
+
+        Returns
+        -------
+        target : `pfs.datamodel.Target`
+            Target for fiber.
+        """
+        from pfs.datamodel.target import Target  # noqa: prevent circular import dependency
+        return Target.fromPfsConfig(self, index)
+
     @property
     def filename(self):
         """Usual filename"""
