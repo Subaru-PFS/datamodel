@@ -257,8 +257,9 @@ class PfsDesign:
         return "PfsDesign(%d, ...)" % (self.pfsDesignId)
 
     def __iter__(self):
-        """Iteration is unimplemented because it would be inefficient"""
-        return NotImplementedError(f"Cannot iterate on {self.__class__.__name__}")
+        """Iteration returns the target for each fiber"""
+        for ii in range(len(self)):
+            yield self.getTarget(ii)
 
     def __getitem__(self, logical):
         """Sub-selection
@@ -285,6 +286,22 @@ class PfsDesign:
                 subArray = [array[ii] for ii in range(numOriginal) if logical[ii]]
             kwargs[name] = subArray
         return type(self)(**kwargs)
+
+    def getTarget(self, index):
+        """Return target by index
+
+        Parameters
+        ----------
+        index : `int`
+            Index of fiber of interest.
+
+        Returns
+        -------
+        target : `pfs.datamodel.Target`
+            Target for fiber.
+        """
+        from pfs.datamodel.target import Target  # noqa: prevent circular import dependency
+        return Target.fromPfsConfig(self, index)
 
     @property
     def filename(self):
