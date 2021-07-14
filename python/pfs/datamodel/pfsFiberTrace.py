@@ -137,34 +137,3 @@ class PfsFiberTrace:
             fd[2].name = "MASK"
             fd[3].name = "VARIANCE"
             fd.append(hdu)
-
-    def calculateCounts(self, pfsArm, fiberId):
-        """Return the reconstructed counts in a particular trace
-
-        The extracted fluxes in the ``pfsArm`` are relative; the scaling is
-        contained within this fiberTrace.
-
-        Parameters
-        ----------
-        pfsArm : `pfs.datamodel.PfsArm`
-            Spectra extracted from a spectrograph arm.
-        fiberId : `int`
-            Fiber identifier for which to calculate scaling.
-
-        Returns
-        -------
-        counts : numpy.ndarray` of `float`
-            Counts for each row in the spectrum.
-        """
-        ftIndex = np.where(self.fiberId == fiberId)[0]
-        assert ftIndex.shape == (1,), "fiberId is not unique in pfsFiberTrace"
-        trace = self.traces[ftIndex[0]]
-        yMin = trace.getBBox().getMinY()
-        yMax = trace.getBBox().getMaxY()
-
-        armIndex = np.where(pfsArm.fiberId == fiberId)[0]
-        assert armIndex.shape == (1,), "fiberId is not unique in pfsArm"
-        flux = pfsArm.flux[armIndex, yMin:yMax + 1]
-
-        scaling = np.sum(trace.image.array, axis=1)
-        return flux*scaling
