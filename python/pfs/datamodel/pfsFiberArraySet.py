@@ -33,6 +33,8 @@ class PfsFiberArraySet:
         Array of mask pixels for each spectrum.
     sky : `numpy.ndarray` of `float`
         Array of sky values for each spectrum.
+    norm : `numpy.ndarray` of `float`
+        Normalisation for each spectrum.
     covar : `numpy.ndarray` of `float`
         Array of covariances for each spectrum.
     flags : `dict`
@@ -56,13 +58,14 @@ class PfsFiberArraySet:
     Keys should be in the same order as for the regex.
     """
 
-    def __init__(self, identity, fiberId, wavelength, flux, mask, sky, covar, flags, metadata):
+    def __init__(self, identity, fiberId, wavelength, flux, mask, sky, norm, covar, flags, metadata):
         self.identity = identity
         self.fiberId = fiberId
         self.wavelength = wavelength
         self.flux = flux
         self.mask = mask
         self.sky = sky
+        self.norm = norm
         self.covar = covar
         self.flags = flags
         self.metadata = metadata
@@ -113,7 +116,7 @@ class PfsFiberArraySet:
         """
         kwargs = {name: getattr(self, name) for name in ("identity", "flags", "metadata")}
         kwargs.update(**{name: getattr(self, name)[logical] for
-                         name in ("fiberId", "wavelength", "flux", "mask", "sky", "covar")})
+                         name in ("fiberId", "wavelength", "flux", "mask", "sky", "norm", "covar")})
         return type(self)(**kwargs)
 
     def select(self, pfsConfig, **kwargs):
@@ -220,10 +223,16 @@ class PfsFiberArraySet:
                                 ("flux", float),
                                 ("mask", np.int32),
                                 ("sky", float),
+                                # "norm" is treated separately, for backwards-compatibility
                                 ("covar", float)
                                 ):
                 hduName = attr.upper()
                 data[attr] = fd[hduName].data.astype(dtype)
+            version = fd[0].header["DAMD_VER"]
+            if version >= 2:
+                data["norm"] = fd["NORM"].data.astype(float)
+            else:
+                data["norm"] = np.ones_like(data["flux"], dtype=float)
             data["identity"] = Identity.fromFits(fd)
 
         data["flags"] = MaskHelper.fromFitsHeader(data["metadata"])
@@ -272,9 +281,9 @@ class PfsFiberArraySet:
         header = self.metadata.copy()
         header.update(self.flags.toFitsHeader())
         header = astropyHeaderFromDict(header)
-        header['DAMD_VER'] = (1, "PfsFiberArraySet datamodel version")
+        header['DAMD_VER'] = (2, "PfsFiberArraySet datamodel version")
         fits.append(astropy.io.fits.PrimaryHDU(header=header))
-        for attr in ("fiberId", "wavelength", "flux", "mask", "sky", "covar"):
+        for attr in ("fiberId", "wavelength", "flux", "mask", "sky", "norm", "covar"):
             hduName = attr.upper()
             data = getattr(self, attr)
             fits.append(astropy.io.fits.ImageHDU(data, name=hduName))
@@ -324,6 +333,7 @@ class PfsFiberArraySet:
         flux = np.empty((num, length), dtype=float)
         mask = np.empty((num, length), dtype=int)
         sky = np.empty((num, length), dtype=float)
+        norm = np.empty((num, length), dtype=float)
         covar = np.empty((num, 3, length), dtype=float)
         index = 0
         for ss in spectraList:
@@ -333,11 +343,12 @@ class PfsFiberArraySet:
             flux[select] = ss.flux
             mask[select] = ss.mask
             sky[select] = ss.sky
+            norm[select] = ss.norm
             covar[select] = ss.covar
             index += len(ss)
         identity = Identity.fromMerge([ss.identity for ss in spectraList])
         flags = MaskHelper.fromMerge(list(ss.flags for ss in spectraList))
-        return cls(identity, fiberId, wavelength, flux, mask, sky, covar, flags,
+        return cls(identity, fiberId, wavelength, flux, mask, sky, norm, covar, flags,
                    metadata if metadata else {})
 
     def extractFiber(self, FiberArrayClass, pfsConfig, fiberId):
@@ -376,9 +387,12 @@ class PfsFiberArraySet:
                         pfsConfig.targetType[jj], fiberFlux)
         obs = Observations.makeSingle(self.identity, pfsConfig, fiberId)
 
-        # XXX not dealing with covariance properly.
         covar = np.zeros((3, self.length), dtype=self.covar.dtype)
-        covar[:] = self.covar[ii]
+        with np.errstate(divide="ignore", invalid="ignore"):
+            flux = self.flux[ii]/self.norm[ii]
+            sky = self.sky[ii]/self.norm[ii]
+            # XXX not dealing with covariance properly.
+            covar[:] = self.covar[ii]/self.norm[ii]**2
         covar2 = np.zeros((1, 1), dtype=self.covar.dtype)
-        return FiberArrayClass(target, obs, self.wavelength[ii], self.flux[ii], self.mask[ii], self.sky[ii],
+        return FiberArrayClass(target, obs, self.wavelength[ii], flux, self.mask[ii], sky,
                                covar, covar2, self.flags)
