@@ -319,7 +319,10 @@ The DESIGN table lists for each object:
       fiberStatus    32-bit int (enumerated type: e.g. GOOD,BROKENFIBER,BLOCKED,BLACKSPOT)
       pfiNominal     pair of 32-bit floats (microns on the PFI)
 
-N.b. fiberIds start at 1.
+Note that:
+* the fiberIds start at 1.
+* the combination of (catId, objId) must be unique
+    [with the exception where (catId=-1 objId=-1) which corresponds to an untargeted fiber.]
 
 The 'targetType' in the DESIGN table is an enumerated type, with values:
       SCIENCE = 1: the fiber is intended to be on a science target.
