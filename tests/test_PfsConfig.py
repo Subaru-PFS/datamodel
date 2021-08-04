@@ -243,6 +243,29 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
             with self.assertRaises(RuntimeError):
                 self.makePfsConfig(**{name: array})
 
+        # Duplicate (catId, objId) combos
+        catId = list(self.catId)
+        objId = list(self.objId)
+        catId[0] = catId[1]
+        objId[0] = objId[1]
+        catId[2] = catId[3]
+        objId[2] = objId[3]
+        with self.assertRaises(ValueError):
+            self.makePfsDesign(catId=catId, objId=objId)
+
+    def testNonTargetedFiber(self):
+        """Tests duplicate (catId, objId) combos
+            where catId=-1 and objId=-1
+            are accepted, as these correspond to non-targetted fibers
+        """
+        catId = list(self.catId)
+        objId = list(self.objId)
+        catId[0] = -1
+        objId[0] = -1
+        catId[1] = -1
+        objId[1] = -1
+        self.makePfsDesign(catId=catId, objId=objId)
+
     def testFromPfsDesign(self):
         """Test PfsConfig.fromPfsDesign"""
         design = self.makePfsDesign()

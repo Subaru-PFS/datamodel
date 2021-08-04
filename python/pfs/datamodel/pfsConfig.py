@@ -1,6 +1,7 @@
 import numpy as np
 import os
 import enum
+from collections import Counter
 
 try:
     import astropy.io.fits as pyfits
@@ -160,7 +161,8 @@ class PfsDesign:
         RuntimeError
             If there are inconsistent lengths or the GuideStars instance passed is None.
         ValueError:
-            If the ``targetType`` or ``fiberStatus`` is not recognised.
+            If the ``targetType`` or ``fiberStatus`` is not recognised, or
+            if the combination of ``catId`` and ``objId`` are not unique.
         """
         if self.guideStars is None:
             raise RuntimeError('The GuideStars instance cannot be None. '
@@ -209,6 +211,15 @@ class PfsDesign:
             matrix = getattr(self, nn)
             if matrix.shape != (len(self.fiberId), 2):
                 raise RuntimeError("Wrong shape for %s: %s vs (%d,2)" % (nn, matrix.shape, len(self.fiberId)))
+
+        # Check for duplicates of catId, objId combinations.
+        counts = Counter(zip(self.catId, self.objId))
+        counts.pop((-1, -1), None)  # ignore untargetted fibers
+        if counts.most_common(1)[0][1] > 1:
+            duplicates = {tup: count for tup, count in counts.items() if count > 1}
+            raise ValueError(f'design {self.pfsDesignId:#016x} contains duplicate occurrences of'
+                             ' the same (catId, objId) combination. Details below:\n'
+                             f'{{(catId, objId): number of occurrences}}:\n\t {duplicates}')
 
     def __init__(self, pfsDesignId, raBoresight, decBoresight,
                  posAng,
