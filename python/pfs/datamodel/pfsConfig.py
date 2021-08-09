@@ -524,7 +524,8 @@ class PfsDesign:
         self._writeImpl(os.path.join(dirName, fileName))
 
     def getSelection(self, fiberId=None, targetType=None, fiberStatus=None,
-                     catId=None, tract=None, patch=None, objId=None):
+                     catId=None, tract=None, patch=None, objId=None,
+                     spectrograph=None):
         """Return a boolean array indicating which fibers are selected
 
         Multiple attributes will be combined with ``AND``.
@@ -545,6 +546,8 @@ class PfsDesign:
             Patch name to select.
         objId : `int` (scalar or array_like), optional
             Object identifier to select.
+        spectrograph : `int` (scalar or array_like), optional
+            Spectrograph to select.
 
         Returns
         -------
@@ -566,6 +569,8 @@ class PfsDesign:
             selection &= np.isin(self.patch, patch)
         if objId is not None:
             selection &= np.isin(self.objId, objId)
+        if spectrograph is not None:
+            selection &= np.isin(self.spectrograph, spectrograph)
         return selection
 
     def select(self, **kwargs):
