@@ -729,6 +729,12 @@ The path would be
 The file will have several HDUs:
 
 HDU#0 PHDU
+     tract       INT          Tract identifier           
+     patch       KEYWORD      Patch identifier
+     catId       INT          Catalog identifier        
+     objId       INT	      Object identifier
+     nvisit	 INT	      Number of visit
+     vHash	 KEYWORD      63-bit SHA-1 list of visits      
      D1D_VER      KEYWORD     Version of the DRP_1D library
      D1DP_VER     KEYWORD     Version of the DRP_1DPIPE pipeline
      DAMD_VER     KEYWORD     Version of the data model
@@ -817,7 +823,7 @@ HDU#8 STAR_CANDIDATES            Binary table            [FITS BINARY TABLE]    
 
 HDU#9 STAR_PDF                   Binary table            [FITS BINARY TABLE]     NPIX
         Colums for :
-        REDSHIFT                FLOAT[NPIX]             Redshift grid
+        VELOCITY                FLOAT[NPIX]             Radial velocity grid
         PDF                     FLOAT[NPIX]             PDF related to best model
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
