@@ -150,10 +150,8 @@ class PfsFiberArraySet:
         selected : ``type(self)``
             An instance containing only the selected attributes.
         """
-        if len(pfsConfig) != len(self):
-            raise RuntimeError(f"Length mismatch for pfsConfig: {len(pfsConfig)} vs {len(self)}")
         selection = pfsConfig.getSelection(**kwargs)
-        return self[selection]
+        return self[np.isin(self.fiberId, pfsConfig.fiberId[selection])]
 
     @property
     def filename(self):
