@@ -311,6 +311,8 @@ class PfsFiberArraySet:
     def fromMerge(cls, spectraList, metadata=None):
         """Construct from merging multiple spectra
 
+        The merged spectra are sorted by fiberId.
+
         Parameters
         ----------
         spectraList : iterable of `PfsFiberArraySet`
@@ -346,10 +348,12 @@ class PfsFiberArraySet:
             norm[select] = ss.norm
             covar[select] = ss.covar
             index += len(ss)
+
+        indices = np.argsort(fiberId)
         identity = Identity.fromMerge([ss.identity for ss in spectraList])
         flags = MaskHelper.fromMerge(list(ss.flags for ss in spectraList))
-        return cls(identity, fiberId, wavelength, flux, mask, sky, norm, covar, flags,
-                   metadata if metadata else {})
+        return cls(identity, fiberId[indices], wavelength[indices], flux[indices], mask[indices],
+                   sky[indices], norm[indices], covar[indices], flags, metadata if metadata else {})
 
     def extractFiber(self, FiberArrayClass, pfsConfig, fiberId):
         """Extract a single fiber
