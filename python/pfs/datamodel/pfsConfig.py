@@ -41,6 +41,22 @@ class DocEnum(enum.IntEnum):
         """Return the enum's name"""
         return self.name
 
+    @classmethod
+    def fromString(cls, name):
+        """Construct from the string name
+
+        Parameters
+        ----------
+        name : `str`
+            Name of the enum.
+
+        Returns
+        -------
+        self : cls
+            Enum with the supplied name.
+        """
+        return getattr(cls, name)
+
 
 class TargetType(DocEnum):
     """Enumerated options for what a fiber is targeting"""
