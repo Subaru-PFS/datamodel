@@ -121,9 +121,11 @@ MaskedImage
 
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-Raw Data (from the spectrograph cameras, but also e.g. the metrology camera)
+Raw Data
 
-   "PF%1s%1s%06d%1d%1d.fits" % (site, category, visit, spectrograph, armNum)
+From the spectrograph cameras:
+
+   "PF%1sA%06d%1d%1d.fits" % (site, visit, spectrograph, armNum)
 
 Format: as written by the DAQ system.  I believe that the "A" (science) frames are currently a single image
 extension of size > NCOLUMN*NROW due to extended registers and overclocks, even for the red and blue arms
@@ -133,6 +135,12 @@ N.b. the restriction to filenames of the form 4 letters followed by 8 decimal di
 
 Note that the order of the last two numbers is "spectrograph, armNum" whereas in all other filenames
 we use the order "arm, spectrograph" but now arm is a string (e.g. r2, n4).
+
+From the MCS:
+
+   "PF%1sC%06d%02d.fits" % (site, visit, sequenceId)
+
+Where a sequenceId is used to identify the individual frames.
 
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
