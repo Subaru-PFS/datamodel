@@ -142,6 +142,8 @@ class PfsFiberArraySet:
             Patch name to select.
         objId : `int` (scalar or array_like), optional
             Object identifier to select.
+        spectrograph : `int` (scalar or array_like), optional
+            Spectrograph number to select.
 
         Returns
         -------
