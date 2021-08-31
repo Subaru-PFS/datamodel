@@ -41,6 +41,22 @@ class DocEnum(enum.IntEnum):
         """Return the enum's name"""
         return self.name
 
+    @classmethod
+    def fromString(cls, name):
+        """Construct from the string name
+
+        Parameters
+        ----------
+        name : `str`
+            Name of the enum.
+
+        Returns
+        -------
+        self : cls
+            Enum with the supplied name.
+        """
+        return getattr(cls, name)
+
 
 class TargetType(DocEnum):
     """Enumerated options for what a fiber is targeting"""
@@ -215,7 +231,7 @@ class PfsDesign:
         # Check for duplicates of catId, objId combinations.
         counts = Counter(zip(self.catId, self.objId))
         counts.pop((-1, -1), None)  # ignore untargetted fibers
-        if counts.most_common(1)[0][1] > 1:
+        if counts and counts.most_common(1)[0][1] > 1:
             duplicates = {tup: count for tup, count in counts.items() if count > 1}
             raise ValueError(f'design {self.pfsDesignId:#016x} contains duplicate occurrences of'
                              ' the same (catId, objId) combination. Details below:\n'
