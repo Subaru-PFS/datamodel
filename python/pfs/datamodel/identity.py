@@ -40,6 +40,9 @@ class Identity(types.SimpleNamespace):
     def __init__(self, visit, arm=None, spectrograph=None, pfsDesignId=None):
         super().__init__(visit=visit, _arm=arm, _spectrograph=spectrograph, _pfsDesignId=pfsDesignId)
 
+    def __hash__(self):
+        return hash((self.visit, self.arm, self.spectrograph, self.pfsDesignId))
+
     @property
     def arm(self):
         return self._arm if self._arm is not None else self.defaultArm
