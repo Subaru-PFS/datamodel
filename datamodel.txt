@@ -127,9 +127,9 @@ From the spectrograph cameras:
 
    "PF%1sA%06d%1d%1d.fits" % (site, visit, spectrograph, armNum)
 
-Format: as written by the DAQ system.  I believe that the "A" (science) frames are currently a single image
+Format: as written by the DAQ system.  The "A" (science) frames are a single image
 extension of size > NCOLUMN*NROW due to extended registers and overclocks, even for the red and blue arms
-which are physically two devices.
+whose "detectors" consist of two physical devices.
 
 N.b. the restriction to filenames of the form 4 letters followed by 8 decimal digits comes from Subaru.
 
