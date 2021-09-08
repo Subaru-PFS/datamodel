@@ -729,17 +729,20 @@ The path would be
 The file will have several HDUs:
 
 HDU#0 PHDU
-     tract       INT          Tract identifier           
-     patch       KEYWORD      Patch identifier
-     catId       INT          Catalog identifier        
-     objId       INT	      Object identifier
-     nvisit	 INT	      Number of visit
-     vHash	 KEYWORD      63-bit SHA-1 list of visits      
-     D1D_VER      KEYWORD     Version of the DRP_1D library
-     D1DP_VER     KEYWORD     Version of the DRP_1DPIPE pipeline
-     DAMD_VER     KEYWORD     Version of the data model
-     PAR_FILE     KEYWORD     Parameters file name
-     ZWARNING     INT64       Quality flag
+     tract       INT         Tract identifier
+     patch       KEYWORD     Patch identifier
+     catId       INT         Catalog identifier        
+     objId       INT	     Object identifier
+     nvisit	 INT	     Number of visit
+     vHash	 KEYWORD     63-bit SHA-1 list of visits
+     CRPIX1	 FLOAT	     Pixel coordinate of reference point
+     CRVAL1	 FLOAT	     [m] Coordinate value at reference point
+     CDELT1	 FLOAT	     [m] Coordinate increment at reference point
+     D1D_VER     KEYWORD     Version of the DRP_1D library
+     D1DP_VER    KEYWORD     Version of the DRP_1DPIPE pipeline
+     DAMD_VER    KEYWORD     Version of the data model
+     U_PARAM     KEYWORD     User parameters contents, json
+     ZWARNING    INT64       Quality flag
 
 HDU#1 CLASSIFICATION
      CLASS        KEYWORD     Spectro classification: GALAXY, QSO, STAR
@@ -816,7 +819,7 @@ HDU#8 STAR_CANDIDATES            Binary table            [FITS BINARY TABLE]    
         CRANK                   INT32                   Rank of star candidate (best=0)
         V                       FLOAT                   Star velocity (unit: kms-1)
         V_ERR                   FLOAT                   Star velocity error
-        T_PROBA                 FLOAT                   Area of the PDF peak
+        T_PROBA                 FLOAT                   Probability a posteriori of the star best template
         SUBCLASS                STR                     Subclassifications
         TFILE                   STR                     Template file name
         MODELFLUX               FLOAT[NROW]             Spectrum model (unit: nJy)
