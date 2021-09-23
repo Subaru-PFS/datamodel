@@ -328,6 +328,28 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
         self.assertFloatsEqual(sub.fiberId, pfsConfig.fiberId[select])
         self.assertFloatsEqual(sub.objId, pfsConfig.objId[select])
 
+        with self.assertRaises(RuntimeError):
+            # Fails because we didn't specify 'allowSubset=True'
+            sub.write()
+
+        # But we can write when we use 'allowSubset=True'
+        dirName = os.path.splitext(__file__)[0] + "_PfsConfigTestCase_testGetitem"
+        if not os.path.exists(dirName):
+            os.makedirs(dirName)
+
+        filename = os.path.join(dirName, sub.filename)
+        if os.path.exists(filename):
+            os.unlink(filename)
+
+        try:
+            sub.write(dirName=dirName, allowSubset=True)
+            new = PfsConfig.read(self.pfsDesignId, self.visit0, dirName=dirName)
+            self.assertPfsConfig(new, sub)
+        except Exception:
+            raise  # Leave file for manual inspection
+        else:
+            os.unlink(filename)
+
     def testSelect(self):
         """Test select method"""
         pfsConfig = self.makePfsConfig()
@@ -368,6 +390,10 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
         for ff in fiberStatus:
             select |= pfsConfig.fiberStatus == ff
         self.assertFloatsEqual(sub.fiberStatus, pfsConfig[select].fiberStatus)
+
+        with self.assertRaises(RuntimeError):
+            # Fails because we didn't specify 'allowSubset=True'
+            sub.write()
 
     def testSelectFiber(self):
         """Test selectFiber"""
