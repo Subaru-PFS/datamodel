@@ -30,7 +30,6 @@ def calculatePfsVisitHash(visits):
         raise ValueError(f"List of visits is not unique: {[vv for vv in counts if counts[vv] > 1]}")
     return createHash([str(vv).encode() for vv in sorted(visits)])
 
-
 def calculate_pfsDesignId(fiberIds, ras, decs):
     """Calculate and return the hash from a set of lists of
     fiberId, ra, and dec"""
@@ -45,8 +44,13 @@ def calculate_pfsDesignId(fiberIds, ras, decs):
     if (ras == 0.0).all() and (decs == 0.0).all():  # don't check fiberIds as this may be lab data
         return 0x0
 
-    return createHash(["%d %.0f %.0f" % (fiberId, ra, dec) for fiberId, ra, dec in zip(fiberIds, ras, decs)])
+    def _roundToArcsec(d):
+        return int(d*3600.0 + 0.5)/3600.0
 
+    # Regardless of the arcsec rounding, we need to choose a precision for the string respresentation.
+    # If datamodel.txt phrasing were a little sloppier, we could just use integer arcseconds.
+    return createHash(["%d %0.6f %0.6f" % (fiberId, _roundToArcsec(ra), _roundToArcsec(dec))
+                       for fiberId, ra, dec in zip(fiberIds, ras, decs)])
 
 def createHash(*args):
     """Create a hash from the input strings truncated to 63 bits.
