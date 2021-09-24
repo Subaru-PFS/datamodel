@@ -30,6 +30,7 @@ def calculatePfsVisitHash(visits):
         raise ValueError(f"List of visits is not unique: {[vv for vv in counts if counts[vv] > 1]}")
     return createHash([str(vv).encode() for vv in sorted(visits)])
 
+
 def calculate_pfsDesignId(fiberIds, ras, decs):
     """Calculate and return the hash from a set of lists of
     fiberId, ra, and dec"""
@@ -51,6 +52,7 @@ def calculate_pfsDesignId(fiberIds, ras, decs):
     # If datamodel.txt phrasing were a little sloppier, we could just use integer arcseconds.
     return createHash(["%d %0.6f %0.6f" % (fiberId, _roundToArcsec(ra), _roundToArcsec(dec))
                        for fiberId, ra, dec in zip(fiberIds, ras, decs)])
+
 
 def createHash(*args):
     """Create a hash from the input strings truncated to 63 bits.
