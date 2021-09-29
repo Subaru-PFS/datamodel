@@ -273,6 +273,7 @@ class PfsDesign:
         self.filterNames = filterNames
         self.pfiNominal = np.array(pfiNominal)
         self.guideStars = guideStars if guideStars is not None else GuideStars.empty()
+        self.isSubset = False
         self.validate()
 
     def __len__(self):
@@ -312,7 +313,9 @@ class PfsDesign:
             else:
                 subArray = [array[ii] for ii in range(numOriginal) if logical[ii]]
             kwargs[name] = subArray
-        return type(self)(**kwargs)
+        new = type(self)(**kwargs)
+        new.isSubset = True
+        return new
 
     def getTarget(self, index):
         """Return target by index
@@ -450,10 +453,24 @@ class PfsDesign:
         filename = os.path.join(dirName, cls.fileNameFormat % (pfsDesignId))
         return cls._readImpl(filename, pfsDesignId=pfsDesignId)
 
-    def _writeImpl(self, filename):
+    def _writeImpl(self, filename, *, allowSubset=False):
+        """Implementation for writing to FITS file
+
+        Parameters
+        ----------
+        filename : `str`
+            Filename to which to write.
+        allowSubset : `bool`, optional
+            Allow writing a subset? Because of the danger in overwriting the
+            original (both original and subset have the same pfsDesignId and
+            therefore the same filename), this has to be specified explicitly.
+        """
         # NOTE: When making any changes to this method that modify the output
         # format, increment the DAMD_VER header value and record the change in
         # the versions.txt file.
+        if self.isSubset and not allowSubset:
+            raise RuntimeError("Writing of subsets is disallowed in order to prevent clobbering the original;"
+                               " use allowSubset=True if you really know what you're doing.")
         if not pyfits:
             raise RuntimeError("I failed to import astropy.io.fits, so cannot write to disk")
 
@@ -521,7 +538,7 @@ class PfsDesign:
         with open(filename, "wb") as fd:
             fits.writeto(fd)
 
-    def write(self, dirName=".", fileName=None):
+    def write(self, dirName=".", fileName=None, *, allowSubset=False):
         """Write to file
 
         Requires pyfits.
@@ -533,10 +550,14 @@ class PfsDesign:
             directory.
         fileName : `str`, optional
             Filename to which to write. Defaults to using the filename template.
+        allowSubset : `bool`, optional
+            Allow writing a subset? Because of the danger in overwriting the
+            original (both original and subset have the same pfsDesignId and
+            therefore the same filename), this has to be specified explicitly.
         """
         if fileName is None:
             fileName = self.filename
-        self._writeImpl(os.path.join(dirName, fileName))
+        self._writeImpl(os.path.join(dirName, fileName), allowSubset=allowSubset)
 
     def getSelection(self, fiberId=None, targetType=None, fiberStatus=None,
                      catId=None, tract=None, patch=None, objId=None,
