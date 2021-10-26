@@ -46,6 +46,8 @@ def calculate_pfsDesignId(fiberIds, ras, decs):
         return 0x0
 
     def _roundToArcsec(d):
+        if np.isnan(d):
+            return d  # Just return nan is this case
         return int(d*3600.0 + 0.5)/3600.0
 
     # Regardless of the arcsec rounding, we need to choose a precision for the string respresentation.
