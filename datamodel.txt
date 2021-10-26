@@ -325,7 +325,7 @@ The DESIGN table lists for each object:
       dec            64-bit float (degrees)
       targetType     32-bit int (enumerated type: e.g. SCIENCE,SKY,FLUXSTD)
       fiberStatus    32-bit int (enumerated type: e.g. GOOD,BROKENFIBER,BLOCKED,BLACKSPOT)
-      pfiNominal     pair of 32-bit floats (microns on the PFI)
+      pfiNominal     pair of 32-bit floats (millimeters on the PFI)
 
 Note that:
 * the fiberIds start at 1.
@@ -454,8 +454,8 @@ The CONFIG table lists for each object:
       dec            64-bit float (degrees)
       targetType     32-bit int (enumerated type: SCIENCE,SKY,FLUXSTD,UNASSIGNED,ENGINEERING)
       fiberStatus    32-bit int (enumerated type: GOOD,BROKENFIBER,BLOCKED,BLACKSPOT,UNILLUMINATED)
-      pfiCenter      pair of 32-bit floats (microns on the PFI)
-      pfiNominal     pair of 32-bit floats (microns on the PFI)
+      pfiCenter      pair of 32-bit floats (millimeters on the PFI)
+      pfiNominal     pair of 32-bit floats (millimeters on the PFI)
 
 (I.e., the same as for PfsDesign, except for the addition of the
 "pfiCenter" column.)
@@ -566,8 +566,8 @@ HDU #7 OBSERVATIONS    Binary table                               [FITS BINARY T
           spectrograph                                [32-bit INT]
           pfsDesignId                                 [64-bit INT]
           fiberId                                     [32-bit INT]
-          nominal PFI position (microns)              [FLOAT]*2
-          actual PFI position (microns)               [FLOAT]*2
+          nominal PFI position (millimeters)          [FLOAT]*2
+          actual PFI position (millimeters)           [FLOAT]*2
 HDU #8 FLUXTABLE   Binary table                                   [FITS BINARY TABLE] NOBS*NROW
           Columns for:
 		      wavelength in units of nm (vacuum)          [FLOAT]
