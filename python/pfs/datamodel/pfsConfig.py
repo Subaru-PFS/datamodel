@@ -136,9 +136,12 @@ class PfsDesign:
         Intended target position (2-vector) of each fiber on the PFI, millimeters.
     guideStars : `GuideStars`
         Guide star data. If `None`, an empty GuideStars instance will be created.
+    designName : `str`, optional
+        Human-readable name for the design.
     """
     # Scalar values
-    _scalars = ["pfsDesignId", "raBoresight", "decBoresight", "posAng", "arms", "guideStars"]
+    _scalars = ["pfsDesignId", "designName",
+                "raBoresight", "decBoresight", "posAng", "arms", "guideStars"]
     # List of fields required, and their FITS type
     # Some elements of the code expect the following to be present:
     #     fiberId, targetType
@@ -249,7 +252,8 @@ class PfsDesign:
                  psfFluxErr,
                  totalFluxErr,
                  filterNames, pfiNominal,
-                 guideStars):
+                 guideStars,
+                 designName=""):
         self.pfsDesignId = pfsDesignId
         self.raBoresight = raBoresight
         self.decBoresight = decBoresight
@@ -273,6 +277,7 @@ class PfsDesign:
         self.filterNames = filterNames
         self.pfiNominal = np.array(pfiNominal)
         self.guideStars = guideStars if guideStars is not None else GuideStars.empty()
+        self.designName = designName
         self.isSubset = False
         self.validate()
 
@@ -380,6 +385,10 @@ class PfsDesign:
             # populated.
             arms = phu.get('ARMS', 'brn')
 
+            # If DSGN_NAM does not exist, use default.
+            # This action should be removed once the relevant test datasets have this keyword populated.
+            designName = phu.get('DSGN_NAM', '')
+
             data = fd[cls._hduName].data
 
             for nn in cls._fields:
@@ -429,7 +438,8 @@ class PfsDesign:
                    psfFluxErr=[np.array(psfFluxErr[ii]) for ii in fiberId],
                    totalFluxErr=[np.array(totalFluxErr[ii]) for ii in fiberId],
                    filterNames=[filterNames[ii] for ii in fiberId],
-                   guideStars=guideStars)
+                   guideStars=guideStars,
+                   designName=designName)
 
     @classmethod
     def read(cls, pfsDesignId, dirName="."):
@@ -481,6 +491,7 @@ class PfsDesign:
         hdr['DEC'] = (self.decBoresight, "Telescope boresight Dec, degrees")
         hdr['POSANG'] = (self.posAng, "PFI position angle, degrees")
         hdr['ARMS'] = (self.arms, "Exposed arms")
+        hdr['DSGN_NAM'] = (self.designName, "Name of design")
         hdr['DAMD_VER'] = (2, "PfsDesign/PfsConfig datamodel version")
         hdr.update(TargetType.getFitsHeaders())
         hdr.update(FiberStatus.getFitsHeaders())
@@ -853,9 +864,12 @@ class PfsConfig(PfsDesign):
         Intended target position (2-vector) of each fiber on the PFI, millimeters.
     guideStars : `GuideStars`
         Guide star data. If `None`, an empty GuideStars instance will be created.
+    designName : `str`, optional
+        Human-readable name for the design.
     """
     # Scalar values
-    _scalars = ["pfsDesignId", "visit0", "raBoresight", "decBoresight", "posAng", "arms", "guideStars"]
+    _scalars = ["pfsDesignId", "designName",
+                "visit0", "raBoresight", "decBoresight", "posAng", "arms", "guideStars"]
     # List of fields required, and their FITS type
     # Some elements of the code expect the following to be present:
     #     fiberId, targetType
@@ -896,7 +910,8 @@ class PfsConfig(PfsDesign):
                  psfFluxErr,
                  totalFluxErr,
                  filterNames, pfiCenter, pfiNominal,
-                 guideStars):
+                 guideStars,
+                 designName=""):
         self.visit0 = visit0
         self.pfiCenter = np.array(pfiCenter)
         super().__init__(pfsDesignId, raBoresight, decBoresight,
@@ -911,7 +926,8 @@ class PfsConfig(PfsDesign):
                          psfFluxErr,
                          totalFluxErr,
                          filterNames, pfiNominal,
-                         guideStars)
+                         guideStars,
+                         designName)
 
     def __str__(self):
         """String representation"""
@@ -940,7 +956,8 @@ class PfsConfig(PfsDesign):
         self : `PfsConfig`
             Constructed ``PfsConfig`.
         """
-        keywords = ["pfsDesignId", "raBoresight", "decBoresight", "posAng", "arms"]
+        keywords = ["pfsDesignId", "designName",
+                    "raBoresight", "decBoresight", "posAng", "arms"]
         kwargs = {kk: getattr(pfsDesign, kk) for kk in pfsDesign._keywords + keywords}
         kwargs["fiberStatus"] = pfsDesign.fiberStatus
         kwargs["visit0"] = visit0

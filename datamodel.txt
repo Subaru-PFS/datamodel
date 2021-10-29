@@ -297,8 +297,9 @@ HDU #1          FITS binary table named "DESIGN"
 HDU #2          FITS binary table named "PHOTOMETRY"
 HDU #3          FITS binary table named "GUIDESTARS"
 
-The PDU has keys indicating the intended pointing of the telescope boresight.
+The PDU contains the following keys:
 
+      DSGN_NAME Human-readable name for the design
       RA        Intended telescope boresight Right Ascension (degrees)
       DEC       Intended telescope boresight Declination (degrees)
       POSANG    Intended Position Angle of the PFI (degrees).

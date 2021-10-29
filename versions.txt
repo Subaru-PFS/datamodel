@@ -20,6 +20,7 @@ PfsDesign, and so their versions are incremented together.
 * 1: Initial version.
 * 2: Additional HDU added for guide star information, provided by ETS shuffle.
 
+
 PfsDetectorMap
 --------------
 
