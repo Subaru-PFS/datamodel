@@ -41,8 +41,8 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
         self.posAng = 0.0  # degrees
         self.arms = 'brn'
         self.fov = 1.5*lsst.geom.degrees
-        self.pfiScale = 800000.0/self.fov.asDegrees()  # microns/degree
-        self.pfiErrors = 10  # microns
+        self.pfiScale = 800.0/self.fov.asDegrees()  # millimeters/degree
+        self.pfiErrors = 0.01  # millimeters
 
         self.pfsDesignId = 12345
         self.visit0 = 67890

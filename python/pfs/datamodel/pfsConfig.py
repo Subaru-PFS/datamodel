@@ -133,7 +133,7 @@ class PfsDesign:
     filterNames : `list` of `list` of `str`
         List of filters used to measure the fiber fluxes for each filter.
     pfiNominal : `numpy.ndarray` of `float`
-        Intended target position (2-vector) of each fiber on the PFI, microns.
+        Intended target position (2-vector) of each fiber on the PFI, millimeters.
     guideStars : `GuideStars`
         Guide star data. If `None`, an empty GuideStars instance will be created.
     """
@@ -848,9 +848,9 @@ class PfsConfig(PfsDesign):
     filterNames : `list` of `list` of `str`
         List of filters used to measure the fiber fluxes for each filter.
     pfiCenter : `numpy.ndarray` of `float`
-        Actual position (2-vector) of each fiber on the PFI, microns.
+        Actual position (2-vector) of each fiber on the PFI, millimeters.
     pfiNominal : `numpy.ndarray` of `float`
-        Intended target position (2-vector) of each fiber on the PFI, microns.
+        Intended target position (2-vector) of each fiber on the PFI, millimeters.
     guideStars : `GuideStars`
         Guide star data. If `None`, an empty GuideStars instance will be created.
     """
