@@ -108,6 +108,8 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
 
         self.guideStars = GuideStars.empty()
 
+        self.designName = "Zenith odd-even"
+
     def _makeInstance(self, Class, **kwargs):
         """Construct a PfsDesign or PfsConfig using default values
 
@@ -164,14 +166,13 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
         """
         return self._makeInstance(PfsConfig, **kwargs)
 
-    def assertPfsConfig(self, lhs, rhs):
-        for value in ("pfsDesignId", "visit0"):
-            self.assertEqual(getattr(lhs, value), getattr(rhs, value), value)
+    def assertPfsDesign(self, lhs, rhs):
+        self.assertEqual(lhs.pfsDesignId, rhs.pfsDesignId)
         for value in ("raBoresight", "decBoresight", "posAng", "arms"):
             # Our FITS header writer can introduce some tiny roundoff error
             self.assertAlmostEqual(getattr(lhs, value), getattr(rhs, value), 14, value)
         for value in ("fiberId", "tract", "ra", "dec", "catId", "objId",
-                      "pfiCenter", "pfiNominal", "targetType", "fiberStatus"):
+                      "pfiNominal", "targetType", "fiberStatus"):
             np.testing.assert_array_equal(getattr(lhs, value), getattr(rhs, value), value)
         self.assertEqual(len(lhs.patch), len(rhs.patch))
         self.assertEqual(len(lhs.fiberFlux), len(rhs.fiberFlux))
@@ -182,6 +183,11 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
                                                  decimal=4,
                                                  err_msg="fiberFlux[%d]" % (ii,))
             self.assertListEqual(lhs.filterNames[ii], rhs.filterNames[ii], "filterNames[%d]" % (ii,))
+        self.assertEqual(lhs.designName, rhs.designName)
+
+    def assertPfsConfig(self, lhs, rhs):
+        self.assertEqual(lhs.visit0, rhs.visit0)
+        np.testing.assert_array_equal(lhs.pfiCenter, rhs.pfiCenter)
 
     def testBasic(self):
         """Test basic operation of PfsConfig"""
@@ -271,6 +277,35 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
         design = self.makePfsDesign()
         config = self.makePfsConfig()
         self.assertPfsConfig(PfsConfig.fromPfsDesign(design, self.visit0, self.pfiCenter), config)
+
+    def testDesignName(self):
+        """Test creation of design name"""
+        name = 'TestName123'
+        design = self.makePfsDesign(designName=name)
+        self.assertEquals(design.designName, name)
+
+    def testPfsDesignsSame(self):
+        """Tests that two designs created with the same parameters are equal.
+        """
+        design0 = self.makePfsDesign()
+        design1 = self.makePfsDesign()
+        self.assertPfsDesign(design0, design1)
+
+    def testPfsDesignsSameDesignName(self):
+        """Tests that two designs with the same design name and otherwise equal parameters are equal.
+        """
+        name = 'TestName123'
+        design0 = self.makePfsDesign(designName=name)
+        design1 = self.makePfsDesign(designName=name)
+        self.assertPfsDesign(design0, design1)
+
+    def testPfsDesignsNotSameDesignName(self):
+        """Tests that two designs with the same design name and otherwise equal parameters are not equal.
+        """
+        design0 = self.makePfsDesign(designName='')
+        design1 = self.makePfsDesign(designName='TestName123')
+        with self.assertRaises(AssertionError):
+            self.assertPfsDesign(design0, design1)
 
     def testFromEmptyGuideStars(self):
         """Check that an empty GuideStars instance is correctly instantiated
