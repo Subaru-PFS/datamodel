@@ -322,6 +322,18 @@ class PfsDesign:
         new.isSubset = True
         return new
 
+    @property
+    def fiberHole(self):
+        """Fiber hole number, based on the fiberId"""
+        from pfs.utils.fibers import fiberHoleFromFiberId
+        return fiberHoleFromFiberId(self.fiberId)
+
+    @property
+    def spectrograph(self):
+        """Spectrograph number, based on the fiberId"""
+        from pfs.utils.fibers import spectrographFromFiberId
+        return spectrographFromFiberId(self.fiberId)
+
     def getTarget(self, index):
         """Return target by index
 
