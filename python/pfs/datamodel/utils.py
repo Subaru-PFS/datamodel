@@ -31,12 +31,39 @@ def calculatePfsVisitHash(visits):
     return createHash([str(vv).encode() for vv in sorted(visits)])
 
 
-def calculate_pfsDesignId(fiberIds, ras, decs):
-    """Calculate and return the hash from a set of lists of
-    fiberId, ra, and dec"""
+def calculate_pfsDesignId(fiberIds,
+                          ras,
+                          decs):
+    """Calculate and return a hash from the combination of input
+    fiberIds and target positions (ra, dec).
 
-    if fiberIds is None:
-        if ras is None and decs is None:
+    Note that the input ra, dec values are rounded to the nearest arcsec
+    prior to generating the hash.
+
+    Parameters
+    ----------
+    fiberIds : `numpy.ndarray` of `int`
+        Array of fiberIds, of length corresponding to number of targets
+    ras : `numpy.ndarray` of `float`
+        Array of right ascension values [deg], of length corresponding to number of targets
+    decs : `numpy.ndarray` of `float`
+        Array of declination values [deg], of length corresponding to number of targets
+
+    Returns
+    -------
+    pfsDesignId : `int`
+        Hash of the input fiberIds, ras, and decs,
+        or 0x0 if the input fiberIds, ras, decs are all None.
+
+    Raises
+    ------
+    RuntimeError
+        if at least one, but not all, of the input fiberId, ra, dec
+        parameters are None.
+
+    """
+    if fiberIds is None or ras is None or decs is None:
+        if fiberIds is None and ras is None and decs is None:
             return 0x0
 
         raise RuntimeError(
