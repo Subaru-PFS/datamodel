@@ -1,6 +1,6 @@
 setupOptional(pyfits)
 setupOptional(utils)
 setupOptional(afw)
-setupRequired(sconsUtils)
+setupOptional(sconsUtils)
 pathPrepend(PYTHONPATH, ${PRODUCT_DIR}/python)
 pathPrepend(PATH, ${PRODUCT_DIR}/bin)
