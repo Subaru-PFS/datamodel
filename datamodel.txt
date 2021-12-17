@@ -406,7 +406,8 @@ Where the:
     * magnitude is the magnitude for the guide star
     * passband is the passband over which the magnitude is measured.
     * color is the Gaia broadband BP-RP color for that guide star.
-    * agId is the identifier for the AG camera that will observe that guide star
+    * agId is the identifier for the AG camera that will observe that guide star.
+        This can have a value from 0 to 5 inclusive.
     * agX is the X-position on the corresponding AG camera where the guide star
           is expected to be detected
     * agY is the Y-position on the corresponding AG camera where the guide star
