@@ -36,7 +36,7 @@ class GuideStars:
         Gaia broadband BP-RP color for each guide star.
     agId : `numpy.ndarray` of `int32`
         Identifier for the AG camera that is expected to detect
-        the corresponding guide star.
+        the corresponding guide star. This can have a value from 0 to 5 inclusive.
     agX : `numpy.ndarray' of `float32`
         The expected x-position of the guide star on the
         appropriate AG camera, pixels.
