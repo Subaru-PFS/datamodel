@@ -522,6 +522,33 @@ Format: TBD
 
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
+Reference model
+
+The reference model set is a product from `calculateReferenceFlux` and is stored in the pfsReference file.
+pfsReference is used in the flux calibration procedure together with pfsMerged to produce flux-calibrated
+spectra. pfsReference include the wavelength and flux of the reference spectra of standard stars, as well 
+as fitting results. We propose that pfsReference includes multiple objects in a visit like pfsMerged.
+
+The reference model set is saved to:
+
+"pfsReference-%06d.fits" % (visit,)
+ 
+The file has several HDUs:
+
+HDU #0 PDU
+HDU #1 FIBERID Fiber identifier [32-bit INT] NFIBER
+HDU #2 FLUX Flux of reference models in units of nJy [FLOAT] (the number of pixels of a model)*NFIBER
+HDU #3 FITFLAG Flag if the fitting was successful or not [32-bit INT] NFIBER
+HDU #4 FITPARAMS Table of by-products [BINARY TABLE]
+
+PDU includes the visit number. HDU #3 includes the flag of whether the fitting process was successful or not.
+This flag also includes the causes of failure. HDU #4 includes a binary table of by-products from 
+the calculateReferenceFlux process. HDU #4 includes at least the stellar parameters of the reference models,
+the estimated radial velocity, the fitting parameters to continuum, the scaling factor, and Galactic 
+extinction.
+
+-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
 Combined spectra.
 
 In SDSS we used "spPlate" files, named by the plugplate and MJD of observation but this is not suitable for
