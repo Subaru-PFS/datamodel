@@ -536,10 +536,12 @@ The reference model set is saved to:
 The file has several HDUs:
 
 HDU #0 PDU
-HDU #1 FIBERID Fiber identifier [32-bit INT] NFIBER
-HDU #2 FLUX Flux of reference models in units of nJy [FLOAT] (the number of pixels of a model)*NFIBER
-HDU #3 FITFLAG Flag if the fitting was successful or not [32-bit INT] NFIBER
+HDU #1 FIBERID Fiber identifier [32-bit INT] NFLUXSTD
+HDU #2 FLUX Flux of reference models in units of nJy [FLOAT] (the number of pixels of a model)*NFLUXSTD
+HDU #3 FITFLAG Flag if the fitting was successful or not [32-bit INT] NFLUXSTD
 HDU #4 FITPARAMS Table of by-products [BINARY TABLE]
+
+NFLUXSTD is the number of fibers for flux standards, FLUXSTD.
 
 PDU includes the visit number. HDU #3 includes the flag of whether the fitting process was successful or not.
 This flag also includes the causes of failure. HDU #4 includes a binary table of by-products from 
