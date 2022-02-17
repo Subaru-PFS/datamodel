@@ -4,6 +4,7 @@ from pfs.datamodel.drp import PfsReference
 from pfs.datamodel.drp import PfsMerged
 from pfs.datamodel.drp import PfsSingle
 from pfs.datamodel.drp import PfsArm
+from pfs.datamodel.pfsFluxReference import PfsFluxReference
 import re
 
 
@@ -81,3 +82,8 @@ class FileFormatTestCase(unittest.TestCase):
         self.assertEqual(d['catId'], 12345)
         self.assertEqual(d['nVisit'], 3)
         self.assertEqual(d['pfsVisitHash'], 0x1234abcddeadbeef)
+
+    def testPfsFluxReference(self):
+        d = self.extractAttributes(
+            PfsFluxReference, 'pfsFluxReference-654321.fits')
+        self.assertEqual(d['visit'], 654321)

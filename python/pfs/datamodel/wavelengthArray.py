@@ -84,7 +84,8 @@ class WavelengthArray(np.ndarray):
             Constructed wavelength array.
         """
         wcs = astropy.wcs.WCS(header=header)
-        if len(wcs.wcs.ctype) != 1 or wcs.wcs.ctype[0] != "WAVE":
+        wcs = wcs.sub([astropy.wcs.WCSSUB_SPECTRAL])
+        if wcs.wcs.ctype[0] != "WAVE":
             raise RuntimeError(f"Unexpected CTYPE in header: {wcs.wcs.ctype}")
         minWavelength = wcs.pixel_to_world(1.0).to(astropy.units.nm).value
         maxWavelength = wcs.pixel_to_world(length).to(astropy.units.nm).value
