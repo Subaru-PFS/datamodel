@@ -70,8 +70,8 @@ def createHash(*args):
         truncated hash value
     """
     m = hashlib.sha1()
-    for l in list(args):
-        m.update(str(l).encode())
+    for ss in list(args):
+        m.update(str(ss).encode())
 
     return int(m.hexdigest(), 16) & 0x7fffffffffffffff
 
