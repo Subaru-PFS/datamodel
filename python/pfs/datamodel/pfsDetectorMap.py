@@ -545,14 +545,22 @@ class GlobalDetectorModelScaling(SimpleNamespace):
         self : `GlobalDetectorModelScaling`
             Constructed object.
         """
+        def lookup(header, keyword):
+            """Look up value of ``keyword`` in ``header``
+
+            Tries uppercase version of keyword if the original is not present,
+            for backwards compatibility.
+            """
+            return header[keyword] if keyword in header else header[keyword.upper()]
+
         return cls(
-            fiberPitch=header["SCALING.fiberPitch"],
-            dispersion=header["SCALING.dispersion"],
-            wavelengthCenter=header["SCALING.wavelengthCenter"],
-            minFiberId=int(header["SCALING.minFiberId"]),
-            maxFiberId=int(header["SCALING.maxFiberId"]),
-            height=int(header["SCALING.height"]),
-            buffer=header["SCALING.buffer"],
+            fiberPitch=lookup(header, "SCALING.fiberPitch"),
+            dispersion=lookup(header, "SCALING.dispersion"),
+            wavelengthCenter=lookup(header, "SCALING.wavelengthCenter"),
+            minFiberId=int(lookup(header, "SCALING.minFiberId")),
+            maxFiberId=int(lookup(header, "SCALING.maxFiberId")),
+            height=int(lookup(header, "SCALING.height")),
+            buffer=lookup(header, "SCALING.buffer"),
         )
 
     def toFitsHeader(self):
