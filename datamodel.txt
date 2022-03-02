@@ -524,15 +524,15 @@ Format: TBD
 
 Reference model
 
-The reference model set is a product from `calculateReferenceFlux` and is stored in the pfsReference file.
-pfsReference is used in the flux calibration procedure together with pfsMerged to produce flux-calibrated
-spectra. pfsReference include the wavelength and flux of the reference spectra of standard stars, as well 
-as fitting results. We propose that pfsReference includes multiple objects in a visit like pfsMerged.
+The reference model set is a product from `calculateReferenceFlux` and is stored in the pfsFluxReference file.
+pfsFluxReference is used in the flux calibration procedure together with pfsMerged to produce flux-calibrated
+spectra. pfsFluxReference include the wavelength and flux of the reference spectra of standard stars, as well
+as fitting results. We propose that pfsFluxReference includes multiple objects in a visit like pfsMerged.
 
 The reference model set is saved to:
 
-"pfsReference-%06d.fits" % (visit,)
- 
+"pfsFluxReference-%06d.fits" % (visit,)
+
 The file has several HDUs:
 
 HDU #0 PDU
@@ -544,9 +544,9 @@ HDU #4 FITPARAMS Table of by-products [BINARY TABLE]
 NFLUXSTD is the number of fibers for flux standards, FLUXSTD.
 
 PDU includes the visit number. HDU #3 includes the flag of whether the fitting process was successful or not.
-This flag also includes the causes of failure. HDU #4 includes a binary table of by-products from 
+This flag also includes the causes of failure. HDU #4 includes a binary table of by-products from
 the calculateReferenceFlux process. HDU #4 includes at least the stellar parameters of the reference models,
-the estimated radial velocity, the fitting parameters to continuum, the scaling factor, and Galactic 
+the estimated radial velocity, the fitting parameters to continuum, the scaling factor, and Galactic
 extinction.
 
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
