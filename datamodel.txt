@@ -731,7 +731,7 @@ The file will have two HDUs:
 
 HDU #0 PDU
 HDU #1             Flux in units of nJy     	   	       [FLOAT]        NSIMROW
-HDU #2 WAVELENGTH  Wavelength solution in nm (vacuum)	       [64-bit FLOAT] 	      NSIMROW
+HDU #2 WAVELENGTH  Wavelength solution in nm (vacuum)	   [64-bit FLOAT] NSIMROW
 
 The simulation team will also need to provide a matching pfsDesign file, and may well choose to set
    tract, patch = 0, "0,0"
@@ -761,12 +761,12 @@ HDU#0 PHDU
      tract       INT         Tract identifier
      patch       KEYWORD     Patch identifier
      catId       INT         Catalog identifier
-     objId       INT	     Object identifier
-     nvisit	 INT	     Number of visit
-     vHash	 KEYWORD     63-bit SHA-1 list of visits
-     CRPIX1	 FLOAT	     Pixel coordinate of reference point
-     CRVAL1	 FLOAT	     [m] Coordinate value at reference point
-     CDELT1	 FLOAT	     [m] Coordinate increment at reference point
+     objId       INT	       Object identifier
+     nvisit	     INT	       Number of visit
+     vHash	     KEYWORD     63-bit SHA-1 list of visits
+     CRPIX1	     FLOAT	     Pixel coordinate of reference point
+     CRVAL1	     FLOAT	     [m] Coordinate value at reference point
+     CDELT1	     FLOAT	     [m] Coordinate increment at reference point
      D1D_VER     KEYWORD     Version of the DRP_1D library
      D1DP_VER    KEYWORD     Version of the DRP_1DPIPE pipeline
      DAMD_VER    KEYWORD     Version of the data model
