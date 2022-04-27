@@ -4,10 +4,14 @@
 import hashlib
 import inspect
 import functools
+from typing import Union, Optional
+from logging import Logger
+
 import numpy as np
+import astropy.io.fits
 
 __all__ = ("calculatePfsVisitHash", "createHash", "astropyHeaderToDict", "astropyHeaderFromDict",
-           "wraparoundNVisit", "inheritDocstrings",)
+           "wraparoundNVisit", "inheritDocstrings", "checkHeaderKeyword")
 
 
 def calculatePfsVisitHash(visits):
@@ -235,3 +239,57 @@ def combineArms(arms):
 
     armOrder = dict(b=1, r=2, m=3, n=4)
     return "".join(sorted(combinedSet, key=lambda aa: armOrder[aa]))
+
+
+def checkHeaderKeyword(
+    header: astropy.io.fits.Header,
+    keyword: str,
+    expected: Union[bool, str, int, float],
+    comment: str = None,
+    allowFix: bool = False,
+    log: Optional[Logger] = None,
+) -> bool:
+    """Check that the keyword exists in the header
+
+    Parameters
+    ----------
+    header : `astropy.io.fits.Header`
+        FITS header; may be updated if the ``keyword`` is not present.
+    keyword : `str`
+        Keyword of interest
+    expected : `bool`, `str`, `int` or `float`
+        Expected value of ``keyword``.
+    comment : `str`
+        Comment to give keyword in FITS header if updating.
+    allowFix : `bool`, optional
+        Allow the header to be updated with the expected value?
+    log : `Logger`, optional
+        Logger to use, or ``None`` for no logging.
+
+    Returns
+    -------
+    modified : `bool`
+        Did we modify the header?
+
+    Raises
+    ------
+    ValueError
+        If the keyword is missing or has the incorrect value, and
+        ``allowFix=False``.
+    """
+    if keyword in header:
+        value = header[keyword]
+        if value == expected:
+            return False
+        if allowFix:
+            header[keyword] = (expected, comment)
+            if log:
+                log.info(f"Fixed value of {keyword} = {repr(value)} --> {repr(expected)}")
+            return True
+        raise ValueError(f"Value mismatch for {keyword}: got {repr(value)} but expected {repr(expected)}")
+    if allowFix:
+        header[keyword] = (expected, comment)
+        if log:
+            log.info(f"Added value of {keyword} = {repr(expected)}")
+        return True
+    raise ValueError(f"No header keyword {keyword}")
