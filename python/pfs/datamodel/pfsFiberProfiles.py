@@ -193,9 +193,9 @@ class PfsFiberProfiles:
         self : ``cls``
             Constructed instance, from FITS file.
         """
-        identity = cls.parseFilename(filename)
         import astropy.io.fits
         with astropy.io.fits.open(filename) as fits:
+            identity = CalibIdentity.fromHeader(fits[0].header)
             return cls._readImpl(fits, identity)
 
     @classmethod
@@ -264,9 +264,11 @@ class PfsFiberProfiles:
         # format, increment the DAMD_VER header value and record the change in
         # the versions.txt file.
         import astropy.io.fits
-        header = astropyHeaderFromDict(self.metadata)
+        header = self.metadata.copy()
+        header.update(self.identity.toHeader())
+        header = astropyHeaderFromDict(header)
         header["OBSTYPE"] = "fiberProfiles"
-        header['DAMD_VER'] = (1, "PfsFiberProfiles datamodel version")
+        header['DAMD_VER'] = (2, "PfsFiberProfiles datamodel version")
 
         fibersHdu = astropy.io.fits.BinTableHDU.from_columns([
             astropy.io.fits.Column("fiberId", format="J", array=self.fiberId),

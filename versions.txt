@@ -64,6 +64,7 @@ PfsFiberProfiles
 This class is used for the pfsFiberProfiles product.
 
 * 1: Initial version.
+* 2: Write identity in header.
 
 
 PfsFiberTrace
