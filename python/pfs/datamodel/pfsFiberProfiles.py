@@ -195,7 +195,11 @@ class PfsFiberProfiles:
         """
         import astropy.io.fits
         with astropy.io.fits.open(filename) as fits:
-            identity = CalibIdentity.fromHeader(fits[0].header)
+            try:
+                identity = CalibIdentity.fromHeader(fits[0].header)
+            except KeyError:
+                # Backwards compatibility
+                identity = cls.parseFilename(filename)
             return cls._readImpl(fits, identity)
 
     @classmethod
