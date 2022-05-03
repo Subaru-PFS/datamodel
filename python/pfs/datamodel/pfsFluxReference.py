@@ -204,7 +204,7 @@ class PfsFluxReference:
 
         with astropy.io.fits.open(filename) as fd:
             data["fiberId"] = fits_getdata(fd, "fiberId", dtype=np.int32)
-            data["flux"], wcsHeader = fits_getdata(fd, "flux", dtype=np.float, needHeader=True)
+            data["flux"], wcsHeader = fits_getdata(fd, "flux", dtype=np.float32, needHeader=True)
             data["fitFlag"], flagHeader = fits_getdata(fd, "fitFlag", dtype=np.int32, needHeader=True)
             data["fitParams"] = fits_getdata(fd, "fitParams")
             data["identity"] = Identity.fromFits(fd)

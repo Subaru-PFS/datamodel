@@ -36,7 +36,7 @@ class PfsFiberProfiles:
         that fiber. ``P = int(2*(radius + 1)*oversample) + 1``. The
         profile arrays may be of type `numpy.ma.masked_array`, in order to
         indicate profile values that should be ignored.
-    norm : iterable (length ``N``) of array_like of `float` (length ``Q``)
+    norm : iterable (length ``N``) of array_like of `float32` (length ``Q``)
         Normalisation to apply when extracting spectrum from the image. ``Q``
         is the height of the detector; or it may be ``0`` if no normalisation
         is to be applied.
@@ -156,7 +156,7 @@ class PfsFiberProfiles:
         fiberId1 = hdu.data["fiberId"].astype(np.int32)
         radius = hdu.data["radius"].astype(np.int32)
         oversample = hdu.data["oversample"].astype(float)
-        norm = [nn.astype(float) for nn in hdu.data["norm"]]
+        norm = [nn.astype(np.float32) for nn in hdu.data["norm"]]
 
         hdu = fits["PROFILES"]
         fiberId2 = hdu.data["fiberId"].astype(np.int32)
@@ -278,7 +278,7 @@ class PfsFiberProfiles:
             astropy.io.fits.Column("fiberId", format="J", array=self.fiberId),
             astropy.io.fits.Column("radius", format="J", array=self.radius),
             astropy.io.fits.Column("oversample", format="D", array=self.oversample),
-            astropy.io.fits.Column("norm", format="PD()", array=self.norm),
+            astropy.io.fits.Column("norm", format="PE()", array=self.norm),
         ], name="FIBERS")
         fibersHdu.header["INHERIT"] = True
 

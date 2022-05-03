@@ -1,3 +1,5 @@
+import numpy as np
+
 from .pfsSimpleSpectrum import PfsSimpleSpectrum
 from .utils import wraparoundNVisit, inheritDocstrings
 from .fluxTable import FluxTable
@@ -88,10 +90,10 @@ class PfsFiberArray(PfsSimpleSpectrum):
             Keyword arguments for constructing spectrum.
         """
         data = super()._readImpl(fits)
-        data["sky"] = fits["SKY"].data.astype(float)
+        data["sky"] = fits["SKY"].data.astype(np.float32)
         data["observations"] = Observations.fromFits(fits)
-        data["covar"] = fits["COVAR"].data.astype(float)
-        data["covar2"] = fits["COVAR2"].data.astype(float)
+        data["covar"] = fits["COVAR"].data.astype(np.float32)
+        data["covar2"] = fits["COVAR2"].data.astype(np.float32)
         try:
             fluxTable = FluxTable.fromFits(fits)
         except KeyError as exc:
@@ -118,9 +120,9 @@ class PfsFiberArray(PfsSimpleSpectrum):
         from astropy.io.fits import ImageHDU
         header = super()._writeImpl(fits)
         header["DAMD_VER"] = (1, "PfsFiberArray datamodel version")
-        fits.append(ImageHDU(self.sky, header=header, name="SKY"))
-        fits.append(ImageHDU(self.covar, header=header, name="COVAR"))
-        fits.append(ImageHDU(self.covar2, name="COVAR2"))
+        fits.append(ImageHDU(self.sky.astype(np.float32), header=header, name="SKY"))
+        fits.append(ImageHDU(self.covar.astype(np.float32), header=header, name="COVAR"))
+        fits.append(ImageHDU(self.covar2.astype(np.float32), name="COVAR2"))
         self.observations.toFits(fits)
         if self.fluxTable is not None:
             self.fluxTable.toFits(fits)
