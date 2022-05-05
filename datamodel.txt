@@ -506,6 +506,15 @@ the entire PFS from the 12 temporaries.  Alternatively, this could be done at th
 
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
+Combined spectra from a single exposure (wavelength calibrated but not flux calibrated)
+
+   "pfsMerged-%06d.fits" % (visit,)
+
+The format will be identical to that of the pfsArm files, except that the fluxes
+(in the FLUX, SKY and NORM HDUs) will be in units of electrons per nm.
+
+-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
 The sky model for a single exposure
 
    "pfsSky-%06d-%1s%1d.fits" % (visit, arm, spectrograph)
