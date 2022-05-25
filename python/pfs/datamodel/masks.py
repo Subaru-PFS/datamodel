@@ -68,13 +68,15 @@ class MaskHelper:
         return self[name]
 
     @classmethod
-    def fromFitsHeader(cls, header):
+    def fromFitsHeader(cls, header, strip=False):
         """Read from a FITS header
 
         Parameters
         ----------
         header : `dict`
-            FITS header keyword-value pairs.
+            FITS header keyword-value pairs. Modified if ``strip=True``.
+        strip : `bool`
+            Strip keywords that we use from the header?
 
         Returns
         -------
@@ -82,11 +84,16 @@ class MaskHelper:
             Constructed mask helper.
         """
         maskPlanes = {}
+        used = []
         for key, value in header.items():
             if key.startswith(cls.maskPlanePrefix) or key.startswith("HIERARCH " + cls.maskPlanePrefix):
                 name = key[key.rfind(cls.maskPlanePrefix) + len(cls.maskPlanePrefix):]
                 maskPlanes[name] = value
+                used.append(key)
                 continue
+        if strip:
+            for key in used:
+                del header[key]
         return cls(**maskPlanes)
 
     def toFitsHeader(self):
