@@ -220,9 +220,9 @@ class PfsFiberArraySet:
             data["metadata"] = astropyHeaderToDict(fd[0].header)
             for attr, dtype in (("fiberId", np.int32),
                                 ("wavelength", float),
-                                ("flux", float),
-                                ("mask", np.int32),
-                                ("sky", float),
+                                ("flux", np.float32),
+                                ("mask", np.uint32),
+                                ("sky", np.float32),
                                 # "norm" is treated separately, for backwards-compatibility
                                 ("covar", float)
                                 ):
@@ -230,9 +230,9 @@ class PfsFiberArraySet:
                 data[attr] = fd[hduName].data.astype(dtype)
             version = fd[0].header["DAMD_VER"]
             if version >= 2:
-                data["norm"] = fd["NORM"].data.astype(float)
+                data["norm"] = fd["NORM"].data.astype(np.float32)
             else:
-                data["norm"] = np.ones_like(data["flux"], dtype=float)
+                data["norm"] = np.ones_like(data["flux"], dtype=np.float32)
             data["identity"] = Identity.fromFits(fd)
 
         data["flags"] = MaskHelper.fromFitsHeader(data["metadata"])
@@ -283,10 +283,18 @@ class PfsFiberArraySet:
         header = astropyHeaderFromDict(header)
         header['DAMD_VER'] = (2, "PfsFiberArraySet datamodel version")
         fits.append(astropy.io.fits.PrimaryHDU(header=header))
-        for attr in ("fiberId", "wavelength", "flux", "mask", "sky", "norm", "covar"):
+        for attr, dtype in (
+            ("fiberId", np.int32),
+            ("wavelength", float),
+            ("flux", np.float32),
+            ("mask", np.uint32),
+            ("sky", np.float32),
+            ("norm", np.float32),
+            ("covar", np.float32)
+        ):
             hduName = attr.upper()
             data = getattr(self, attr)
-            fits.append(astropy.io.fits.ImageHDU(data, name=hduName))
+            fits.append(astropy.io.fits.ImageHDU(data.astype(dtype), name=hduName))
 
         self.identity.toFits(fits)
         with open(filename, "wb") as fd:
@@ -332,11 +340,11 @@ class PfsFiberArraySet:
         length = length.pop()
         fiberId = np.empty(num, dtype=int)
         wavelength = np.empty((num, length), dtype=float)
-        flux = np.empty((num, length), dtype=float)
-        mask = np.empty((num, length), dtype=int)
-        sky = np.empty((num, length), dtype=float)
-        norm = np.empty((num, length), dtype=float)
-        covar = np.empty((num, 3, length), dtype=float)
+        flux = np.empty((num, length), dtype=np.float32)
+        mask = np.empty((num, length), dtype=np.int32)
+        sky = np.empty((num, length), dtype=np.float32)
+        norm = np.empty((num, length), dtype=np.float32)
+        covar = np.empty((num, 3, length), dtype=np.float32)
         index = 0
         for ss in spectraList:
             select = slice(index, index + len(ss))
