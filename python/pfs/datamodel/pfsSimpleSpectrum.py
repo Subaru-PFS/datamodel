@@ -80,7 +80,7 @@ class PfsSimpleSpectrum:
             Keyword arguments for constructing spectrum.
         """
         data = {}
-        data["flux"] = fits["FLUX"].data.astype(float)
+        data["flux"] = fits["FLUX"].data.astype(np.float32)
         data["mask"] = fits["MASK"].data.astype(np.int32)
 
         # Wavelength can be specified in an explicit extension, or as a WCS in the header
@@ -174,7 +174,7 @@ class PfsSimpleSpectrum:
 
         if self.metadata:
             header.extend(astropyHeaderFromDict(self.metadata))
-        fits.append(ImageHDU(self.flux, header=header, name="FLUX"))
+        fits.append(ImageHDU(self.flux.astype(np.float32), header=header, name="FLUX"))
         maskHeader = astropyHeaderFromDict(self.flags.toFitsHeader())
         maskHeader.extend(header)
         fits.append(ImageHDU(self.mask, header=maskHeader, name="MASK"))
