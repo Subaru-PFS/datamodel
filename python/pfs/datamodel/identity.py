@@ -1,4 +1,5 @@
 import types
+from typing import Dict, Union
 
 import astropy.io.fits
 
@@ -195,6 +196,9 @@ class CalibIdentity(types.SimpleNamespace):
     elements = ("obsDate", "spectrograph", "arm", "visit0")
     """Required keywords"""
 
+    headerKeywords = ("DATEOBS", "W_SPMOD", "W_ARM", "W_VISIT")
+    """Corresponding header keywords to use"""
+
     def __init__(self, obsDate, spectrograph, arm, visit0):
         super().__init__(obsDate=obsDate, spectrograph=int(spectrograph), arm=arm, visit0=int(visit0))
 
@@ -224,3 +228,30 @@ class CalibIdentity(types.SimpleNamespace):
             Data identity for calibration.
         """
         return {elem: getattr(self, elem) for elem in self.elements}
+
+    def toHeader(self) -> Dict[str, Union[str, int]]:
+        """Convert to FITS header keyword-value pairs
+
+        Returns
+        -------
+        header : `dict`
+            Header keyword-value pairs.
+        """
+        return {key: getattr(self, name) for name, key in zip(self.elements, self.headerKeywords)}
+
+    @classmethod
+    def fromHeader(cls, header: Dict[str, Union[str, int]]) -> "CalibIdentity":
+        """Construct from FITS header
+
+        Parameters
+        ----------
+        header : `dict`
+            Header keyword-value pairs.
+
+        Returns
+        -------
+        self : `CalibIdentity`
+            Constructed `CalibIdentity`.
+        """
+
+        return cls(**{name: header[key] for name, key in zip(cls.elements, cls.headerKeywords)})

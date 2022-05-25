@@ -1,7 +1,11 @@
+from types import SimpleNamespace
 import numpy as np
 import os
+import re
 import enum
 from collections import Counter
+from logging import Logger
+from typing import Optional
 
 try:
     import astropy.io.fits as pyfits
@@ -9,9 +13,19 @@ except ImportError:
     pyfits = None
 
 from .guideStars import GuideStars
+from .utils import checkHeaderKeyword
 
 
-__all__ = ("TargetType", "FiberStatus", "PfsDesign", "PfsConfig")
+__all__ = (
+    "DocEnum",
+    "TargetType",
+    "FiberStatus",
+    "PfsDesign",
+    "PfsConfig",
+    "PFSCONFIG_FILENAME_REGEX",
+    "parsePfsConfigFilename",
+    "checkPfsConfigHeader",
+)
 
 
 class DocEnum(enum.IntEnum):
@@ -356,6 +370,70 @@ class PfsDesign:
         return self.fileNameFormat % (self.pfsDesignId)
 
     @classmethod
+    def _readHeader(cls, header, kwargs=None):
+        """Read construction variables from the header.
+
+        Parameters
+        ----------
+        header : `astropy.io.fits.Header`
+            FITS header.
+        kwargs : `dict`, optional
+            Keyword arguments to be passed to the constructor; modified.
+
+        Returns
+        -------
+        kwargs : `dict`
+            Keyword arguments to be passed to the constructor.
+        """
+        if kwargs is None:
+            kwargs = {}
+
+        # If POSANG does not exist, use default.
+        # This default should be removed when the
+        # relevant test datasets have this keyword
+        # populated.
+        kwargs["posAng"] = header.get("POSANG", cls._POSANG_DEFAULT)
+
+        # If ARM does not exist, use default.
+        # This action should be removed once the
+        # relevant test datasets have this keyword
+        # populated.
+        kwargs["arms"] = header.get("ARMS", "brn")
+
+        # If DSGN_NAM does not exist, use default.
+        # This action should be removed once the relevant test datasets have this keyword populated.
+        kwargs["designName"] = header.get("DSGN_NAM", "")
+
+        # We formerly got the pfsDesignId from the filename, which is fragile.
+        # Now we look for it in the W_PFDSGN header, but need to allow for the possibility that it's
+        # not present.
+        pfsDesignId = header.get("W_PFDSGN", None)
+        if pfsDesignId is not None:
+            if "pfsDesignId" in kwargs and kwargs["pfsDesignId"] != pfsDesignId:
+                raise RuntimeError(f"pfsDesignId mismatch: {kwargs['pfsDesignId']} vs pfsDesignId")
+            kwargs["pfsDesignId"] = pfsDesignId
+        elif "pfsDesignId" not in kwargs:
+            raise RuntimeError("Unable to determine pfsDesignId")
+
+        return kwargs
+
+    def _writeHeader(self, header):
+        """Write to the header.
+
+        Parameters
+        ----------
+        header : `astropy.io.fits.Header`
+            FITS header; modified.
+        """
+        header["RA"] = (self.raBoresight, "Telescope boresight RA, degrees")
+        header["DEC"] = (self.decBoresight, "Telescope boresight Dec, degrees")
+        header["POSANG"] = (self.posAng, "PFI position angle, degrees")
+        header["ARMS"] = (self.arms, "Exposed arms")
+        header["DSGN_NAM"] = (self.designName, "Name of design")
+        header["DAMD_VER"] = (3, "PfsDesign/PfsConfig datamodel version")
+        header["W_PFDSGN"] = (self.pfsDesignId, "Identifier for fiber configuration")
+
+    @classmethod
     def _readImpl(cls, filename, **kwargs):
         """Implementation for reading from file
 
@@ -385,21 +463,13 @@ class PfsDesign:
             # populated.
             damdVer = phu.get('DAMD_VER', None)
 
-            # If POSANG does not exist, use default.
-            # This default should be removed when the
-            # relevant test datasets have this keyword
-            # populated.
-            posAng = phu.get('POSANG', cls._POSANG_DEFAULT)
-
-            # If ARM does not exist, use default.
-            # This action should be removed once the
-            # relevant test datasets have this keyword
-            # populated.
-            arms = phu.get('ARMS', 'brn')
-
-            # If DSGN_NAM does not exist, use default.
-            # This action should be removed once the relevant test datasets have this keyword populated.
-            designName = phu.get('DSGN_NAM', '')
+            headerKwargs = cls._readHeader(phu, kwargs)
+            for name in headerKwargs:
+                if name in kwargs and headerKwargs[name] != kwargs[name]:
+                    raise RuntimeError(f"{name} mismatch: {kwargs[name]} vs {headerKwargs[name]}")
+            kwargs.update(headerKwargs)
+            if "pfsDesignId" not in kwargs:
+                raise RuntimeError("Unable to determine pfsDesignId")
 
             data = fd[cls._hduName].data
 
@@ -441,8 +511,6 @@ class PfsDesign:
                 guideStars = GuideStars.empty()
 
         return cls(**kwargs, raBoresight=raBoresight, decBoresight=decBoresight,
-                   posAng=posAng,
-                   arms=arms,
                    fiberFlux=[np.array(fiberFlux[ii]) for ii in fiberId],
                    psfFlux=[np.array(psfFlux[ii]) for ii in fiberId],
                    totalFlux=[np.array(totalFlux[ii]) for ii in fiberId],
@@ -450,8 +518,7 @@ class PfsDesign:
                    psfFluxErr=[np.array(psfFluxErr[ii]) for ii in fiberId],
                    totalFluxErr=[np.array(totalFluxErr[ii]) for ii in fiberId],
                    filterNames=[filterNames[ii] for ii in fiberId],
-                   guideStars=guideStars,
-                   designName=designName)
+                   guideStars=guideStars)
 
     @classmethod
     def read(cls, pfsDesignId, dirName="."):
@@ -499,12 +566,7 @@ class PfsDesign:
         fits = pyfits.HDUList()
 
         hdr = pyfits.Header()
-        hdr['RA'] = (self.raBoresight, "Telescope boresight RA, degrees")
-        hdr['DEC'] = (self.decBoresight, "Telescope boresight Dec, degrees")
-        hdr['POSANG'] = (self.posAng, "PFI position angle, degrees")
-        hdr['ARMS'] = (self.arms, "Exposed arms")
-        hdr['DSGN_NAM'] = (self.designName, "Name of design")
-        hdr['DAMD_VER'] = (2, "PfsDesign/PfsConfig datamodel version")
+        self._writeHeader(hdr)
         hdr.update(TargetType.getFitsHeaders())
         hdr.update(FiberStatus.getFitsHeaders())
         hdu = pyfits.PrimaryHDU(header=hdr)
@@ -978,6 +1040,48 @@ class PfsConfig(PfsDesign):
         return PfsConfig(**kwargs)
 
     @classmethod
+    def _readHeader(cls, header, kwargs=None):
+        """Read construction variables from the header.
+
+        Parameters
+        ----------
+        header : `astropy.io.fits.Header`
+            FITS header.
+        kwargs : `dict`, optional
+            Keyword arguments to be passed to the constructor; modified.
+
+        Returns
+        -------
+        kwargs : `dict`
+            Keyword arguments to be passed to the constructor.
+        """
+        kwargs = super()._readHeader(header, kwargs)
+
+        # We formerly got the visit from the filename, which is fragile.
+        # Now we look for it in the W_VISIT header, but need to allow for the possibility that it's
+        # not present.
+        visit0 = header.get("W_VISIT", None)
+        if visit0 is not None:
+            if "visit0" in kwargs and kwargs["visit0"] != visit0:
+                raise RuntimeError(f"visit0 mismatch: {kwargs['visit0']} vs visit0")
+            kwargs["visit0"] = visit0
+        elif "visit0" not in kwargs:
+            raise RuntimeError("Unable to determine visit0")
+
+        return kwargs
+
+    def _writeHeader(self, header):
+        """Write to the header.
+
+        Parameters
+        ----------
+        header : `astropy.io.fits.Header`
+            FITS header; modified.
+        """
+        super()._writeHeader(header)
+        header["W_VISIT"] = (self.visit0, "Visit number")
+
+    @classmethod
     def read(cls, pfsDesignId, visit0, dirName="."):
         """Construct from file
 
@@ -1016,3 +1120,91 @@ class PfsConfig(PfsDesign):
         """
         index = np.nonzero(np.isin(self.fiberId, fiberId))[0]
         return self.pfiCenter[index]
+
+
+PFSCONFIG_FILENAME_REGEX: str = r"^pfsConfig-(0x[0-9a-f]+)-([0-9]+)\.fits.*"
+"""Regular expression to identify the pfsDesignId and visit number"""
+
+
+def parsePfsConfigFilename(path: str) -> SimpleNamespace:
+    """Parse path from the data butler
+
+    We need to determine the ``pfsConfigId`` to pass to the
+    `pfs.datamodel.PfsConfig` I/O methods.
+
+    Parameters
+    ----------
+    path : `str`
+        Path name from the LSST data butler. Besides the usual directory and
+        filename with extension, this may include a suffix with additional
+        characters added by the butler.
+
+    Returns
+    -------
+    dirName : `str`
+        Directory name.
+    fileName : `str`
+        Filename without directory.
+    pfsDesignId : `int`
+        PFS fiber configuration.
+    visit : `int`
+        PFS visit exposure identifier.
+    """
+    dirName, fileName = os.path.split(path)
+    matches = re.search(PFSCONFIG_FILENAME_REGEX, fileName)
+
+    if not matches:
+        raise RuntimeError("Unable to parse filename: %s" % (fileName,))
+    pfsDesignId = int(matches.group(1), 16)
+    visit = int(matches.group(2))
+    return SimpleNamespace(dirName=dirName, fileName=fileName, pfsDesignId=pfsDesignId, visit=visit)
+
+
+def checkPfsConfigHeader(filename: str, allowFix: bool = False, log: Optional[Logger] = None) -> bool:
+    """Check that a pfsConfig header includes the appropriate keywords
+
+    These keywords include:
+    - ``W_VISIT``: PFS exposure visit number
+    - ``W_PFDSGN``: PFS fiber targeting
+
+    If ``allowFix=True`` and the header requires fixing, we will back up the
+    original contents (this is done by ``astropy``; it usually adds a ``.bak``
+    to the end of the filename).
+
+    Parameters
+    ----------
+    filename : `str`
+        Name of file to check.
+    allowFix : `bool`, optional
+        Allow fixing the header if it is non-conformant; by default ``False``.
+    log : `Logger`, optional
+        Logger to use, or ``None`` for no logging.
+
+    Returns
+    -------
+    modified : `bool`
+        Did we modify the header?
+    """
+    from astropy import log
+    try:
+        data = parsePfsConfigFilename(filename)
+    except RuntimeError:
+        log.warning("Unable to parse filename: %s", filename)
+    if log:
+        log.info(f"Checking {filename}")
+    with pyfits.open(filename, "update" if allowFix else "readonly", save_backup=True) as fits:
+        header = fits[0].header
+        modified = False
+        try:
+            modified |= checkHeaderKeyword(
+                header, "W_VISIT", data.visit, "PFS exposure visit number", allowFix, log=log
+            )
+            modified |= checkHeaderKeyword(
+                header, "W_PFDSGN", data.pfsDesignId, "PFS fiber configuration identifier", allowFix, log=log
+            )
+        except ValueError as exc:
+            raise ValueError(f"Bad header for {filename}") from exc
+
+        if modified and log:
+            log.warning(f"Updated {filename}")
+    return modified

@@ -19,6 +19,7 @@ PfsDesign, and so their versions are incremented together.
 
 * 1: Initial version.
 * 2: Additional HDU added for guide star information, provided by ETS shuffle.
+* 3: Write pfsDesignId and visit0 in header.
 
 
 PfsDetectorMap
@@ -64,6 +65,7 @@ PfsFiberProfiles
 This class is used for the pfsFiberProfiles product.
 
 * 1: Initial version.
+* 2: Write identity in header.
 
 
 PfsFiberTrace
