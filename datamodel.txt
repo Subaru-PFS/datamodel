@@ -299,7 +299,7 @@ HDU #3          FITS binary table named "GUIDESTARS"
 
 The PDU contains the following keys:
 
-      DSGN_NAME Human-readable name for the design
+      DSGN_NAM  Human-readable name for the design
       RA        Intended telescope boresight Right Ascension (degrees)
       DEC       Intended telescope boresight Declination (degrees)
       POSANG    Intended Position Angle of the PFI (degrees).
