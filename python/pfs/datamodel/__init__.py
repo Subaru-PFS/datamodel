@@ -12,3 +12,4 @@ from .utils import *
 from .pfsFiberProfiles import *
 from .pfsDetectorMap import *
 from .guideStars import *
+from .pfsTable import *
