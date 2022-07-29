@@ -123,3 +123,22 @@ GuideStars
 This is written as a FITS table inside other products.
 
 * 1: Initial version.
+
+
+PfsTable
+--------
+
+This class (and subclasses) is used for the arcLines product.
+
+* 1: Initial version.
+* 2: arcLines changed intensity->flux, intensityErr->fluxErr.
+
+
+PfsFocalPlaneFunction
+---------------------
+
+This class (and subclasses) are used for the sky1d, sky2d, fluxCal and apCorr
+products.
+
+* <no DAMD_VER header keyword>: written before I/O moved to datamodel package.
+* 1: Initial version in datamodel package. Class names were prepended with "Pfs".

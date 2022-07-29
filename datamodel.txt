@@ -165,6 +165,24 @@ Single extension fits files of size NCOLUMN*NROW
 
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
+Calibrated images
+
+    "postISRCCD-%1s%1s%06d-%1s%1d.fits" % (site, category, visit, arm, spectrograph)
+    "calexp-%1s%1s%06d-%1s%1d.fits" % (site, category, visit, arm, spectrograph)
+
+These are persisted versions of LSST's lsst.afw.image.Exposure class. As such,
+they may include a variety of HDUs for persisting PSFs, etc., but most notable
+are the following:
+
+HDU #0 PDU
+HDU #1 IMAGE            [32-bit FLOAT]      NPIXEL
+HDU #2 MASK             [32-bit INT]        NPIXEL
+HDU #3 VARIANCE         [32-bit FLOAT]      NPIXEL
+...
+   
+
+-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
 The profile of fibers in the 2-D flat-field image:
 
   "pfsFiberProfiles-%s-%06d-%1s%1d.fits" % (calibDate, visit0, arm, spectrograph)
@@ -515,11 +533,95 @@ The format will be identical to that of the pfsArm files, except that the fluxes
 
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-The sky model for a single exposure
+Flux-calibrated arm-merged spectrum from a single exposure
 
-   "pfsSky-%06d-%1s%1d.fits" % (visit, arm, spectrograph)
+   "pfsSingle-%05d-%05d-%s-%016x-%06d.fits" % (catId, tract, patch, objId, visit)
 
-Format: TBD
+The format will be identical to that of the pfsObject files.
+
+-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+2D spectral line measurements
+
+The 2D pipeline measures the position and flux of sky and arc lines as part of the reduction process.
+Note that science target lines are not included here.
+
+As of 2022-07-22 (with the LSST Gen2-based pipeline), these are written in a single file:
+
+    "arcLines-%06d-%s%d.fits" % (visit, arm, spectrograph)
+
+In the future (with the LSST Gen3-based pipeline), the centroid and photometry measurements will be
+written to separate files:
+
+    "lineCentroids-%06d-%1s%1d.fits" % (visit, arm, spectrograph)
+    "linePhotometry-%06d-%1s%1d.fits" % (visit, arm, spectrograph)
+
+These FITS files will include a single table HDU (in addition to the mandatory empty PHDU) with columns:
+
+    fiberId         32-bit int
+    wavelength      64-bit float (nm)
+    x               32-bit float (pixels)
+    y               32-bit float (pixels)
+    xErr            32-bit float (pixels)
+    yErr            32-bit float (pixels)
+    flux            32-bit float (arbitrary units)
+    fluxErr         32-bit float (arbitrary units)
+    norm            32-bit float (arbitrary units)
+    flag            boolean; indicates whether the measurement is bad
+    status          32-bit int; bitmask
+    description     string
+
+-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+2D spectral calibrations
+
+The 2D pipeline measures and applies multiple calibrations to the spectra as part of the reduction process.
+
+    "apCorr-%06d-%s%d.fits" % (visit, arm, spectrograph)
+    "sky2d-%06d-%s%d.fits" % (visit, arm, spectrograph)
+    "sky1d-%06d-%s.fits" % (visit, arm)
+    "fluxCal-%06d.fits" % (visit,)
+
+Each of these are functions of wavelength and position on the focal plane, but different representations.
+The particular representation used is written in the PHDU as the value of the
+"HIERARCH pfs_focalPlaneFunction_class" keyword.
+
+* PfsConstantFocalPlaneFunction: a constant spectrum for the whole focal-plane.
+  The FITS file includes the following HDUs:
+
+    HDU #0 PDU
+    HDU #2 WAVELENGTH   Wavelength (nm, vacuum)     [64-bit FLOAT]  LENGTH
+    HDU #1 VALUE        Value of the function       [32-bit FLOAT]  LENGTH
+    HDU #3 MASK         Is the value bad?           [8-bit UINT]    LENGTH
+    HDU #4 VARIANCE     Error^2 of the value        [32-bit FLOAT]  LENGTH
+
+* PfsOversampledSpline: a spline in wavelength for the whole focal-plane.
+  The FITS file includes a "SPLINE" table HDU with ORDER (spline order) and
+  DEFAULT (default value) header keywords and the following columns:
+
+    knots       64-bit float
+    coeffs      64-bit float
+    wavelength  64-bit float
+    variance    64-bit float
+
+* PfsBlockedOversampledSpline: a spline for blocks of fiberId. The FITS file
+  includes a "BLOCKSPLINE" HDU with the following columns:
+
+    fiberId         32-bit float
+    splineOrder     32-bit integer
+    defaultValue    64-bit float
+    knots           64-bit float array
+    coeffs          64-bit float array
+    wavelength      64-bit float array
+    variance        64-bit float array
+
+* PfsPolynomialPerFiber: a polynomial in wavelength for each fiber. The FITS file
+  includes a "POLYPERFIBER" table HDU with MIN_WL (minimum wavelength) and
+  MAX_WL (maximum wavelength) header keywords and the following columns:
+
+    fiberId         32-bit integer
+    coeffs          64-bit float array
+    rms             64-bit float
 
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 

@@ -1,6 +1,9 @@
+import numpy as np
+
 from .pfsSimpleSpectrum import PfsSimpleSpectrum
 from .pfsFiberArray import PfsFiberArray
 from .pfsFiberArraySet import PfsFiberArraySet
+from .pfsTable import PfsTable
 from .utils import inheritDocstrings
 
 __all__ = ["PfsArm", "PfsMerged", "PfsReference", "PfsSingle", "PfsObject"]
@@ -61,3 +64,23 @@ class PfsObject(PfsFiberArray):
     filenameRegex = r"^pfsObject-(\d{5})-(\d{5})-(.*)-([0-9a-f]{16})-(\d{3})-0x([0-9a-f]{16})\.fits.*$"
     filenameKeys = [("catId", int), ("tract", int), ("patch", str), ("objId", int),
                     ("nVisit", int), ("pfsVisitHash", int)]
+
+
+@inheritDocstrings
+class LineMeasurements(PfsTable):
+    damdVer = 2
+    schema = dict(
+        fiberId=np.int32,
+        wavelength=np.float64,
+        x=np.float64,
+        y=np.float64,
+        xErr=np.float64,
+        yErr=np.float64,
+        flux=np.float64,
+        fluxErr=np.float64,
+        flag=bool,
+        status=np.int32,
+        description=str,
+    )
+    fitsExtName = "ARCLINES"
+    aliases = dict(flux=("intensity",), fluxErr=("intensityErr"),)

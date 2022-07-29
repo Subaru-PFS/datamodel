@@ -4,7 +4,7 @@
 import hashlib
 import inspect
 import functools
-from typing import Union, Optional
+from typing import Optional, Set, Type, TypeVar, Union
 from logging import Logger
 
 import numpy as np
@@ -293,3 +293,12 @@ def checkHeaderKeyword(
             log.info(f"Added value of {keyword} = {repr(expected)}")
         return True
     raise ValueError(f"No header keyword {keyword}")
+
+
+T = TypeVar("T")
+
+
+def subclasses(cls: Type[T]) -> Set[Type[T]]:
+    """Return a set of all subclasses of the provided class"""
+    subs = cls.__subclasses__()
+    return set(subs).union(*[subclasses(ss) for ss in subs])
