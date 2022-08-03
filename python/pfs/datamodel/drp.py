@@ -81,6 +81,8 @@ class LineMeasurements(PfsTable):
         flag=bool,
         status=np.int32,
         description=str,
+        transition=str,
+        source=np.int32
     )
     fitsExtName = "ARCLINES"
     aliases = dict(flux=("intensity",), fluxErr=("intensityErr"),)
