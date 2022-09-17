@@ -174,7 +174,7 @@ class GuideStars:
         """
         hdu = fits[cls._hduName]
 
-        return cls(hdu.data["objId"].astype(np.int32),
+        return cls(hdu.data["objId"].astype(np.int64),
                    hdu.data["epoch"],
                    hdu.data["ra"].astype(np.float64),
                    hdu.data["dec"].astype(np.float64),
