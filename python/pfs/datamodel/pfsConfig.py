@@ -815,9 +815,18 @@ class PfsDesign:
         -------
         index : array-like of `int`
             Indices for fibers.
+
+        Raises
+        ------
+        RuntimeError
+            If a scalar ``fiberId`` is requested but not present.
         """
         result = np.nonzero(np.isin(self.fiberId, fiberId))[0]
-        return result.item() if np.isscalar(fiberId) else result
+        if np.isscalar(fiberId):
+            if result.size == 0:
+                raise RuntimeError(f"No fiber with fiberId={fiberId}")
+            return result.item()
+        return result
 
     def getIdentityFromIndex(self, index):
         """Return the identity of the target indicated by the index

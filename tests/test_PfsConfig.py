@@ -442,6 +442,8 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
         result = pfsConfig.selectFiber(pfsConfig.fiberId[index])
         self.assertFloatsEqual(result, sorted(index))  # Note the need to sort
 
+        self.assertRaises(RuntimeError, pfsConfig.selectFiber, 123456789)  # Scalar fiberId that's not present
+
     def testSelectByTargetType(self):
         """Test selectByTargetType"""
         pfsConfig = self.makePfsConfig()
