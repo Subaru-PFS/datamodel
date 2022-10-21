@@ -1193,13 +1193,26 @@ HDU#0 PHDU
      D1DP_VER    KEYWORD     Version of the DRP_1DPIPE pipeline
      DAMD_VER    KEYWORD     Version of the data model
      U_PARAM     KEYWORD     User parameters contents, json
-     ZWARNING    INT64       Quality flag
+     GALAXY_ZWARNING    INT64       Quality flags for galaxy solver
+     QSO_ZWARNING    INT64       Quality flags for QSO solver
+     STAR_ZWARNING    INT64       Quality flags for star solver
+     GALAXY_LWARNING    INT64       Quality flags for galaxy line measurement solver
+     QSO_LWARNING    INT64       Quality flags for QSO line measurement solver
+     CLASSIFICATION_WARNING    INT64       Quality flags for classification solver
+     GALAXY_ZERROR    INT64       Error code for galaxy solver
+     QSO_ZERROR    INT64       Error code for QSO solver
+     STAR_ZERROR    INT64       Error code for star solver
+     GALAXY_LERROR    INT64       Error code for galaxy line measurement solver
+     QSO_LERROR    INT64       Error code for QSO line measurement solver
+     CLASSIFICATION_ERROR    INT64       Error code for classification solver
+     
 
 HDU#1 CLASSIFICATION
      CLASS        KEYWORD     Spectro classification: GALAXY, QSO, STAR
      P_GALAXY     KEYWORD     Probability to be a galaxy
      P_QSO        KEYWORD     Probability to be a QSO
      P_STAR       KEYWORD     Probability to be a star
+ 
 
 HDU#2 GALAXY_CANDIDATES         Binary table            [FITS BINARY TABLE]     NGALAXY_CANDIDATES
         Colums for :
