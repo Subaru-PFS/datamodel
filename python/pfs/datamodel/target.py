@@ -32,14 +32,24 @@ class Target(types.SimpleNamespace):
     _attributes = ("catId", "tract", "patch", "objId", "ra", "dec", "targetType")  # Read from header
     """Attributes to read from FITS header (iterable of `str`)"""
 
-    def __init__(self, catId, tract, patch, objId, ra=np.nan, dec=np.nan, targetType=-1, fiberFlux=None):
+    def __init__(
+        self,
+        catId,
+        tract,
+        patch,
+        objId,
+        ra=np.nan,
+        dec=np.nan,
+        targetType=TargetType.UNASSIGNED,
+        fiberFlux=None,
+    ):
         self.catId = catId
         self.tract = tract
         self.patch = patch
         self.objId = objId
         self.ra = ra
         self.dec = dec
-        self.targetType = targetType
+        self.targetType = TargetType(targetType)
         self.fiberFlux = fiberFlux if fiberFlux is not None else {}
         self.identity = dict(catId=catId, tract=tract, patch=patch, objId=objId)
 
@@ -82,7 +92,10 @@ class Target(types.SimpleNamespace):
         # the versions.txt file.
         from astropy.io.fits import BinTableHDU, Column
         maxLength = max(len(ff) for ff in self.fiberFlux.keys()) if self.fiberFlux else 1
-        header = astropyHeaderFromDict({attr.upper(): getattr(self, attr) for attr in self._attributes})
+        header = astropyHeaderFromDict(
+            {attr.upper(): getattr(self, attr) for attr in self._attributes if attr != "targetType"}
+        )
+        header["HIERARCH TARGETTYPE"] = int(self.targetType)
         header.update(TargetType.getFitsHeaders())
         header['DAMD_VER'] = (1, "Target datamodel version")
         hdu = BinTableHDU.from_columns([
