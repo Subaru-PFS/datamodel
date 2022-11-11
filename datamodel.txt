@@ -120,6 +120,46 @@ MaskedImage
      A floating point variance image
 
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+Auto-Guider image data
+
+The file name format is as follows:
+    "agcc_{pfs_visit:06d}_{agc_exposure_id:08d}.fits"
+
+Where agc_exposure_id is a unique integer (monotonically increasing exposure by exposure).
+
+This data contain the following mandatory tables:
+
+HDU #0 PDU
+HDU #1 CAM1            [16-bit INT]      NPIXEL
+HDU #2 CAM2            [16-bit INT]      NPIXEL
+HDU #3 CAM3            [16-bit INT]      NPIXEL
+HDU #4 CAM4            [16-bit INT]      NPIXEL
+HDU #5 CAM5            [16-bit INT]      NPIXEL
+HDU #6 CAM6            [16-bit INT]      NPIXEL
+
+And the following optional tables:
+
+HDU #7 TABLE1          FITS binary table
+HDU #8 TABLE2          FITS binary table
+HDU #9 TABLE3          FITS binary table
+HDU #10 TABLE4         FITS binary table
+HDU #11 TABLE5         FITS binary table
+HDU #12 TABLE6         FITS binary table
+
+Each TABLE[1-6] HDU contains :
+
+  moment_00      32-bit int    The (0,0) image moment
+  centroid_x     32-bit int    The x-centroid
+  centroid_y     32-bit int    The y-centroid
+  moment_20      32-bit int    The (2,0) image moment
+  moment_11      32-bit int    The (1,1) image moment
+  moment_02      32-bit int    The (0,2) image moment
+  peak_x         16-bit int    x-location of peak value
+  peak_y         16-bit int    y-location of peak value
+  peak_intensity 32-bit int    peak intensity value
+  background     32-bit int    measured background level
+
+-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 Raw Data
 
