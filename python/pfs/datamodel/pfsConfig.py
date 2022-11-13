@@ -152,10 +152,15 @@ class PfsDesign:
         Guide star data. If `None`, an empty GuideStars instance will be created.
     designName : `str`, optional
         Human-readable name for the design.
+    variant : `int`, optional
+        Counter of which variant of `designId0` we are. Requires `designId0`.
+    designId0 : `int`, optional
+        pfsDesignId of the pfsDesign we are a variant of. Requires `variant`.
     """
     # Scalar values
     _scalars = ["pfsDesignId", "designName",
-                "raBoresight", "decBoresight", "posAng", "arms", "guideStars"]
+                "raBoresight", "decBoresight", "posAng", "arms", "guideStars",
+                "variant", "designId0"]
     # List of fields required, and their FITS type
     # Some elements of the code expect the following to be present:
     #     fiberId, targetType
@@ -201,6 +206,9 @@ class PfsDesign:
             raise RuntimeError('The GuideStars instance cannot be None. '
                                'If no valid instance can be provided, '
                                'pass and empty instance, eg., GuideStars.empty().')
+
+        if (self.variant != 0) ^ (self.designId0 != 0):
+            raise RuntimeError("if either variant or designId0 is set both must be set.")
 
         if len(set([len(getattr(self, nn)) for nn in self._keywords])) != 1:
             raise RuntimeError("Inconsistent lengths: %s" % ({nn: len(getattr(self, nn)) for
@@ -267,7 +275,9 @@ class PfsDesign:
                  totalFluxErr,
                  filterNames, pfiNominal,
                  guideStars,
-                 designName=""):
+                 designName="",
+                 variant=0,
+                 designId0=0):
         self.pfsDesignId = pfsDesignId
         self.raBoresight = raBoresight
         self.decBoresight = decBoresight
@@ -292,6 +302,8 @@ class PfsDesign:
         self.pfiNominal = np.array(pfiNominal)
         self.guideStars = guideStars if guideStars is not None else GuideStars.empty()
         self.designName = designName
+        self.variant = variant
+        self.designId0 = designId0
         self.isSubset = False
         self.validate()
 
@@ -369,6 +381,10 @@ class PfsDesign:
         """Usual filename"""
         return self.fileNameFormat % (self.pfsDesignId)
 
+    def getVariant(self):
+        """Return the (variantNum, basePfsDesign) pair, or (0, 0) if we are not a variant """
+        return self.variant, self.designId0
+
     @classmethod
     def _readHeader(cls, header, kwargs=None):
         """Read construction variables from the header.
@@ -415,6 +431,11 @@ class PfsDesign:
         elif "pfsDesignId" not in kwargs:
             raise RuntimeError("Unable to determine pfsDesignId")
 
+        # Load design variant cards, added for DAMD-140. If none are set, declare the design
+        # as having none.
+        kwargs["variant"] = header.get("VARIANT", 0)
+        kwargs["designId0"] = header.get("PFDSGN0", 0)
+
         return kwargs
 
     def _writeHeader(self, header):
@@ -432,6 +453,8 @@ class PfsDesign:
         header["DSGN_NAM"] = (self.designName, "Name of design")
         header["DAMD_VER"] = (3, "PfsDesign/PfsConfig datamodel version")
         header["W_PFDSGN"] = (self.pfsDesignId, "Identifier for fiber configuration")
+        header["VARIANT"] = (self.variant, "Which variant of PFDSGN0 we are.")
+        header["PFDSGN0"] = (self.designId0, "The base design of which we are a variant")
 
     @classmethod
     def _readImpl(cls, filename, **kwargs):
@@ -949,6 +972,10 @@ class PfsConfig(PfsDesign):
         Guide star data. If `None`, an empty GuideStars instance will be created.
     designName : `str`, optional
         Human-readable name for the design.
+    variant : `int`, optional
+        Counter of which variant of `designId0` we are. Requires `designId0`.
+    designId0 : `int`, optional
+        pfsDesignId of the pfsDesign we are a variant of. Requires `variant`.
     """
     # Scalar values
     _scalars = ["pfsDesignId", "designName",
@@ -994,7 +1021,9 @@ class PfsConfig(PfsDesign):
                  totalFluxErr,
                  filterNames, pfiCenter, pfiNominal,
                  guideStars,
-                 designName=""):
+                 designName="",
+                 variant=0,
+                 designId0=0):
         self.visit0 = visit0
         self.pfiCenter = np.array(pfiCenter)
         super().__init__(pfsDesignId, raBoresight, decBoresight,
@@ -1010,7 +1039,9 @@ class PfsConfig(PfsDesign):
                          totalFluxErr,
                          filterNames, pfiNominal,
                          guideStars,
-                         designName)
+                         designName,
+                         variant=variant,
+                         designId0=designId0)
 
     def __str__(self):
         """String representation"""
