@@ -35,10 +35,25 @@ def calculatePfsVisitHash(visits):
     return createHash([str(vv).encode() for vv in sorted(visits)])
 
 
-def calculate_pfsDesignId(fiberIds, ras, decs):
-    """Calculate and return the hash from a set of lists of
-    fiberId, ra, and dec"""
+def calculate_pfsDesignId(fiberIds, ras, decs, variant=0):
+    """Calculate and return the hash for a design.
 
+    We hash all the (fiberId, ra, dec) tuples, with the coordinates rounded to 1 arcsec.
+
+    Parameters
+    ----------
+    fiberIds: `list` of `int`
+       The fiber ids for the objects
+    ras, decs : `list` of `float`
+       The sky coordinates of the objects. Rounded to 1 arcsec.
+    variant: `int`, optional
+       If non-0, added to the hash input
+
+    Returns
+    -------
+    sha : `int`
+       hash of all inputs, truncated to 63-bits.
+    """
     if fiberIds is None:
         if ras is None and decs is None:
             return 0x0
@@ -51,13 +66,20 @@ def calculate_pfsDesignId(fiberIds, ras, decs):
 
     def _roundToArcsec(d):
         if np.isnan(d):
-            return d  # Just return nan is this case
+            return d  # Just return nan in this case
         return int(d*3600.0 + 0.5)/3600.0
 
     # Regardless of the arcsec rounding, we need to choose a precision for the string respresentation.
     # If datamodel.txt phrasing were a little sloppier, we could just use integer arcseconds.
-    return createHash(["%d %0.6f %0.6f" % (fiberId, _roundToArcsec(ra), _roundToArcsec(dec))
-                       for fiberId, ra, dec in zip(fiberIds, ras, decs)])
+    hashParts = ["%d %0.6f %0.6f" % (fiberId, _roundToArcsec(ra), _roundToArcsec(dec))
+                 for fiberId, ra, dec in zip(fiberIds, ras, decs)]
+
+    # Also hash variant id. For backward compatibility, do *not* change the hash if variant=0, which
+    # indicates that we are not a variant.
+    if variant != 0:
+        hashParts.append(str(variant))
+
+    return createHash(hashParts)
 
 
 def createHash(*args):
