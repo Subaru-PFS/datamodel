@@ -109,6 +109,8 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
         self.guideStars = GuideStars.empty()
 
         self.designName = "Zenith odd-even"
+        self.variant = 0
+        self.designId0 = 0
 
     def _makeInstance(self, Class, **kwargs):
         """Construct a PfsDesign or PfsConfig using default values
@@ -306,6 +308,25 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
         design1 = self.makePfsDesign(designName='TestName123')
         with self.assertRaises(AssertionError):
             self.assertPfsDesign(design0, design1)
+
+    def testPfsDesignVariants(self):
+        """Test that pfsDesign variants have correct provenance."""
+        design0 = self.makePfsDesign()
+        design1 = self.makePfsDesign(variant=1, designId0=design0.pfsDesignId)
+        design2 = self.makePfsDesign(variant=2, designId0=design0.pfsDesignId)
+
+        variant0, designForVariant0 = design0.getVariant()
+        self.assertEqual(variant0, 0)
+        self.assertEqual(designForVariant0, 0)
+
+        baseDesignId = design0.pfsDesignId
+        variant1, designForVariant1 = design1.getVariant()
+        variant2, designForVariant2 = design2.getVariant()
+        self.assertNotEqual(variant1, variant0)
+        self.assertNotEqual(variant2, variant1)
+
+        self.assertEqual(baseDesignId, designForVariant1)
+        self.assertEqual(baseDesignId, designForVariant2)
 
     def testFromEmptyGuideStars(self):
         """Check that an empty GuideStars instance is correctly instantiated
