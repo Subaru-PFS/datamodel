@@ -979,7 +979,9 @@ class PfsConfig(PfsDesign):
     """
     # Scalar values
     _scalars = ["pfsDesignId", "designName",
-                "visit0", "raBoresight", "decBoresight", "posAng", "arms", "guideStars"]
+                "visit0", "raBoresight", "decBoresight", "posAng", "arms", "guideStars",
+                "variant", "designId0"]
+
     # List of fields required, and their FITS type
     # Some elements of the code expect the following to be present:
     #     fiberId, targetType
@@ -1071,7 +1073,8 @@ class PfsConfig(PfsDesign):
             Constructed ``PfsConfig`.
         """
         keywords = ["pfsDesignId", "designName",
-                    "raBoresight", "decBoresight", "posAng", "arms"]
+                    "raBoresight", "decBoresight", "posAng", "arms",
+                    "variant", "designId0"]
         kwargs = {kk: getattr(pfsDesign, kk) for kk in pfsDesign._keywords + keywords}
         kwargs["fiberStatus"] = pfsDesign.fiberStatus
         kwargs["visit0"] = visit0
