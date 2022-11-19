@@ -328,6 +328,15 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
         self.assertEqual(baseDesignId, designForVariant1)
         self.assertEqual(baseDesignId, designForVariant2)
 
+    def testPfsConfigVariants(self):
+        """Test that pfsConfig can be create from a design with variant """
+        design0 = self.makePfsDesign()
+        variant1 = 1
+        design1 = self.makePfsDesign(variant=variant1, designId0=design0.pfsDesignId)
+
+        config1 = PfsConfig.fromPfsDesign(design1, self.visit0, self.pfiCenter)
+        self.assertEqual((variant1, design0.pfsDesignId), config1.getVariant())
+
     def testFromEmptyGuideStars(self):
         """Check that an empty GuideStars instance is correctly instantiated
         if a None value is passed to the corresponding constructor argument
