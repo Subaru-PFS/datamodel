@@ -89,7 +89,7 @@ class PfsFluxReferenceTestCase(lsst.utils.tests.TestCase):
     def testExtractFiber(self):
         pfsConfig = PfsConfig(
             pfsDesignId=1,
-            visit0=1,
+            visit=1,
             raBoresight=123,
             decBoresight=45,
             posAng=0,
