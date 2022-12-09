@@ -1072,14 +1072,12 @@ class PfsConfig(PfsDesign):
         self : `PfsConfig`
             Constructed ``PfsConfig`.
         """
-        keywords = ["pfsDesignId", "designName",
-                    "raBoresight", "decBoresight", "posAng", "arms",
-                    "variant", "designId0"]
-        kwargs = {kk: getattr(pfsDesign, kk) for kk in pfsDesign._keywords + keywords}
-        kwargs["fiberStatus"] = pfsDesign.fiberStatus
+        keywords = pfsDesign._keywords + PfsDesign._scalars + ['fiberStatus']
+
+        kwargs = {kk: getattr(pfsDesign, kk) for kk in keywords}
         kwargs["visit"] = visit
         kwargs["pfiCenter"] = pfiCenter
-        kwargs["guideStars"] = pfsDesign.guideStars
+
         return PfsConfig(**kwargs)
 
     @classmethod
