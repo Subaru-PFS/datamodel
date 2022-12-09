@@ -337,6 +337,22 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
         config1 = PfsConfig.fromPfsDesign(design1, self.visit, self.pfiCenter)
         self.assertEqual((variant1, design0.pfsDesignId), config1.getVariant())
 
+    def testPfsConfigCopy(self):
+        """Test that pfsConfig can be copied with modified entries."""
+        config = self.makePfsConfig()
+
+        # making a copy just changing visit
+        newVisit = config.visit + 1
+        configCopy = config.copy(visit=newVisit)
+        self.assertEqual(configCopy.visit, newVisit)
+
+        # checking that those are still equal.
+        for scalar in set(configCopy._scalars) - {'visit', 'guideStars'}:
+            self.assertEqual(getattr(configCopy, scalar), getattr(config, scalar))
+
+        for field in ['fiberId', 'fiberStatus', 'targetType', 'pfiNominal', 'pfiCenter']:
+            np.testing.assert_array_equal(getattr(configCopy, field), getattr(config, field))
+
     def testFromEmptyGuideStars(self):
         """Check that an empty GuideStars instance is correctly instantiated
         if a None value is passed to the corresponding constructor argument
