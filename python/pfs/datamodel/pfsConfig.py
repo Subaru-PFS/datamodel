@@ -1146,6 +1146,22 @@ class PfsConfig(PfsDesign):
         filename = os.path.join(dirName, cls.fileNameFormat % (pfsDesignId, visit))
         return cls._readImpl(filename, pfsDesignId=pfsDesignId, visit=visit)
 
+    def copy(self, **kwargs):
+        """Copy pfsConfig, optionally changing entries
+
+        Parameters
+        -----------
+        **kwargs
+            Elements to override.
+
+        Returns
+        --------
+        copy : `PfsConfig`
+            Copied pfsConfig.
+        """
+        keywords = PfsConfig._keywords + PfsConfig._scalars + ['fiberStatus']
+        return PfsConfig(**{key: kwargs.get(key, getattr(self, key)) for key in keywords})
+
     def extractCenters(self, fiberId):
         """Extract centers for fibers
 
