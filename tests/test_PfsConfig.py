@@ -45,7 +45,7 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
         self.pfiErrors = 0.01  # millimeters
 
         self.pfsDesignId = 12345
-        self.visit0 = 67890
+        self.visit = 67890
         self.fiberId = np.array(list(reversed(range(self.numFibers))))
         rng = np.random.RandomState(12345)
         self.tract = rng.uniform(high=30000, size=self.numFibers).astype(int)
@@ -188,7 +188,7 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
         self.assertEqual(lhs.designName, rhs.designName)
 
     def assertPfsConfig(self, lhs, rhs):
-        self.assertEqual(lhs.visit0, rhs.visit0)
+        self.assertEqual(lhs.visit, rhs.visit)
         np.testing.assert_array_equal(lhs.pfiCenter, rhs.pfiCenter)
 
     def testBasic(self):
@@ -205,7 +205,7 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
 
         try:
             config.write(dirName=dirName)
-            other = PfsConfig.read(self.pfsDesignId, self.visit0, dirName=dirName)
+            other = PfsConfig.read(self.pfsDesignId, self.visit, dirName=dirName)
             self.assertPfsConfig(config, other)
         except Exception:
             raise  # Leave file for manual inspection
@@ -278,7 +278,7 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
         """Test PfsConfig.fromPfsDesign"""
         design = self.makePfsDesign()
         config = self.makePfsConfig()
-        self.assertPfsConfig(PfsConfig.fromPfsDesign(design, self.visit0, self.pfiCenter), config)
+        self.assertPfsConfig(PfsConfig.fromPfsDesign(design, self.visit, self.pfiCenter), config)
 
     def testDesignName(self):
         """Test creation of design name"""
@@ -334,8 +334,24 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
         variant1 = 1
         design1 = self.makePfsDesign(variant=variant1, designId0=design0.pfsDesignId)
 
-        config1 = PfsConfig.fromPfsDesign(design1, self.visit0, self.pfiCenter)
+        config1 = PfsConfig.fromPfsDesign(design1, self.visit, self.pfiCenter)
         self.assertEqual((variant1, design0.pfsDesignId), config1.getVariant())
+
+    def testPfsConfigCopy(self):
+        """Test that pfsConfig can be copied with modified entries."""
+        config = self.makePfsConfig()
+
+        # making a copy just changing visit
+        newVisit = config.visit + 1
+        configCopy = config.copy(visit=newVisit)
+        self.assertEqual(configCopy.visit, newVisit)
+
+        # checking that those are still equal.
+        for scalar in set(configCopy._scalars) - {'visit', 'guideStars'}:
+            self.assertEqual(getattr(configCopy, scalar), getattr(config, scalar))
+
+        for field in ['fiberId', 'fiberStatus', 'targetType', 'pfiNominal', 'pfiCenter']:
+            np.testing.assert_array_equal(getattr(configCopy, field), getattr(config, field))
 
     def testFromEmptyGuideStars(self):
         """Check that an empty GuideStars instance is correctly instantiated
@@ -408,7 +424,7 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
 
         try:
             sub.write(dirName=dirName, allowSubset=True)
-            new = PfsConfig.read(self.pfsDesignId, self.visit0, dirName=dirName)
+            new = PfsConfig.read(self.pfsDesignId, self.visit, dirName=dirName)
             self.assertPfsConfig(new, sub)
         except Exception:
             raise  # Leave file for manual inspection

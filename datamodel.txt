@@ -489,7 +489,7 @@ The realisation of a PfsDesign for a particular exposure is a PfsConfig.
 The most important differences from PfsDesign are that the actual fiber
 positions and object photometry are recorded for use in the DRP.
 
-    "pfsConfig-0x%016x-%06d.fits" % (pfsDesignId, visit0)
+    "pfsConfig-0x%016x-%06d.fits" % (pfsDesignId, visit)
 
 The choice of a hex format is because the the pfsDesignId is a SHA-1.
 

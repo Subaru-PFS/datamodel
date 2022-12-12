@@ -915,7 +915,7 @@ class PfsConfig(PfsDesign):
     ----------
     pfsDesignId : `int`
         PFI design identifier, specifies the intended top-end configuration.
-    visit0 : `int`
+    visit : `int`
         Exposure identifier.
     raBoresight : `float`, degrees
         Right Ascension of telescope boresight.
@@ -979,7 +979,7 @@ class PfsConfig(PfsDesign):
     """
     # Scalar values
     _scalars = ["pfsDesignId", "designName",
-                "visit0", "raBoresight", "decBoresight", "posAng", "arms", "guideStars",
+                "visit", "raBoresight", "decBoresight", "posAng", "arms", "guideStars",
                 "variant", "designId0"]
 
     # List of fields required, and their FITS type
@@ -1010,7 +1010,7 @@ class PfsConfig(PfsDesign):
 
     fileNameFormat = "pfsConfig-0x%016x-%06d.fits"
 
-    def __init__(self, pfsDesignId, visit0, raBoresight, decBoresight,
+    def __init__(self, pfsDesignId, visit, raBoresight, decBoresight,
                  posAng,
                  arms,
                  fiberId, tract, patch, ra, dec, catId, objId,
@@ -1026,7 +1026,7 @@ class PfsConfig(PfsDesign):
                  designName="",
                  variant=0,
                  designId0=0):
-        self.visit0 = visit0
+        self.visit = visit
         self.pfiCenter = np.array(pfiCenter)
         super().__init__(pfsDesignId, raBoresight, decBoresight,
                          posAng,
@@ -1047,22 +1047,22 @@ class PfsConfig(PfsDesign):
 
     def __str__(self):
         """String representation"""
-        return "PfsConfig(%d, %d, ...)" % (self.pfsDesignId, self.visit0)
+        return "PfsConfig(%d, %d, ...)" % (self.pfsDesignId, self.visit)
 
     @property
     def filename(self):
         """Usual filename"""
-        return self.fileNameFormat % (self.pfsDesignId, self.visit0)
+        return self.fileNameFormat % (self.pfsDesignId, self.visit)
 
     @classmethod
-    def fromPfsDesign(cls, pfsDesign, visit0, pfiCenter):
+    def fromPfsDesign(cls, pfsDesign, visit, pfiCenter):
         """Construct from a ``PfsDesign``
 
         Parameters
         ----------
         pfsDesign : `pfs.datamodel.PfsDesign`
             ``PfsDesign`` to use as the base for this ``PfsConfig``.
-        visit0 : `int`
+        visit : `int`
             Exposure identifier.
         pfiCenter : `numpy.ndarray` of `float`
             Actual position (2-vector) of each fiber on the PFI, microns.
@@ -1072,14 +1072,12 @@ class PfsConfig(PfsDesign):
         self : `PfsConfig`
             Constructed ``PfsConfig`.
         """
-        keywords = ["pfsDesignId", "designName",
-                    "raBoresight", "decBoresight", "posAng", "arms",
-                    "variant", "designId0"]
-        kwargs = {kk: getattr(pfsDesign, kk) for kk in pfsDesign._keywords + keywords}
-        kwargs["fiberStatus"] = pfsDesign.fiberStatus
-        kwargs["visit0"] = visit0
+        keywords = pfsDesign._keywords + PfsDesign._scalars + ['fiberStatus']
+
+        kwargs = {kk: getattr(pfsDesign, kk) for kk in keywords}
+        kwargs["visit"] = visit
         kwargs["pfiCenter"] = pfiCenter
-        kwargs["guideStars"] = pfsDesign.guideStars
+
         return PfsConfig(**kwargs)
 
     @classmethod
@@ -1103,13 +1101,13 @@ class PfsConfig(PfsDesign):
         # We formerly got the visit from the filename, which is fragile.
         # Now we look for it in the W_VISIT header, but need to allow for the possibility that it's
         # not present.
-        visit0 = header.get("W_VISIT", None)
-        if visit0 is not None:
-            if "visit0" in kwargs and kwargs["visit0"] != visit0:
-                raise RuntimeError(f"visit0 mismatch: {kwargs['visit0']} vs visit0")
-            kwargs["visit0"] = visit0
-        elif "visit0" not in kwargs:
-            raise RuntimeError("Unable to determine visit0")
+        visit = header.get("W_VISIT", None)
+        if visit is not None:
+            if "visit" in kwargs and kwargs["visit"] != visit:
+                raise RuntimeError(f"visit mismatch: {kwargs['visit']} vs visit")
+            kwargs["visit"] = visit
+        elif "visit" not in kwargs:
+            raise RuntimeError("Unable to determine visit")
 
         return kwargs
 
@@ -1122,10 +1120,10 @@ class PfsConfig(PfsDesign):
             FITS header; modified.
         """
         super()._writeHeader(header)
-        header["W_VISIT"] = (self.visit0, "Visit number")
+        header["W_VISIT"] = (self.visit, "Visit number")
 
     @classmethod
-    def read(cls, pfsDesignId, visit0, dirName="."):
+    def read(cls, pfsDesignId, visit, dirName="."):
         """Construct from file
 
         Requires pyfits.
@@ -1134,7 +1132,7 @@ class PfsConfig(PfsDesign):
         ----------
         pfsDesignId : `int`
             PFI design identifier, specifies the intended top-end configuration.
-        visit0 : `int`
+        visit : `int`
             Exposure identifier.
         dirName : `str`, optional
             Directory from which to read the file. Defaults to the current
@@ -1145,8 +1143,24 @@ class PfsConfig(PfsDesign):
         self : `PfsConfig`
             Constructed `PfsConfig`.
         """
-        filename = os.path.join(dirName, cls.fileNameFormat % (pfsDesignId, visit0))
-        return cls._readImpl(filename, pfsDesignId=pfsDesignId, visit0=visit0)
+        filename = os.path.join(dirName, cls.fileNameFormat % (pfsDesignId, visit))
+        return cls._readImpl(filename, pfsDesignId=pfsDesignId, visit=visit)
+
+    def copy(self, **kwargs):
+        """Copy pfsConfig, optionally changing entries
+
+        Parameters
+        -----------
+        **kwargs
+            Elements to override.
+
+        Returns
+        --------
+        copy : `PfsConfig`
+            Copied pfsConfig.
+        """
+        keywords = PfsConfig._keywords + PfsConfig._scalars + ['fiberStatus']
+        return PfsConfig(**{key: kwargs.get(key, getattr(self, key)) for key in keywords})
 
     def extractCenters(self, fiberId):
         """Extract centers for fibers
