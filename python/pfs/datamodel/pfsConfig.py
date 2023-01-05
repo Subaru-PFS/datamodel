@@ -81,6 +81,7 @@ class TargetType(DocEnum):
     ENGINEERING = 5, "engineering fiber"
     SUNSS_IMAGING = 6, "fiber goes to the SuNSS imaging leg"
     SUNSS_DIFFUSE = 7, "fiber goes to the SuNSS diffuse leg"
+    DCB = 8, "fiber goes to DCB/DCB2"
 
 
 class FiberStatus(DocEnum):
