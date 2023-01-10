@@ -267,6 +267,7 @@ Note that visit0 is defined under "Calibration products"
 We have multiple separate formats for representing the "detectorMap", which are distinguished by the value of
 the "HIERARCH pfs_detectorMap_class" header card:
 * SplinedDetectorMap: splines for each fiber provide the wavelength and column as a function of row.
+* DoubleDetectorMap: mapping of x,y to dx,dy distortion for left and right CCDs to a SplineDetectorMap
 * DifferentialDetectorMap: a mapping of fiberId,wavelength to x,y corrections to a SplinedDetectorMap.
 * DistortedDetectorMap: a mapping of x,y to dx,dy corrections to a SplinedDetectorMap.
 
@@ -285,6 +286,19 @@ The CENTER and WAVELENGTH tables contain:
         index       64-bit int          Index of fiber (primary key)
         knot        32-bit float        Row value of knot (primary key)
         value       32-bit float        Corresponding value at knot
+
+
+DoubleDetectorMap format:
+
+HDU #0 PDU
+HDU #1 FIBERID          Identifier of each fiber                [32-bit INT]            NFIBER
+HDU #2 SLITOFF          Slit offsets in x,y,z                   [32-bit FLOAT]          3*NFIBER
+HDU #3 CENTER           Spline for column with trace center     [BINARY FITS TABLE]     NFIBER
+HDU #4 WAVELENGTH       Spline for wavelength (nm)              [BINARY FITS TABLE]     NFIBER
+HDU #5 COEFFICIENTS     Distortion coefficients                 [BINARY FITS TABLE]     NCOEFF
+
+The primary header records the dimensions of the detector in the MINX,MINY,MAXX,MAXY keywords.
+It also contains the polynomial order of the distortion in the ORDER keyword.
 
 
 DifferentialDetectorMap format:
