@@ -2,6 +2,7 @@ import os
 import re
 from types import SimpleNamespace
 from abc import ABC, abstractmethod
+from typing import Any, Dict, List, Type
 import warnings
 
 import numpy as np
@@ -21,6 +22,9 @@ __all__ = (
     "DistortedDetectorMap",
     "DoubleDetectorMap",
     "PolynomialDetectorMap",
+    "PfsDistortion",
+    "DoubleDistortion",
+    "MultipleDistortionsDetectorMap",
 )
 
 
@@ -1077,5 +1081,288 @@ class PolynomialDetectorMap(PfsDetectorMap):
             astropy.io.fits.Column(name="yCoeff", format="D", array=self.yCoeff),
         ], header=tableHeader, name="COEFFICIENTS")
         fits.append(table)
+
+        return fits
+
+
+class PfsDistortion(ABC):
+    """Base class for distortion models for the MultipleDistortionsDetectorMap
+
+    The distortion implementations in the datamodel package handle I/O only.
+    For fully-functional implementations that include evaluation of the
+    mappings, see the drp_stella package.
+
+    Subclasses must implement the ``readFits`` and ``writeFits`` methods.
+
+    Multiple distortions may be written to a single FITS file, so a single
+    extension name is not sufficient to identify them; the index is added to
+    disambiguate and order them.
+    """
+    @classmethod
+    def getName(cls) -> str:
+        """Name of distortion
+
+        Returns
+        -------
+        name : `str`
+            Name of distortion.
+        """
+        return cls.__name__
+
+    @classmethod
+    def getDistortion(cls, name: str) -> Type["PfsDistortion"]:
+        """Get distortion subclass by name
+
+        Parameters
+        ----------
+        name : `str`
+            Distortion subclass name.
+
+        Returns
+        -------
+        subclass : `PfsDistortion`
+            Distortion subclass.
+        """
+        for ss in cls.__subclasses__():
+            if ss.getName() == name:
+                return ss
+        raise RuntimeError(f"Unrecognised distortion class: {name}")
+
+    @classmethod
+    @abstractmethod
+    def readFits(cls, fits: astropy.io.fits.HDUList, index: int) -> "PfsDistortion":
+        """Read from FITS file
+
+        Parameters
+        ----------
+        fits : `astropy.io.fits.HDUList`
+            FITS file in memory.
+        index : `int`
+            Index of distortion to read.
+
+        Returns
+        -------
+        self : ``cls``
+            Constructed distortion, from FITS file.
+        """
+        raise NotImplementedError("Subclass must implement readFits()")
+
+    @abstractmethod
+    def writeFits(self, fits: astropy.io.fits.HDUList, index: int):
+        """Write to FITS file
+
+        Parameters
+        ----------
+        fits : `astropy.io.fits.HDUList`
+            FITS file in memory; modified.
+        index : `int`
+            Index of distortion to write.
+        """
+        raise NotImplementedError("Subclass must implement writeFits()")
+
+
+class DoubleDistortion(PfsDistortion):
+    """Distortion fields in x and y for left and right CCDs
+
+    Parameters
+    ----------
+    order : `int`
+        Order of the polynomials.
+    box : `Box`
+        Range of the polynomials.
+    xLeft : `numpy.ndarray` of `float`
+        Coefficients for the xLeft polynomial.
+    yLeft : `numpy.ndarray` of `float`
+        Coefficients for the yLeft polynomial.
+    xRight : `numpy.ndarray` of `float`
+        Coefficients for the xRight polynomial.
+    yRight : `numpy.ndarray` of `float`
+        Coefficients for the yRight polynomial.
+    """
+    def __init__(
+        self,
+        order: int,
+        box: Box,
+        xLeft: np.ndarray,
+        yLeft: np.ndarray,
+        xRight: np.ndarray,
+        yRight: np.ndarray,
+    ):
+        self.order = order
+        self.box = box
+        self.xLeft = xLeft
+        self.yLeft = yLeft
+        self.xRight = xRight
+        self.yRight = yRight
+
+    @staticmethod
+    def getExtName(index: int) -> str:
+        """Return FITS extension name
+
+        Parameters
+        ----------
+        index : `int`
+            Index of distortion.
+        """
+        return f"DoubleDistortion_{index}"
+
+    @classmethod
+    def readFits(cls, fits: astropy.io.fits.HDUList, index: int) -> "PfsDistortion":
+        """Read from FITS file
+
+        Parameters
+        ----------
+        fits : `astropy.io.fits.HDUList`
+            FITS file in memory.
+        index : `int`
+            Index of distortion to read.
+
+        Returns
+        -------
+        self : ``cls``
+            Constructed distortion, from FITS file.
+        """
+        hdu = fits[cls.getExtName(index)]
+        order = hdu.header["ORDER"]
+        box = Box.fromFitsHeader(hdu.header)
+        xLeft = hdu.data["xLeft"].astype(float)
+        yLeft = hdu.data["yLeft"].astype(float)
+        xRight = hdu.data["xRight"].astype(float)
+        yRight = hdu.data["yRight"].astype(float)
+        return cls(order, box, xLeft, yLeft, xRight, yRight)
+
+    def writeFits(self, fits: astropy.io.fits.HDUList, index: int):
+        """Write to a FITS file
+
+        Parameters
+        ----------
+        fits : `astropy.io.fits.HDUList`
+            FITS file in memory; modified.
+        index : `int`
+            Index of distortion to write.
+        """
+        header = astropy.io.fits.Header()
+        header["ORDER"] = self.order
+        header["INHERIT"] = True
+        header.update(self.box.toFitsHeader())
+
+        table = astropy.io.fits.BinTableHDU.from_columns([
+            astropy.io.fits.Column(name="xLeft", format="D", array=self.xLeft),
+            astropy.io.fits.Column(name="yLeft", format="D", array=self.yLeft),
+            astropy.io.fits.Column(name="xRight", format="D", array=self.xRight),
+            astropy.io.fits.Column(name="yRight", format="D", array=self.yRight),
+        ], header=header, name=self.getExtName(index))
+        fits.append(table)
+
+
+class MultipleDistortionsDetectorMap(PfsDetectorMap):
+    """Multiple distortions on top of a SplinedDetectorMap
+
+    This implementation handles I/O only. For a fully-functional implementation
+    that includes evaluation of the mappings, see the drp_stella package.
+
+    Parameters
+    ----------
+    identity : `pfs.datamodel.CalibIdentity`
+        Identity of the data of interest.
+    box : `Box`
+        Bounding box for detector.
+    base : `pfs.datamodel.SplinedDetectorMap`
+        Base detectorMap.
+    distortions : `list` of `pfs.datamodel.Distortion`
+        Distortions to apply.
+    metadata : `dict`
+        Keyword-value pairs to put in the header.
+    """
+    def __init__(
+        self,
+        identity: CalibIdentity,
+        box: Box,
+        base: SplinedDetectorMap,
+        distortions: List[PfsDistortion],
+        metadata: Dict[str, Any] = None
+    ):
+        self.identity = identity
+        self.box = box
+        self.base = base
+        self.distortions = distortions
+        self.metadata = metadata
+        self.validate()
+
+    def validate(self):
+        """Ensure that array lengths are as expected
+
+        Raises
+        ------
+        AssertionError
+            When an array length doesn't match that expected.
+        """
+        pass
+
+    def __len__(self) -> int:
+        """Number of fibers"""
+        return len(self.base.fiberId)
+
+    @classmethod
+    def _readImpl(
+        cls, fits: astropy.io.fits.HDUList, identity: CalibIdentity
+    ) -> "MultipleDistortionsDetectorMap":
+        """Implementation of reading from a FITS file in memory
+
+        Parameters
+        ----------
+        fits : `astropy.io.fits.HDUList`
+            FITS file in memory.
+        identity : `pfs.datamodel.CalibIdentity`
+            Identity of the calib data.
+
+        Returns
+        -------
+        self : `DifferentialDetectorMap`
+            DetectorMap read from FITS file.
+        """
+        header = astropyHeaderToDict(fits[0].header)
+        box = Box.fromFitsHeader(header)
+        base = SplinedDetectorMap._readImpl(fits, identity)
+
+        names = ("".join(nn.tolist()) for nn in fits["DISTORTIONS"].data["name"])
+        classes = (PfsDistortion.getDistortion(nn) for nn in names)
+        distortions = [DistortionClass.readFits(fits, ii) for ii, DistortionClass in enumerate(classes)]
+
+        return cls(identity, box, base, distortions, header)
+
+    def _writeImpl(self):
+        """Implementation of writing to FITS file
+
+        Returns
+        -------
+        fits : `astropy.io.fits.HDUList`
+            FITS file representation.
+        """
+        # NOTE: When making any changes to this method that modify the output
+        # format, increment the DAMD_VER header value in the
+        # SplinedDetectorMap._writeImpl method, and record the change in
+        # the versions.txt file.
+        fits = self.base._writeImpl()
+
+        header = self.metadata.copy()
+        header.update(self.box.toFitsHeader())
+        if "pfs_detectorMap_class" in header:
+            del header["pfs_detectorMap_class"]
+        header["OBSTYPE"] = "detectorMap"
+        header["HIERARCH pfs_detectorMap_class"] = "MultipleDistortionsDetectorMap"
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=astropy.io.fits.verify.VerifyWarning)
+            fits[0].header.update(astropyHeaderFromDict(header))
+
+        tableHeader = astropy.io.fits.Header()
+        tableHeader["INHERIT"] = True
+        names = [distortion.getName() for distortion in self.distortions]
+        table = astropy.io.fits.BinTableHDU.from_columns([
+            astropy.io.fits.Column("name", format="PA()", array=names),
+        ], header=tableHeader, name="DISTORTIONS")
+        fits.append(table)
+        for ii, distortion in enumerate(self.distortions):
+            distortion.writeFits(fits, ii)
 
         return fits
