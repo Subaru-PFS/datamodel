@@ -24,6 +24,8 @@ __all__ = (
     "PolynomialDetectorMap",
     "PfsDistortion",
     "DoubleDistortion",
+    "RotScaleDistortion",
+    "DoubleRotScaleDistortion",
     "MultipleDistortionsDetectorMap",
 )
 
@@ -1253,6 +1255,140 @@ class DoubleDistortion(PfsDistortion):
             astropy.io.fits.Column(name="yRight", format="D", array=self.yRight),
         ], header=header, name=self.getExtName(index))
         fits.append(table)
+
+
+class RotScaleDistortion(PfsDistortion):
+    """Rotation and scale
+
+    Parameters
+    ----------
+    box : `Box`
+        Range of the polynomials.
+    parameters : `np.ndarray`
+        Rotation parameters
+    """
+    def __init__(
+        self,
+        box: Box,
+        parameters: np.ndarray,
+    ):
+        self.box = box
+        self.parameters = parameters
+
+    @staticmethod
+    def getExtName(index: int) -> str:
+        """Return FITS extension name
+
+        Parameters
+        ----------
+        index : `int`
+            Index of distortion.
+        """
+        return f"RotScaleDistortion_{index}"
+
+    @classmethod
+    def readFits(cls, fits: astropy.io.fits.HDUList, index: int) -> "PfsDistortion":
+        """Read from FITS file
+
+        Parameters
+        ----------
+        fits : `astropy.io.fits.HDUList`
+            FITS file in memory.
+        index : `int`
+            Index of distortion to read.
+
+        Returns
+        -------
+        self : ``cls``
+            Constructed distortion, from FITS file.
+        """
+        hdu = fits[cls.getExtName(index)]
+        box = Box.fromFitsHeader(hdu.header)
+        parameters = hdu.data.astype(float)
+        return cls(box, parameters)
+
+    def writeFits(self, fits: astropy.io.fits.HDUList, index: int):
+        """Write to a FITS file
+
+        Parameters
+        ----------
+        fits : `astropy.io.fits.HDUList`
+            FITS file in memory; modified.
+        index : `int`
+            Index of distortion to write.
+        """
+        header = astropy.io.fits.Header()
+        header["INHERIT"] = True
+        header.update(self.box.toFitsHeader())
+        image = astropy.io.fits.ImageHDU(data=self.parameters, header=header, name=self.getExtName(index))
+        fits.append(image)
+
+
+class DoubleRotScaleDistortion(PfsDistortion):
+    """Rotation and scale for left/right detectors
+
+    Parameters
+    ----------
+    box : `Box`
+        Range of the polynomials.
+    parameters : `np.ndarray`
+        Rotation parameters
+    """
+    def __init__(
+        self,
+        box: Box,
+        parameters: np.ndarray,
+    ):
+        self.box = box
+        self.parameters = parameters
+
+    @staticmethod
+    def getExtName(index: int) -> str:
+        """Return FITS extension name
+
+        Parameters
+        ----------
+        index : `int`
+            Index of distortion.
+        """
+        return f"DoubleRotScaleDistortion_{index}"
+
+    @classmethod
+    def readFits(cls, fits: astropy.io.fits.HDUList, index: int) -> "PfsDistortion":
+        """Read from FITS file
+
+        Parameters
+        ----------
+        fits : `astropy.io.fits.HDUList`
+            FITS file in memory.
+        index : `int`
+            Index of distortion to read.
+
+        Returns
+        -------
+        self : ``cls``
+            Constructed distortion, from FITS file.
+        """
+        hdu = fits[cls.getExtName(index)]
+        box = Box.fromFitsHeader(hdu.header)
+        parameters = hdu.data.astype(float)
+        return cls(box, parameters)
+
+    def writeFits(self, fits: astropy.io.fits.HDUList, index: int):
+        """Write to a FITS file
+
+        Parameters
+        ----------
+        fits : `astropy.io.fits.HDUList`
+            FITS file in memory; modified.
+        index : `int`
+            Index of distortion to write.
+        """
+        header = astropy.io.fits.Header()
+        header["INHERIT"] = True
+        header.update(self.box.toFitsHeader())
+        image = astropy.io.fits.ImageHDU(data=self.parameters, header=header, name=self.getExtName(index))
+        fits.append(image)
 
 
 class MultipleDistortionsDetectorMap(PfsDetectorMap):
