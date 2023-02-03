@@ -1,9 +1,49 @@
-from typing import Dict, Iterable, Type, TypeVar
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, Dict, Iterable, Type, TypeVar, Union
 
 import astropy.io.fits
 import numpy as np
 
-__all__ = ("PfsTable",)
+__all__ = ("POD", "Column", "PfsTable", "EmptyTable")
+
+POD = Union[
+    int,
+    float,
+    np.int32,
+    np.float32,
+    bool,
+    np.uint8,
+    np.int16,
+    np.int64,
+    np.float64,
+    str,
+]
+"""Plain old data
+
+These are the column types that are supported by PfsTable.
+"""
+
+
+@dataclass
+class Column:
+    """Column definition
+
+    Parameters
+    ----------
+    name : `str`
+        Name of column.
+    dtype : `type`
+        Data type of column.
+    doc : `str`
+        Documentation for column.
+    default : `POD`
+        Default value for column.
+    """
+
+    name: str
+    dtype: Type[POD]
+    doc: str
+    default: POD
 
 
 SubTable = TypeVar("SubTable", bound="PfsTable")
@@ -27,12 +67,8 @@ class PfsTable:
         ``schema``).
     """
 
-    schema: Dict[str, type]
-    """Schema to use for table (`dict` mapping `str` to `type`)
-
-    Each keyword is a column name (`str`), with the value being the `type` for
-    that column.
-    """
+    schema: Iterable[Column]
+    """Schema to use for table (iterable of `Column`)"""
 
     fitsExtName: str
     """FITS extension name (`str`)"""
@@ -50,37 +86,150 @@ class PfsTable:
 
     def __init__(self, **columns: np.ndarray):
         schema = self.schema
-        missing = set(schema.keys()) - set(columns.keys())
+        missing = set(col.name for col in self.schema) - set(columns.keys())
         if missing:
             raise RuntimeError(f"Missing columns: {missing}")
 
         allShapes = set(array.shape for array in columns.values())
-        if len(allShapes) != 1:
-            raise RuntimeError(f"Columns have differing shapes: {allShapes}")
-        shape = allShapes.pop()
-        if len(shape) != 1:
-            raise RuntimeError(f"Columns are not one-dimensional arrays: shape={shape}")
-        self.length = shape[0]
+        if len(allShapes) > 0:
+            if len(allShapes) != 1:
+                raise RuntimeError(f"Columns have differing shapes: {allShapes}")
+            shape = allShapes.pop()
+            if len(shape) != 1:
+                raise RuntimeError(
+                    f"Columns are not one-dimensional arrays: shape={shape}"
+                )
+            self.length = shape[0]
+        else:
+            self.length = 0
 
-        for col, array in columns.items():
-            setattr(self, col, array.astype(schema[col]))
+        for col in schema:
+            setattr(self, col.name, columns[col.name])
+
+    if TYPE_CHECKING:
+
+        def __getattr__(self, name: str) -> POD:
+            ...
+
+        def __setattr__(self, name: str, value: POD) -> None:
+            ...
+
+    @classmethod
+    def getSchemaDict(cls) -> Dict[str, Column]:
+        """Get the schema as a `dict`
+
+        The `dict` is indexed by column name.
+
+        Returns
+        -------
+        schema : `dict` mapping `str` to `Column`
+            The schema, indexed by column name.
+        """
+        return {col.name: col for col in cls.schema}
 
     def __len__(self) -> int:
         """Return the number of rows in the table"""
         return self.length
 
-    def __getattr__(self, column: str) -> np.ndarray:  # helpful for types
-        """Get column
+    def __getitem__(self: SubTable, selection: Union[np.ndarray, slice]) -> SubTable:
+        """Sub-selection
 
-        This method mostly exists for the benefit of type checkers, as it sets
-        the type for the columns.
+        Parameters
+        ----------
+        selection : `numpy.ndarray` of `bool` or `slice`
+            Boolean array (of same length as ``self``) indicating which rows
+            to select; or a slice.
+
+        Returns
+        -------
+        new : ``type(self)``
+            A new instance containing only the selected rows.
         """
-        return getattr(self, column)
+        columns = {col.name: getattr(self, col.name)[selection] for col in self.schema}
+        return type(self)(**columns)
+
+    def __setitem__(self, selection: Union[np.ndarray, slice], other: SubTable):
+        """Set sub-selection
+
+        Parameters
+        ----------
+        selection : `numpy.ndarray` of `bool` or `slice`
+            Boolean array (of same length as ``self``) indicating which rows
+            to select; or a slice.
+        other : ``type(self)``
+            The values to set.
+        """
+        for col in self.schema:
+            getattr(self, col.name)[selection] = getattr(other, col.name)
+
+    def setRow(self, index: int, **columns: POD):
+        """Set values for a given row
+
+        Parameters
+        ----------
+        index : `int`
+            Row index.
+        **columns : `POD`
+            Column values, indexed by column name.
+        """
+        for name, value in columns.items():
+            getattr(self, name)[index] = value
+
+    @classmethod
+    def empty(cls: Type[SubTable], length: int) -> SubTable:
+        """Create an empty table
+
+        Parameters
+        ----------
+        length : `int`
+            Number of rows in the table.
+
+        Returns
+        -------
+        self : cls
+            Constructed object.
+        """
+        columns = {
+            col.name: np.full(length, col.default, dtype=col.dtype)
+            for col in cls.schema
+        }
+        return cls(**columns)
 
     @property
     def columns(self) -> Dict[str, np.ndarray]:
         """Get a `dict` of column data, indexed by column name"""
-        return {name: getattr(self, name) for name in self.schema}
+        return {col.name: getattr(self, col.name) for col in self.schema}
+
+    @classmethod
+    def readHdu(cls: Type[SubTable], fits: astropy.io.fits.HDUList) -> SubTable:
+        """Read from FITS file
+
+        Parameters
+        ----------
+        fits : `astropy.io.fits.HDUList`
+            FITS file from which to read.
+
+        Returns
+        -------
+        self : cls
+            Constructed object from reading file.
+        """
+        hdu = fits[cls.fitsExtName]
+        columns: Dict[str, np.ndarray] = {}
+        available = set(hdu.data.columns.names)
+        for col in cls.schema:
+            if col.name in available:
+                array = hdu.data[col.name]
+            else:
+                aliases = cls.aliases.get(col.name, {})
+                for nn in aliases:
+                    if nn in available:
+                        array = hdu.data[nn]
+                        break
+                else:
+                    array = np.full(len(hdu.data), col.default, dtype=col.dtype)
+            columns[col.name] = array.astype(col.dtype)
+        return cls(**columns)
 
     @classmethod
     def readFits(cls: Type[SubTable], filename: str) -> SubTable:
@@ -97,32 +246,15 @@ class PfsTable:
             Constructed object from reading file.
         """
         with astropy.io.fits.open(filename) as fits:
-            hdu = fits[cls.fitsExtName]
-            columns: Dict[str, np.ndarray] = {}
-            available = set(hdu.data.columns.names)
-            for name, dtype in cls.schema.items():
-                if name in available:
-                    array = hdu.data[name]
-                else:
-                    aliases = cls.aliases.get(name, {})
-                    for nn in aliases:
-                        if nn in available:
-                            array = hdu.data[nn]
-                            break
-                    else:
-                        raise RuntimeError(
-                            f"Neither column {name} nor its aliases {aliases} are present in the table"
-                        )
-                columns[name] = array.astype(dtype)
-        return cls(**columns)
+            return cls.readHdu(fits)
 
-    def writeFits(self, filename: str):
-        """Write to file
+    def writeHdu(self, fits: astropy.io.fits.HDUList):
+        """Write to FITS HDU
 
         Parameters
         ----------
-        filename : `str`
-            Name of file to which to write.
+        hdu : `astropy.io.fits.HDUList`
+            FITS file to which to write.
         """
         # NOTE: When making any changes to this method that modify the output
         # format, increment the damdVer class attribute.
@@ -165,18 +297,70 @@ class PfsTable:
 
         columns = [
             astropy.io.fits.Column(
-                name=name, format=getFormat(name, dtype), array=getattr(self, name)
+                name=col.name,
+                format=getFormat(col.name, col.dtype),
+                array=getattr(self, col.name),
             )
-            for name, dtype in self.schema.items()
+            for col in self.schema
         ]
-        hdu = astropy.io.fits.BinTableHDU.from_columns(columns, name=self.fitsExtName)
 
-        hdu.header["INHERIT"] = True
-        hdu.header["DAMD_VER"] = (
+        header = astropy.io.fits.Header()
+        header["DAMD_VER"] = (
             self.damdVer,
             f"{self.__class__.__name__} datamodel version",
         )
+        header["INHERIT"] = True
+        for ii, col in enumerate(self.schema):
+            # TDOCn is not a FITS standard keyword, but we want to write the column doc for our users and
+            # there is no standard for that. The name comes from lsst.afw.table.
+            header[f"TDOC{ii + 1}"] = col.doc
 
-        fits = astropy.io.fits.HDUList([astropy.io.fits.PrimaryHDU(), hdu])
+        fits.append(
+            astropy.io.fits.BinTableHDU.from_columns(
+                columns, name=self.fitsExtName, header=header
+            )
+        )
+
+    def writeFits(self, filename: str):
+        """Write to FITS file
+
+        Parameters
+        ----------
+        filename : `str`
+            Filename to which to write.
+        """
+        fits = astropy.io.fits.HDUList([astropy.io.fits.PrimaryHDU()])
+        self.writeHdu(fits)
         with open(filename, "wb") as fd:
             fits.writeto(fd)
+
+
+class EmptyTable(PfsTable):
+    """A table with no columns
+
+    Parameters
+    ----------
+    length : `int`
+        Number of rows.
+    """
+
+    schema: Iterable[Column] = []
+
+    def __init__(self, length: int):
+        self.length = length
+
+    @classmethod
+    def empty(cls: Type["EmptyTable"], length: int) -> "EmptyTable":
+        """Create an empty table
+
+        Parameters
+        ----------
+        length : `int`
+            Number of rows in the table.
+
+        Returns
+        -------
+        self : cls
+            Constructed object.
+        """
+        return EmptyTable(length)
