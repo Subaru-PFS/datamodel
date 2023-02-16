@@ -545,6 +545,7 @@ HDU #5 SKY          Sky flux (electrons)                    [FLOAT]         NROW
 HDU #6 NORM         Normalisation (electrons)               [FLOAT]         NROW*NFIBER
 HDU #7 COVAR        Near-diagonal part of flux covariance   [FLOAT]         NROW*3*NFIBER
 HDU #8 CONFIG       Identification of the exposure          [BINARY TABLE]
+HDU #9 NOTES        Reduction notes                         [BINARY TABLE]  NFIBER*NNOTES
 
 Note that the data need not be resampled onto a uniform grid, as a wavelength is provided for each pixel.
 
@@ -556,6 +557,9 @@ terms in the covariance matrix.
 
 At a minimum the CONFIG table contains columns for pfsDesignId and visit (and only one row!  But it's
 a table not header keywords for consistency with the pfsObject file).
+
+The reduction notes (NOTES) HDU is a FITS table HDU with one row for each fiber and a variety of columns.
+The values record operations performed and measurements made during reduction for that fiber.
 
 It would be possible to denormalise additional information about the observation into this HDU.  I do not
 know if it should also contain things we've learned about the observation from the analysis that created
@@ -758,6 +762,7 @@ HDU #8 FLUXTABLE   Binary table                                   [FITS BINARY T
 		      intensity in units of nJy                   [FLOAT]
 		      intensity error in same units as intensity  [FLOAT]
 		      mask                                        [32-bit INT]
+HDU #9 NOTES       Reduction notes                                [FITS BINARY TABLE] NNOTES
 
 The wavelengths are specified via the WCS cards in the header (e.g. CRPIX1,
 CRVAL1) for the FLUX, MASK, SKY, COVAR extensions and explicitly in the table
@@ -787,6 +792,9 @@ What resolution should we use for HDU #1?  The instrument has a dispersion per p
 The second covariance table (COVAR2) is the full covariance at low spectral resolution, maybe 10x10. It's
 really only 0.5*NCOARSE*(NCOARSE + 1) numbers, but it doesn't seem worth the trouble to save a few bytes.
 This covariance is needed to model the spectrophotometric errors.
+
+The reduction notes (NOTES) HDU is a FITS table HDU with a single row and a variety of columns.
+The values record operations performed and measurements made during reduction for the spectrum.
 
 Note that we don't keep the SDSS "AND" and "OR" masks -- if needs be we could set two mask bits to capture
 the same information, but in practice SDSS's OR masks were not very useful.

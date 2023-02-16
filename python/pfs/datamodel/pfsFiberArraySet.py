@@ -1,5 +1,7 @@
 import os
 import re
+from typing import Type
+
 import numpy as np
 
 from .utils import astropyHeaderToDict, astropyHeaderFromDict, inheritDocstrings
@@ -7,6 +9,7 @@ from .masks import MaskHelper
 from .target import Target
 from .observations import Observations
 from .identity import Identity
+from .pfsTable import PfsTable, EmptyTable
 
 __all__ = ["PfsFiberArraySet"]
 
@@ -41,6 +44,8 @@ class PfsFiberArraySet:
         Mapping of symbolic mask names to mask planes.
     metadata : `dict`
         Keyword-value pairs for the header.
+    notes : `PfsTable`
+        Reduction notes for each spectrum.
     """
     filenameFormat = None  # Subclasses must override
     """Format for filename (`str`)
@@ -58,7 +63,12 @@ class PfsFiberArraySet:
     Keys should be in the same order as for the regex.
     """
 
-    def __init__(self, identity, fiberId, wavelength, flux, mask, sky, norm, covar, flags, metadata):
+    NotesClass: Type[PfsTable] = EmptyTable  # Subclasses must override
+    """Class for notes (`PfsTable` subclass)"""
+
+    def __init__(
+        self, identity, fiberId, wavelength, flux, mask, sky, norm, covar, flags, metadata, notes=None
+    ):
         self.identity = identity
         self.fiberId = fiberId
         self.wavelength = wavelength
@@ -72,6 +82,8 @@ class PfsFiberArraySet:
 
         self.numSpectra = wavelength.shape[0]
         self.length = wavelength.shape[1]
+
+        self.notes = notes if notes is not None else self.NotesClass.empty(self.numSpectra)
         self.validate()
 
     def validate(self):
@@ -82,6 +94,7 @@ class PfsFiberArraySet:
         assert self.mask.shape == (self.numSpectra, self.length)
         assert self.sky.shape == (self.numSpectra, self.length)
         assert self.covar.shape == (self.numSpectra, 3, self.length)
+        assert len(self.notes) == self.numSpectra
 
     @property
     def variance(self):
@@ -116,7 +129,7 @@ class PfsFiberArraySet:
         """
         kwargs = {name: getattr(self, name) for name in ("identity", "flags", "metadata")}
         kwargs.update(**{name: getattr(self, name)[logical] for
-                         name in ("fiberId", "wavelength", "flux", "mask", "sky", "norm", "covar")})
+                         name in ("fiberId", "wavelength", "flux", "mask", "sky", "norm", "covar", "notes")})
         return type(self)(**kwargs)
 
     def select(self, pfsConfig, **kwargs):
@@ -234,6 +247,8 @@ class PfsFiberArraySet:
             else:
                 data["norm"] = np.ones_like(data["flux"], dtype=np.float32)
             data["identity"] = Identity.fromFits(fd)
+            if version >= 3:
+                data["notes"] = cls.NotesClass.readHdu(fd)
 
         data["flags"] = MaskHelper.fromFitsHeader(data["metadata"])
         return cls(**data)
@@ -281,7 +296,7 @@ class PfsFiberArraySet:
         header = self.metadata.copy()
         header.update(self.flags.toFitsHeader())
         header = astropyHeaderFromDict(header)
-        header['DAMD_VER'] = (2, "PfsFiberArraySet datamodel version")
+        header['DAMD_VER'] = (3, "PfsFiberArraySet datamodel version")
         fits.append(astropy.io.fits.PrimaryHDU(header=header))
         for attr, dtype in (
             ("fiberId", np.int32),
@@ -297,6 +312,7 @@ class PfsFiberArraySet:
             fits.append(astropy.io.fits.ImageHDU(data.astype(dtype), name=hduName))
 
         self.identity.toFits(fits)
+        self.notes.writeHdu(fits)
         with open(filename, "wb") as fd:
             fits.writeto(fd)
 
@@ -345,6 +361,7 @@ class PfsFiberArraySet:
         sky = np.empty((num, length), dtype=np.float32)
         norm = np.empty((num, length), dtype=np.float32)
         covar = np.empty((num, 3, length), dtype=np.float32)
+        notes = cls.NotesClass.empty(num)
         index = 0
         for ss in spectraList:
             select = slice(index, index + len(ss))
@@ -355,13 +372,14 @@ class PfsFiberArraySet:
             sky[select] = ss.sky
             norm[select] = ss.norm
             covar[select] = ss.covar
+            notes[select] = ss.notes
             index += len(ss)
 
         indices = np.argsort(fiberId)
         identity = Identity.fromMerge([ss.identity for ss in spectraList])
         flags = MaskHelper.fromMerge(list(ss.flags for ss in spectraList))
         return cls(identity, fiberId[indices], wavelength[indices], flux[indices], mask[indices],
-                   sky[indices], norm[indices], covar[indices], flags, metadata if metadata else {})
+                   sky[indices], norm[indices], covar[indices], flags, metadata if metadata else {}, notes)
 
     def extractFiber(self, FiberArrayClass, pfsConfig, fiberId):
         """Extract a single fiber

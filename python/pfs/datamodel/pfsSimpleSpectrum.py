@@ -170,7 +170,7 @@ class PfsSimpleSpectrum:
             header = Header()
 
         # NOTE: The datamodel version also gets incremented here for the PfsFiberArray
-        header['DAMD_VER'] = (1, "PfsSimpleSpectrum datamodel version")
+        header['DAMD_VER'] = (2, "PfsSimpleSpectrum datamodel version")
 
         if self.metadata:
             header.extend(astropyHeaderFromDict(self.metadata))

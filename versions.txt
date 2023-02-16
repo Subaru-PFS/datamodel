@@ -48,6 +48,7 @@ from PfsSimpleSpectrum, and so their versions are incremented together.
 These classes are used for the pfsReference, pfsSingle and pfsObject products.
 
 * 1: Initial version.
+* 2: Added NOTES to PfsFiberArray.
 
 
 PfsFiberArraySet
@@ -57,6 +58,7 @@ This class is used for the pfsArm and pfsMerged products.
 
 * 1: Initial version.
 * 2: Added NORM for normalisations.
+* 3: Added NOTES to PfsFiberArraySet.
 
 
 PfsFiberProfiles

@@ -1,8 +1,10 @@
+from typing import Type
 import numpy as np
 
 from .pfsSimpleSpectrum import PfsSimpleSpectrum
 from .utils import wraparoundNVisit, inheritDocstrings
 from .fluxTable import FluxTable
+from .notes import Notes
 from .observations import Observations
 
 
@@ -37,17 +39,34 @@ class PfsFiberArray(PfsSimpleSpectrum):
         Keyword-value pairs for the header.
     fluxTable : `pfs.datamodel.FluxTable`, optional
         Table of fluxes from contributing observations.
+    notes : `Notes`, optional
+        Reduction notes.
     """
     filenameFormat = None  # Subclasses should override
+    NotesClass: Type[Notes]  # Subclasses should override
 
-    def __init__(self, target, observations, wavelength, flux, mask, sky, covar, covar2, flags, metadata=None,
-                 fluxTable=None):
+    def __init__(
+        self,
+        target,
+        observations,
+        wavelength,
+        flux,
+        mask,
+        sky,
+        covar,
+        covar2,
+        flags,
+        metadata=None,
+        fluxTable=None,
+        notes: Notes = None,
+    ):
         self.observations = observations
         self.sky = sky
         self.covar = covar
         self.covar2 = covar2
         self.nVisit = wraparoundNVisit(len(self.observations))
         self.fluxTable = fluxTable
+        self.notes = notes if notes is not None else self.NotesClass()
         super().__init__(target, wavelength, flux, mask, flags, metadata=metadata)
 
     @property
@@ -102,6 +121,11 @@ class PfsFiberArray(PfsSimpleSpectrum):
                 raise
             fluxTable = None
         data["fluxTable"] = fluxTable
+
+        version = fits[1].header["DAMD_VER"]
+        if version >= 2:
+            data["notes"] = cls.NotesClass.readFits(fits)
+
         return data
 
     def _writeImpl(self, fits):
@@ -119,10 +143,11 @@ class PfsFiberArray(PfsSimpleSpectrum):
         # the versions.txt file.
         from astropy.io.fits import ImageHDU
         header = super()._writeImpl(fits)
-        header["DAMD_VER"] = (1, "PfsFiberArray datamodel version")
+        header["DAMD_VER"] = (2, "PfsFiberArray datamodel version")
         fits.append(ImageHDU(self.sky.astype(np.float32), header=header, name="SKY"))
         fits.append(ImageHDU(self.covar.astype(np.float32), header=header, name="COVAR"))
         fits.append(ImageHDU(self.covar2.astype(np.float32), name="COVAR2"))
         self.observations.toFits(fits)
+        self.notes.writeFits(fits)
         if self.fluxTable is not None:
             self.fluxTable.toFits(fits)
