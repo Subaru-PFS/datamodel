@@ -591,11 +591,12 @@ class PfsDesign:
 
         hdr = pyfits.Header()
         self._writeHeader(hdr)
+        hdu = pyfits.PrimaryHDU(header=hdr)
+        fits.append(hdu)
+
+        # Add in the enumerations for the DESIGN fields
         hdr.update(TargetType.getFitsHeaders())
         hdr.update(FiberStatus.getFitsHeaders())
-        hdu = pyfits.PrimaryHDU(header=hdr)
-        hdr.update()
-        fits.append(hdu)
 
         lengths = [len(pp) for pp in self.patch]
         maxLength = 1 if len(lengths) == 0 else max(lengths)
@@ -645,7 +646,7 @@ class PfsDesign:
 
         # clobber=True in writeto prints a message, so use open instead
         with open(filename, "wb") as fd:
-            fits.writeto(fd)
+            fits.writeto(fd, checksum=True)
 
     def write(self, dirName=".", fileName=None, *, allowSubset=False):
         """Write to file
@@ -981,7 +982,7 @@ class PfsConfig(PfsDesign):
     # Scalar values
     _scalars = ["pfsDesignId", "designName",
                 "visit", "raBoresight", "decBoresight", "posAng", "arms", "guideStars",
-                "variant", "designId0"]
+                "variant", "designId0", "header"]
 
     # List of fields required, and their FITS type
     # Some elements of the code expect the following to be present:
@@ -1026,9 +1027,11 @@ class PfsConfig(PfsDesign):
                  guideStars,
                  designName="",
                  variant=0,
-                 designId0=0):
+                 designId0=0,
+                 header=None):
         self.visit = visit
         self.pfiCenter = np.array(pfiCenter)
+        self.header = dict() if header is None else header
         super().__init__(pfsDesignId, raBoresight, decBoresight,
                          posAng,
                          arms,
@@ -1056,7 +1059,7 @@ class PfsConfig(PfsDesign):
         return self.fileNameFormat % (self.pfsDesignId, self.visit)
 
     @classmethod
-    def fromPfsDesign(cls, pfsDesign, visit, pfiCenter):
+    def fromPfsDesign(cls, pfsDesign, visit, pfiCenter, header=None):
         """Construct from a ``PfsDesign``
 
         Parameters
@@ -1078,6 +1081,7 @@ class PfsConfig(PfsDesign):
         kwargs = {kk: getattr(pfsDesign, kk) for kk in keywords}
         kwargs["visit"] = visit
         kwargs["pfiCenter"] = pfiCenter
+        kwargs["header"] = header
 
         return PfsConfig(**kwargs)
 
@@ -1122,6 +1126,7 @@ class PfsConfig(PfsDesign):
         """
         super()._writeHeader(header)
         header["W_VISIT"] = (self.visit, "Visit number")
+        header.update(self.header)
 
     @classmethod
     def read(cls, pfsDesignId, visit, dirName="."):

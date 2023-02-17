@@ -1,4 +1,6 @@
 import os
+import datetime
+import astropy.io.fits as pyfits
 import sys
 import unittest
 
@@ -111,6 +113,8 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
         self.designName = "Zenith odd-even"
         self.variant = 0
         self.designId0 = 0
+
+        self.header = dict()
 
     def _makeInstance(self, Class, **kwargs):
         """Construct a PfsDesign or PfsConfig using default values
@@ -352,6 +356,55 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
 
         for field in ['fiberId', 'fiberStatus', 'targetType', 'pfiNominal', 'pfiCenter']:
             np.testing.assert_array_equal(getattr(configCopy, field), getattr(config, field))
+
+    def testAdditionalHeaderCards(self):
+        """Test that the provided additional header cards are indeed written to the primary hdu."""
+
+        def getAdditionalCards(visit):
+            cards = dict()
+
+            now = datetime.datetime.now(datetime.timezone.utc)
+            dayStr = now.strftime('%Y-%m-%d')
+
+            frameId = f'PFSF{visit:06}00'
+            expId = f'PFSE{visit:08}'
+
+            cards['FRAMEID'] = (frameId, 'Sequence number in archive')
+            cards['EXP-ID'] = (expId, 'Grouping ID for PFS visit')
+            cards['TELESCOP'] = ("Subaru", 'Telescope name')
+            cards['INSTRUME'] = ("PFS", 'Instrument name')
+            cards['OBSERVER'] = ("ALF", 'Name(s) of observer(s)')
+            cards['PROP-ID'] = ("o22016", 'Proposal ID')
+            cards['DATE-OBS'] = (dayStr, '[YMD] pfsConfig creation date, UTC')
+
+            return cards
+
+        header = getAdditionalCards(67891)
+        config = self.makePfsConfig(header=header)
+
+        dirName = os.path.splitext(__file__)[0] + "_PfsConfigTestCase_testAdditionalHeaderCards"
+        if not os.path.exists(dirName):
+            os.makedirs(dirName)
+
+        filename = os.path.join(dirName, config.filename)
+        if os.path.exists(filename):
+            os.unlink(filename)
+
+        try:
+            config.write(dirName=dirName)
+            # re-open the file
+            with pyfits.open(filename) as fd:
+                phu = fd[0].header
+                for key, (value, comment) in header.items():
+                    assert key in phu
+
+                    self.assertEqual(value, phu[key])
+                    self.assertEqual(comment, phu.comments[key])
+
+        except Exception:
+            raise  # Leave file for manual inspection
+        else:
+            os.unlink(filename)
 
     def testFromEmptyGuideStars(self):
         """Check that an empty GuideStars instance is correctly instantiated
