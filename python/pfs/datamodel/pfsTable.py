@@ -349,6 +349,29 @@ class EmptyTable(PfsTable):
     def __init__(self, length: int):
         self.length = length
 
+    def __getitem__(self: SubTable, selection: Union[np.ndarray, slice]) -> SubTable:
+        """Sub-selection
+
+        Parameters
+        ----------
+        selection : `numpy.ndarray` of `bool` or `slice`
+            Boolean array (of same length as ``self``) indicating which rows
+            to select; or a slice.
+
+        Returns
+        -------
+        new : ``type(self)``
+            A new instance containing only the selected rows.
+        """
+        if isinstance(selection, np.ndarray):
+            if selection.dtype != bool:
+                raise TypeError(f"Expected bool array; got {selection.dtype}")
+            return type(self)(selection.sum())
+        elif isinstance(selection, slice):
+            return type(self)(len(range(*selection.indices(len(self)))))
+        else:
+            raise TypeError(f"Expected slice or bool array; got {type(selection)}")
+
     @classmethod
     def empty(cls: Type["EmptyTable"], length: int) -> "EmptyTable":
         """Create an empty table
