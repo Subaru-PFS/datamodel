@@ -148,6 +148,8 @@ def astropyHeaderToDict(header):
 def astropyHeaderFromDict(metadata):
     """Convert a dict to an astropy FITS header
 
+    ``COMMENT`` and ``HISTORY`` cards are not preserved.
+
     Parameters
     ----------
     metadata : `dict`
@@ -161,8 +163,13 @@ def astropyHeaderFromDict(metadata):
     import astropy.io.fits
     header = astropy.io.fits.Header()
     for key, value in metadata.items():
+        if key in ("HISTORY", "COMMENT"):
+            continue
         if len(key) > 8 and not key.startswith("HIERARCH"):
             key = "HIERARCH " + key
+        if isinstance(value, str) and key.startswith("HIERARCH") and len(key) + len(value) > 80:
+            # astropy.io.fits.Header doesn't handle long HIERARCH strings
+            continue
         header.append((key, value))
     return header
 
