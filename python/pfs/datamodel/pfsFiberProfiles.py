@@ -297,7 +297,7 @@ class PfsFiberProfiles:
             for pp in prof:
                 if isinstance(pp, np.ma.MaskedArray):
                     profiles.append(pp.data)
-                    masks.append(pp.mask)
+                    masks.append(np.ones_like(pp.data, dtype=bool) & pp.mask)  # Avoids games with type/shape
                 else:
                     profiles.append(pp)
                     masks.append([])
