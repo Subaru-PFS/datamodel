@@ -447,9 +447,9 @@ class PfsDesign:
         header : `astropy.io.fits.Header`
             FITS header; modified.
         """
-        header["RA"] = (self.raBoresight, "Telescope boresight RA, degrees")
-        header["DEC"] = (self.decBoresight, "Telescope boresight Dec, degrees")
-        header["POSANG"] = (self.posAng, "PFI position angle, degrees")
+        header["RA"] = (self.raBoresight, "[degree] pfsDesign field center RA")
+        header["DEC"] = (self.decBoresight, "[degree] pfsDesign field center DEC")
+        header["POSANG"] = (self.posAng, "[degree] PFI position angle")
         header["ARMS"] = (self.arms, "Exposed arms")
         header["DSGN_NAM"] = (self.designName, "Name of design")
         header["DAMD_VER"] = (3, "PfsDesign/PfsConfig datamodel version")
