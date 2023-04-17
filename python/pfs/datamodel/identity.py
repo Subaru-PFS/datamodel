@@ -202,6 +202,10 @@ class CalibIdentity(types.SimpleNamespace):
     def __init__(self, obsDate, spectrograph, arm, visit0):
         super().__init__(obsDate=obsDate, spectrograph=int(spectrograph), arm=arm, visit0=int(visit0))
 
+    def __reduce__(self):
+        """Support pickling"""
+        return (self.__class__, (self.obsDate, self.spectrograph, self.arm, self.visit0))
+
     @classmethod
     def fromDict(cls, identity):
         """Build from a `dict`
