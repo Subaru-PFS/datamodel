@@ -82,6 +82,8 @@ class TargetType(DocEnum):
     SUNSS_IMAGING = 6, "fiber goes to the SuNSS imaging leg"
     SUNSS_DIFFUSE = 7, "fiber goes to the SuNSS diffuse leg"
     DCB = 8, "fiber goes to DCB/DCB2"
+    HOME = 9, "cobra is going to home position"
+    BLACKSPOT = 10, "cobra is going to black spot position"
 
 
 class FiberStatus(DocEnum):
