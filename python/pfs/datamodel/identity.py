@@ -220,6 +220,11 @@ class CalibIdentity(types.SimpleNamespace):
         self : `CalibIdentity`
             Calibration identity.s
         """
+        identity = identity.copy()
+        if "obsDate" not in identity:
+            identity["obsDate"] = identity["dateObs"]
+        if "visit0" not in identity:
+            identity["visit0"] = identity["visit"]
         kwargs = {elem: identity[elem] for elem in cls.elements}
         return cls(**kwargs)
 
