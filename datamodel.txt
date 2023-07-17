@@ -385,7 +385,7 @@ The DESIGN table lists for each object:
       targetType     32-bit int (enumerated type: e.g. SCIENCE,SKY,FLUXSTD)
       fiberStatus    32-bit int (enumerated type: e.g. GOOD,BROKENFIBER,BLOCKED,BLACKSPOT)
       pfiNominal     pair of 32-bit floats (millimeters on the PFI)
-      epoch          7-digit string
+      epoch          7-character string (e.g., J2000.0, see also the definition for the GUIDESTARS table)
       pmRa           32-bit float (mas/yr)
       pmDec          32-bit float (mas/yr)
       parallax       32-bit float (mas)
@@ -441,7 +441,7 @@ There will be a mechanism for adding to this set.
 
 The GUIDESTARS table lists:
       objId          64-bit int
-      epoch          7-digit string
+      epoch          7-character string
       ra             64-bit float (degrees)
       dec            64-bit float (degrees)
       pmRa           32-bit float (mas/year)
@@ -520,7 +520,7 @@ The CONFIG table lists for each object:
       fiberStatus    32-bit int (enumerated type: GOOD,BROKENFIBER,BLOCKED,BLACKSPOT,UNILLUMINATED)
       pfiCenter      pair of 32-bit floats (millimeters on the PFI)
       pfiNominal     pair of 32-bit floats (millimeters on the PFI)
-      epoch          7-digit string
+      epoch          7-character string
       pmRa           32-bit float (mas/yr)
       pmDec          32-bit float (mas/yr)
       parallax       32-bit float (mas)

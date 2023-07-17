@@ -187,8 +187,8 @@ class PfsDesign:
                "objId": "K",
                "targetType": "J",
                "epoch": "A",
-               "pmRa": "D",
-               "pmDec": "D",
+               "pmRa": "E",
+               "pmDec": "E",
                "parallax": "E",
                "pfiNominal": "2E",
                }
@@ -311,9 +311,9 @@ class PfsDesign:
         self.targetType = np.array(targetType)
         self.fiberStatus = np.array(fiberStatus)
         self.epoch = np.array(epoch)
-        self.pmRa = np.array(pmRa).astype(float)
-        self.pmDec = np.array(pmDec).astype(float)
-        self.parallax = np.array(parallax).astype(float)
+        self.pmRa = np.array(pmRa).astype(np.float32)
+        self.pmDec = np.array(pmDec).astype(np.float32)
+        self.parallax = np.array(parallax).astype(np.float32)
         self.fiberFlux = [np.array(flux).astype(float) for flux in fiberFlux]
         self.psfFlux = [np.array(pflux).astype(float) for pflux in psfFlux]
         self.totalFlux = [np.array(tflux).astype(float) for tflux in totalFlux]
@@ -1028,8 +1028,8 @@ class PfsConfig(PfsDesign):
                "objId": "K",
                "targetType": "J",
                "epoch": "A",
-               "pmRa": "D",
-               "pmDec": "D",
+               "pmRa": "E",
+               "pmDec": "E",
                "parallax": "E",
                "pfiNominal": "2E",
                "pfiCenter": "2E",
