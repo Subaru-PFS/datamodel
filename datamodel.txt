@@ -385,6 +385,10 @@ The DESIGN table lists for each object:
       targetType     32-bit int (enumerated type: e.g. SCIENCE,SKY,FLUXSTD)
       fiberStatus    32-bit int (enumerated type: e.g. GOOD,BROKENFIBER,BLOCKED,BLACKSPOT)
       pfiNominal     pair of 32-bit floats (millimeters on the PFI)
+      epoch          7-digit string
+      pmRa           32-bit float (mas/yr)
+      pmDec          32-bit float (mas/yr)
+      parallax       32-bit float (mas)
 
 Note that:
 * the fiberIds start at 1.
@@ -516,6 +520,10 @@ The CONFIG table lists for each object:
       fiberStatus    32-bit int (enumerated type: GOOD,BROKENFIBER,BLOCKED,BLACKSPOT,UNILLUMINATED)
       pfiCenter      pair of 32-bit floats (millimeters on the PFI)
       pfiNominal     pair of 32-bit floats (millimeters on the PFI)
+      epoch          7-digit string
+      pmRa           32-bit float (mas/yr)
+      pmDec          32-bit float (mas/yr)
+      parallax       32-bit float (mas)
 
 (I.e., the same as for PfsDesign, except for the addition of the
 "pfiCenter" column.)

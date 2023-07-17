@@ -135,6 +135,16 @@ class PfsDesign:
     fiberStatus : `numpy.ndarray` of `int`
         Status of each fiber. Values must be convertible to `FiberStatus`
         (which limits the range of values).
+    epoch : `numpy.chararray`
+        reference epoch for each fiber.
+    pmRa : `numpy.ndarray` of `float32`
+        Proper motion in direction of Right Ascension
+        for each fiber, mas/year.
+    pmDec : `numpy.ndarray` of `float32`
+        Proper motion in direction of Declination
+        for each fiber, mas/year.
+    parallax : `numpy.ndarray` of `float32`
+        parallax for each fiber, mas.
     fiberFlux : `list` of `numpy.ndarray` of `float`
         Array of fiber fluxes for each fiber, in [nJy].
     psfFlux : `list` of `numpy.ndarray` of `float`
@@ -176,6 +186,10 @@ class PfsDesign:
                "catId": "J",
                "objId": "K",
                "targetType": "J",
+               "epoch": "A",
+               "pmRa": "D",
+               "pmDec": "D",
+               "parallax": "E",
                "pfiNominal": "2E",
                }
     _pointFields = ["pfiNominal"]  # List of point fields; should be in _fields too
@@ -270,6 +284,7 @@ class PfsDesign:
                  arms,
                  fiberId, tract, patch, ra, dec, catId, objId,
                  targetType, fiberStatus,
+                 epoch, pmRa, pmDec, parallax,
                  fiberFlux,
                  psfFlux,
                  totalFlux,
@@ -295,6 +310,10 @@ class PfsDesign:
         self.objId = np.array(objId)
         self.targetType = np.array(targetType)
         self.fiberStatus = np.array(fiberStatus)
+        self.epoch = np.array(epoch)
+        self.pmRa = np.array(pmRa).astype(float)
+        self.pmDec = np.array(pmDec).astype(float)
+        self.parallax = np.array(parallax).astype(float)
         self.fiberFlux = [np.array(flux).astype(float) for flux in fiberFlux]
         self.psfFlux = [np.array(pflux).astype(float) for pflux in psfFlux]
         self.totalFlux = [np.array(tflux).astype(float) for tflux in totalFlux]
@@ -954,6 +973,16 @@ class PfsConfig(PfsDesign):
     fiberStatus : `numpy.ndarray` of `int`
         Status of each fiber. Values must be convertible to `FiberStatus`
         (which limits the range of values).
+    epoch : `numpy.chararray`
+        reference epoch for each fiber.
+    pmRa : `numpy.ndarray` of `float32`
+        Proper motion in direction of Right Ascension
+        for each fiber, mas/year.
+    pmDec : `numpy.ndarray` of `float32`
+        Proper motion in direction of Declination
+        for each fiber, mas/year.
+    parallax : `numpy.ndarray` of `float32`
+        parallax for each fiber, mas.
     fiberFlux : `list` of `numpy.ndarray` of `float`
         Array of fiber fluxes for each fiber, in [nJy].
     psfFlux : `list` of `numpy.ndarray` of `float`
@@ -998,6 +1027,10 @@ class PfsConfig(PfsDesign):
                "catId": "J",
                "objId": "K",
                "targetType": "J",
+               "epoch": "A",
+               "pmRa": "D",
+               "pmDec": "D",
+               "parallax": "E",
                "pfiNominal": "2E",
                "pfiCenter": "2E",
                }
@@ -1019,6 +1052,7 @@ class PfsConfig(PfsDesign):
                  arms,
                  fiberId, tract, patch, ra, dec, catId, objId,
                  targetType, fiberStatus,
+                 epoch, pmRa, pmDec, parallax,
                  fiberFlux,
                  psfFlux,
                  totalFlux,
@@ -1039,6 +1073,7 @@ class PfsConfig(PfsDesign):
                          arms,
                          fiberId, tract, patch, ra, dec,
                          catId, objId, targetType, fiberStatus,
+                         epoch, pmRa, pmDec, parallax,
                          fiberFlux,
                          psfFlux,
                          totalFlux,

@@ -85,6 +85,11 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
                                     [int(FiberStatus.GOOD)]*self.numGood)
         rng.shuffle(self.fiberStatus)
 
+        self.epoch = np.full(self.numFibers, "J2000.0")
+        self.pmRa = rng.uniform(low=0, high=100, size=self.numFibers)  # mas/yr
+        self.pmDec = rng.uniform(low=0, high=100, size=self.numFibers)  # mas/yr
+        self.parallax = rng.uniform(low=1e-5, high=10, size=self.numFibers)  # mas
+
         fiberMagnitude = [22.0, 23.5, 25.0, 26.0]
         fiberFluxes = [(f * u.ABmag).to_value(u.nJy) for f in fiberMagnitude]
 
@@ -178,7 +183,8 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
             # Our FITS header writer can introduce some tiny roundoff error
             self.assertAlmostEqual(getattr(lhs, value), getattr(rhs, value), 14, value)
         for value in ("fiberId", "tract", "ra", "dec", "catId", "objId",
-                      "pfiNominal", "targetType", "fiberStatus"):
+                      "pfiNominal", "targetType", "fiberStatus",
+                      "epoch", "pmRa", "pmDec", "parallax"):
             np.testing.assert_array_equal(getattr(lhs, value), getattr(rhs, value), value)
         self.assertEqual(len(lhs.patch), len(rhs.patch))
         self.assertEqual(len(lhs.fiberFlux), len(rhs.fiberFlux))
@@ -227,7 +233,8 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
             return values + values
 
         # Longer arrays
-        for name in ("fiberId", "tract", "patch", "ra", "dec", "catId", "objId"):
+        for name in ("fiberId", "tract", "patch", "ra", "dec", "catId", "objId",
+                     "epoch", "pmRa", "pmDec", "parallax"):
             with self.assertRaises(RuntimeError):
                 self.makePfsConfig(**{name: extendArray(getattr(self, name))})
 
