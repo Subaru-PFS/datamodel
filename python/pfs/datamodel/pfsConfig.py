@@ -192,6 +192,11 @@ class PfsDesign:
                "parallax": "E",
                "pfiNominal": "2E",
                }
+    # astrometry keywords; should be in _fields too
+    _astrometry = ["epoch",
+                   "pmRa",
+                   "pmDec",
+                   "parallax"]
     _pointFields = ["pfiNominal"]  # List of point fields; should be in _fields too
     _photometry = ["fiberFlux",
                    "psfFlux",
@@ -518,9 +523,21 @@ class PfsDesign:
 
             data = fd[cls._hduName].data
 
+            # fill astrometry columns if not exist, for backwards compatibility
+            kwargs["epoch"] = data["epoch"] if "epoch" in data.columns.names else np.full(
+                len(data), "J2000.0")
+            kwargs["pmRa"] = data["pmRa"] if "pmRa" in data.columns.names else np.full(
+                len(data), 0.0, dtype=np.float32)
+            kwargs["pmDec"] = data["pmDec"] if "pmDec" in data.columns.names else np.full(
+                len(data), 0.0, dtype=np.float32)
+            kwargs["parallax"] = data["parallax"] if "parallax" in data.columns.names else np.full(
+                len(data), 1.0e-8, dtype=np.float32)
+
             for nn in cls._fields:
-                assert nn not in kwargs
-                kwargs[nn] = data[nn]
+                # skip astrometry keywords as they have already been set
+                if nn not in cls._astrometry:
+                    assert nn not in kwargs
+                    kwargs[nn] = data[nn]
 
             # Handle fiberStatus explicitly, for backwards compatibility
             kwargs["fiberStatus"] = (data["fiberStatus"] if "fiberStatus" in (col.name for col in
