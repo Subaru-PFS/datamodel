@@ -20,6 +20,7 @@ __all__ = (
     "DifferentialDetectorMap",
     "DistortedDetectorMap",
     "DoubleDetectorMap",
+    "PolynomialDetectorMap",
 )
 
 
@@ -961,6 +962,119 @@ class DoubleDetectorMap(PfsDetectorMap):
             astropy.io.fits.Column(name="yLeft", format="D", array=self.yLeft),
             astropy.io.fits.Column(name="xRight", format="D", array=self.xRight),
             astropy.io.fits.Column(name="yRight", format="D", array=self.yRight),
+        ], header=tableHeader, name="COEFFICIENTS")
+        fits.append(table)
+
+        return fits
+
+
+class PolynomialDetectorMap(PfsDetectorMap):
+    """DetectorMap implemented as polynomial distortion over SplinedDetectorMap
+
+    This implementation handles I/O only. For a fully-functional implementation
+    that includes evaluation of the mappings, see the drp_stella package.
+
+    Parameters
+    ----------
+    identity : `pfs.datamodel.CalibIdentity`
+        Identity of the data of interest.
+    box : `Box`
+        Bounding box for detector.
+    base : `pfs.datamodel.SplinedDetectorMap`
+        Base detectorMap.
+    order : `int`
+        Polynomial order.
+    xCoeff : `numpy.ndarray` of `float`, shape ``(M,)``
+        Coefficients for x distortion polynomial.
+    yCoeff : `numpy.ndarray` of `float`, shape ``(M,)``
+        Coefficients for y distortion polynomial.
+    metadata : `dict`
+        Keyword-value pairs to put in the header.
+    """
+    def __init__(self, identity, box, base, order, xCoeff, yCoeff, metadata):
+        self.identity = identity
+        self.box = box
+        self.base = base
+        self.order = order
+        self.xCoeff = xCoeff
+        self.yCoeff = yCoeff
+        self.metadata = metadata
+        self.validate()
+
+    def validate(self):
+        """Ensure that array lengths are as expected
+
+        Raises
+        ------
+        AssertionError
+            When an array length doesn't match that expected.
+        """
+        numCoeff = (self.order + 1)*(self.order + 2)//2
+        assert len(self.xCoeff) == numCoeff
+        assert len(self.yCoeff) == numCoeff
+
+    def __len__(self):
+        """Number of fibers"""
+        return len(self.fiberId)
+
+    @classmethod
+    def _readImpl(cls, fits, identity):
+        """Implementation of reading from a FITS file in memory
+
+        Parameters
+        ----------
+        fits : `astropy.io.fits.HDUList`
+            FITS file in memory.
+        identity : `pfs.datamodel.CalibIdentity`
+            Identity of the calib data.
+
+        Returns
+        -------
+        self : `DifferentialDetectorMap`
+            DetectorMap read from FITS file.
+        """
+        header = astropyHeaderToDict(fits[0].header)
+        box = Box.fromFitsHeader(header)
+        order = header["ORDER"]
+
+        base = SplinedDetectorMap._readImpl(fits, identity)
+
+        xCoeff = fits["COEFFICIENTS"].data["xCoeff"].astype(float)
+        yCoeff = fits["COEFFICIENTS"].data["yCoeff"].astype(float)
+
+        return cls(identity, box, base, order, xCoeff, yCoeff, header)
+
+    def _writeImpl(self):
+        """Implementation of writing to FITS file
+
+        Returns
+        -------
+        fits : `astropy.io.fits.HDUList`
+            FITS file representation.
+        """
+        # NOTE: When making any changes to this method that modify the output
+        # format, increment the DAMD_VER header value in the
+        # SplinedDetectorMap._writeImpl method, and record the change in
+        # the versions.txt file.
+        fits = self.base._writeImpl()
+
+        header = self.metadata.copy()
+        header.update(self.box.toFitsHeader())
+        if "pfs_detectorMap_class" in header:
+            del header["pfs_detectorMap_class"]
+        header["OBSTYPE"] = "detectorMap"
+        header["HIERARCH pfs_detectorMap_class"] = "PolynomialDetectorMap"
+        header["ORDER"] = self.order
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=astropy.io.fits.verify.VerifyWarning)
+            fits[0].header.update(astropyHeaderFromDict(header))
+
+        tableHeader = astropy.io.fits.Header()
+        tableHeader["INHERIT"] = True
+
+        table = astropy.io.fits.BinTableHDU.from_columns([
+            astropy.io.fits.Column(name="xCoeff", format="D", array=self.xCoeff),
+            astropy.io.fits.Column(name="yCoeff", format="D", array=self.yCoeff),
         ], header=tableHeader, name="COEFFICIENTS")
         fits.append(table)
 
