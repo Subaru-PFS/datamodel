@@ -621,6 +621,7 @@ These FITS files will include a single table HDU (in addition to the mandatory e
     xy              32-bit float (pixels^2)
     flux            32-bit float (arbitrary units)
     fluxErr         32-bit float (arbitrary units)
+    fluxNorm        32-bit float (arbitrary units)
     norm            32-bit float (arbitrary units)
     flag            boolean; indicates whether the measurement is bad
     status          32-bit int; bitmask
