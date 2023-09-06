@@ -23,6 +23,7 @@ __all__ = (
     "DoubleDetectorMap",
     "PolynomialDetectorMap",
     "PfsDistortion",
+    "PolynomialDistortion",
     "DoubleDistortion",
     "RotScaleDistortion",
     "DoubleRotScaleDistortion",
@@ -1163,8 +1164,90 @@ class PfsDistortion(ABC):
         raise NotImplementedError("Subclass must implement writeFits()")
 
 
+class PolynomialDistortion(PfsDistortion):
+    """Polynomial distortion fields in x and y
+
+    Parameters
+    ----------
+    order : `int`
+        Order of the polynomials.
+    box : `Box`
+        Range of the polynomials.
+    xCoefficients : `numpy.ndarray` of `float`
+        Coefficients for the x polynomial.
+    yCoefficients : `numpy.ndarray` of `float`
+        Coefficients for the y polynomial.
+    """
+    def __init__(
+        self,
+        order: int,
+        box: Box,
+        xCoefficients: np.ndarray,
+        yCoefficients: np.ndarray,
+    ):
+        self.order = order
+        self.box = box
+        self.xCoefficients = xCoefficients
+        self.yCoefficients = yCoefficients
+
+    @staticmethod
+    def getExtName(index: int) -> str:
+        """Return FITS extension name
+
+        Parameters
+        ----------
+        index : `int`
+            Index of distortion.
+        """
+        return f"PolynomialDistortion_{index}"
+
+    @classmethod
+    def readFits(cls, fits: astropy.io.fits.HDUList, index: int) -> "PfsDistortion":
+        """Read from FITS file
+
+        Parameters
+        ----------
+        fits : `astropy.io.fits.HDUList`
+            FITS file in memory.
+        index : `int`
+            Index of distortion to read.
+
+        Returns
+        -------
+        self : ``cls``
+            Constructed distortion, from FITS file.
+        """
+        hdu = fits[cls.getExtName(index)]
+        order = hdu.header["ORDER"]
+        box = Box.fromFitsHeader(hdu.header)
+        xCoefficients = hdu.data["xCoefficients"].astype(float)
+        yCoefficients = hdu.data["yCoefficients"].astype(float)
+        return cls(order, box, xCoefficients, yCoefficients)
+
+    def writeFits(self, fits: astropy.io.fits.HDUList, index: int):
+        """Write to a FITS file
+
+        Parameters
+        ----------
+        fits : `astropy.io.fits.HDUList`
+            FITS file in memory; modified.
+        index : `int`
+            Index of distortion to write.
+        """
+        header = astropy.io.fits.Header()
+        header["ORDER"] = self.order
+        header["INHERIT"] = True
+        header.update(self.box.toFitsHeader())
+
+        table = astropy.io.fits.BinTableHDU.from_columns([
+            astropy.io.fits.Column(name="xCoefficients", format="D", array=self.xCoefficients),
+            astropy.io.fits.Column(name="yCoefficients", format="D", array=self.yCoefficients),
+        ], header=header, name=self.getExtName(index))
+        fits.append(table)
+
+
 class DoubleDistortion(PfsDistortion):
-    """Distortion fields in x and y for left and right CCDs
+    """Polynomial distortion fields in x and y for left and right CCDs
 
     Parameters
     ----------
