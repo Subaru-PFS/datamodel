@@ -389,11 +389,16 @@ The DESIGN table lists for each object:
       pmRa           32-bit float (mas/yr)
       pmDec          32-bit float (mas/yr)
       parallax       32-bit float (mas)
+      proposalId     string
+      obCode         string
 
 Note that:
 * the fiberIds start at 1.
 * the combination of (catId, objId) must be unique
     [with the exception where (catId=-1 objId=-1) which corresponds to an untargeted fiber.]
+* the proposalId is a string for each proposal assigned by Subaru Telescope (e.g., S24B-001QN)
+* the obCode is a string for an Observing Block (OB) within a proposal. An OB consists of a combination of
+    a target, exposure setup, and QA constraints. The combination of (proposalId, obCode) must be unique.
 
 The 'targetType' in the DESIGN table is an enumerated type, with values:
       SCIENCE = 1: the fiber is intended to be on a science target.
@@ -524,6 +529,8 @@ The CONFIG table lists for each object:
       pmRa           32-bit float (mas/yr)
       pmDec          32-bit float (mas/yr)
       parallax       32-bit float (mas)
+      proposalId     string
+      obCode         string
 
 (I.e., the same as for PfsDesign, except for the addition of the
 "pfiCenter" column.)
