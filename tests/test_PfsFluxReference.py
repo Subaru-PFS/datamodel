@@ -107,6 +107,8 @@ class PfsFluxReferenceTestCase(lsst.utils.tests.TestCase):
             pmRa=np.full(shape=self.numSpectra, fill_value=0.0, dtype=np.float32),
             pmDec=np.full(shape=self.numSpectra, fill_value=0.0, dtype=np.float32),
             parallax=np.full(shape=self.numSpectra, fill_value=1e-5, dtype=np.float32),
+            proposalId=np.full(shape=self.numSpectra, fill_value="J2000.0"),
+            obCode=np.array([f"obcode_{fibnum:04d}" for fibnum in range(self.numSpectra)]),
             fiberFlux=[np.zeros(0, dtype=float)] * self.numSpectra,
             psfFlux=[np.zeros(0, dtype=float)] * self.numSpectra,
             totalFlux=[np.zeros(0, dtype=float)] * self.numSpectra,
