@@ -90,6 +90,9 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
         self.pmDec = rng.uniform(low=0, high=100, size=self.numFibers)  # mas/yr
         self.parallax = rng.uniform(low=1e-5, high=10, size=self.numFibers)  # mas
 
+        self.proposalId = np.full(self.numFibers, "S24A-0001QN")
+        self.obCode = np.array([f"obcode_{fibnum:04d}" for fibnum in range(self.numFibers)])
+
         fiberMagnitude = [22.0, 23.5, 25.0, 26.0]
         fiberFluxes = [(f * u.ABmag).to_value(u.nJy) for f in fiberMagnitude]
 
@@ -184,7 +187,8 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
             self.assertAlmostEqual(getattr(lhs, value), getattr(rhs, value), 14, value)
         for value in ("fiberId", "tract", "ra", "dec", "catId", "objId",
                       "pfiNominal", "targetType", "fiberStatus",
-                      "epoch", "pmRa", "pmDec", "parallax"):
+                      "epoch", "pmRa", "pmDec", "parallax",
+                      "proposalId", "obCode"):
             np.testing.assert_array_equal(getattr(lhs, value), getattr(rhs, value), value)
         self.assertEqual(len(lhs.patch), len(rhs.patch))
         self.assertEqual(len(lhs.fiberFlux), len(rhs.fiberFlux))
@@ -234,7 +238,8 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
 
         # Longer arrays
         for name in ("fiberId", "tract", "patch", "ra", "dec", "catId", "objId",
-                     "epoch", "pmRa", "pmDec", "parallax"):
+                     "epoch", "pmRa", "pmDec", "parallax",
+                     "proposalId", "obCode"):
             with self.assertRaises(RuntimeError):
                 self.makePfsConfig(**{name: extendArray(getattr(self, name))})
 

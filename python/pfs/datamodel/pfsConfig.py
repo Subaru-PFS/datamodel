@@ -145,6 +145,10 @@ class PfsDesign:
         for each fiber, mas/year.
     parallax : `numpy.ndarray` of `float32`
         parallax for each fiber, mas.
+    proposalId : `numpy.chararray`
+        Proposal ID of each fiber (e.g, S23A-001QN).
+    obCode : `numpy.chararray`
+        Code for an Observing Block (OB) of each fiber.
     fiberFlux : `list` of `numpy.ndarray` of `float`
         Array of fiber fluxes for each fiber, in [nJy].
     psfFlux : `list` of `numpy.ndarray` of `float`
@@ -190,6 +194,8 @@ class PfsDesign:
                "pmRa": "E",
                "pmDec": "E",
                "parallax": "E",
+               "proposalId": "A",
+               "obCode": "A",
                "pfiNominal": "2E",
                }
     # astrometry keywords; should be in _fields too
@@ -197,6 +203,9 @@ class PfsDesign:
                    "pmRa",
                    "pmDec",
                    "parallax"]
+    # keys for operation; should be present in _fields too
+    _operation = ["proposalId",
+                  "obCode"]
     _pointFields = ["pfiNominal"]  # List of point fields; should be in _fields too
     _photometry = ["fiberFlux",
                    "psfFlux",
@@ -290,6 +299,7 @@ class PfsDesign:
                  fiberId, tract, patch, ra, dec, catId, objId,
                  targetType, fiberStatus,
                  epoch, pmRa, pmDec, parallax,
+                 proposalId, obCode,
                  fiberFlux,
                  psfFlux,
                  totalFlux,
@@ -319,6 +329,8 @@ class PfsDesign:
         self.pmRa = np.array(pmRa).astype(np.float32)
         self.pmDec = np.array(pmDec).astype(np.float32)
         self.parallax = np.array(parallax).astype(np.float32)
+        self.proposalId = np.array(proposalId)
+        self.obCode = np.array(obCode)
         self.fiberFlux = [np.array(flux).astype(float) for flux in fiberFlux]
         self.psfFlux = [np.array(pflux).astype(float) for pflux in psfFlux]
         self.totalFlux = [np.array(tflux).astype(float) for tflux in totalFlux]
@@ -533,9 +545,14 @@ class PfsDesign:
             kwargs["parallax"] = data["parallax"] if "parallax" in data.columns.names else np.full(
                 len(data), 1.0e-8, dtype=np.float32)
 
+            # fill operation-related columns if not exist, for backwards compatibility
+            kwargs["proposalId"] = (data["proposalId"]
+                                    if "proposalId" in data.columns.names else np.full(len(data), "N/A"))
+            kwargs["obCode"] = data["obCode"] if "obCode" in data.columns.names else np.full(len(data), "N/A")
+
             for nn in cls._fields:
-                # skip astrometry keywords as they have already been set
-                if nn not in cls._astrometry:
+                # skip astrometry and operation keywords as they have already been set
+                if (nn not in cls._astrometry) and (nn not in cls._operation):
                     assert nn not in kwargs
                     kwargs[nn] = data[nn]
 
@@ -1000,6 +1017,10 @@ class PfsConfig(PfsDesign):
         for each fiber, mas/year.
     parallax : `numpy.ndarray` of `float32`
         parallax for each fiber, mas.
+    proposalId : `numpy.chararray`
+        Proposal ID of each fiber (e.g, S23A-001QN).
+    obCode : `numpy.chararray`
+        Code for an Observing Block (OB) of each fiber.
     fiberFlux : `list` of `numpy.ndarray` of `float`
         Array of fiber fluxes for each fiber, in [nJy].
     psfFlux : `list` of `numpy.ndarray` of `float`
@@ -1048,6 +1069,8 @@ class PfsConfig(PfsDesign):
                "pmRa": "E",
                "pmDec": "E",
                "parallax": "E",
+               "proposalId": "A",
+               "obCode": "A",
                "pfiNominal": "2E",
                "pfiCenter": "2E",
                }
@@ -1070,6 +1093,7 @@ class PfsConfig(PfsDesign):
                  fiberId, tract, patch, ra, dec, catId, objId,
                  targetType, fiberStatus,
                  epoch, pmRa, pmDec, parallax,
+                 proposalId, obCode,
                  fiberFlux,
                  psfFlux,
                  totalFlux,
@@ -1091,6 +1115,7 @@ class PfsConfig(PfsDesign):
                          fiberId, tract, patch, ra, dec,
                          catId, objId, targetType, fiberStatus,
                          epoch, pmRa, pmDec, parallax,
+                         proposalId, obCode,
                          fiberFlux,
                          psfFlux,
                          totalFlux,
