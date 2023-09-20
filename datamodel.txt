@@ -267,9 +267,12 @@ Note that visit0 is defined under "Calibration products"
 We have multiple separate formats for representing the "detectorMap", which are distinguished by the value of
 the "HIERARCH pfs_detectorMap_class" header card:
 * SplinedDetectorMap: splines for each fiber provide the wavelength and column as a function of row.
-* DoubleDetectorMap: mapping of x,y to dx,dy distortion for left and right CCDs to a SplineDetectorMap
+* DoubleDetectorMap: mapping of x,y to dx,dy distortion for left and right CCDs to a SplineDetectorMap.
+  This is deprecated in favor of MultipleDistortionsDetectorMap.
 * DifferentialDetectorMap: a mapping of fiberId,wavelength to x,y corrections to a SplinedDetectorMap.
+  This is deprecated and due to be removed.
 * DistortedDetectorMap: a mapping of x,y to dx,dy corrections to a SplinedDetectorMap.
+  This is deprecated and due to be removed.
 * MultipleDistortionsDetectorMap: multiple mappings of x,y to dx,dy corrections to a SplinedDetectorMap.
 
 SplinedDetectorMap format:
