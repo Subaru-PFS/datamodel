@@ -302,8 +302,15 @@ HDU #6...
 The primary header records the dimensions of the detector in the MINX,MINY,MAXX,MAXY keywords.
 The DISTORTIONS table contains a sole column, "name", which is a list of names of distortions to apply.
 The distortions are in separate HDUs, with formats peculiar to their type (specified by the name):
-* DoubleDistortion: HDU DoubleDistortion_<index> contains the polynomial order in the header (ORDER)
-  and the distortion coefficients in a table.
+* PolynomialDistortion: HDU PolynomialDistortion_<index> contains the polynomial order (ORDER) and
+  distortion range (MINX,MINY,MAXX,MAXY) in the header, and the x and y coefficients as columns in a table.
+* DoubleDistortion: HDU DoubleDistortion_<index> contains the polynomial order (ORDER) and distortion
+  range (MINX,MINY,MAXX,MAXY) in the header and the x and y coefficients for the left and right CCDs
+  in a table.
+* RotScaleDistortion: HDU RotScaleDistortion_<index> contains the distortion range in the header
+  (MINX,MINY,MAXX,MAXY) and the distortion parameters as pixels in a one-dimensional image.
+* DoubleRotScaleDistortion: HDU DoubleRotScaleDistortion_<index> contains the distortion range in the header
+  (MINX,MINY,MAXX,MAXY) and the distortion parameters as pixels in a one-dimensional image.
 
 
 DoubleDetectorMap format:
