@@ -300,7 +300,7 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
         """Test creation of design name"""
         name = 'TestName123'
         design = self.makePfsDesign(designName=name)
-        self.assertEquals(design.designName, name)
+        self.assertEqual(design.designName, name)
 
     def testPfsDesignsSame(self):
         """Tests that two designs created with the same parameters are equal.
