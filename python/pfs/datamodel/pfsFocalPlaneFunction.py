@@ -323,10 +323,10 @@ class PfsBlockedOversampledSpline(PfsFocalPlaneFunction):
         fiberId = list(self.splines.keys())
         splineOrder = [sp.splineOrder for sp in self.splines.values()]
         defaultValue = [sp.defaultValue for sp in self.splines.values()]
-        knots = [sp.knots for sp in self.splines.values()]
-        coeffs = [sp.coeffs for sp in self.splines.values()]
-        wavelength = [sp.wavelength for sp in self.splines.values()]
-        variance = [sp.variance for sp in self.splines.values()]
+        knots = np.array([sp.knots for sp in self.splines.values()], dtype=object)
+        coeffs = np.array([sp.coeffs for sp in self.splines.values()], dtype=object)
+        wavelength = np.array([sp.wavelength for sp in self.splines.values()], dtype=object)
+        variance = np.array([sp.variance for sp in self.splines.values()], dtype=object)
         table = astropy.io.fits.BinTableHDU.from_columns(
             [
                 astropy.io.fits.Column("fiberId", format="F", array=fiberId),
