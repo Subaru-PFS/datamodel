@@ -25,6 +25,7 @@ __all__ = (
     "PfsDistortion",
     "PolynomialDistortion",
     "DoubleDistortion",
+    "MosaicPolynomialDistortion",
     "RotScaleDistortion",
     "DoubleRotScaleDistortion",
     "MultipleDistortionsDetectorMap",
@@ -1338,6 +1339,80 @@ class DoubleDistortion(PfsDistortion):
             astropy.io.fits.Column(name="yRight", format="D", array=self.yRight),
         ], header=header, name=self.getExtName(index))
         fits.append(table)
+
+
+class MosaicPolynomialDistortion(PfsDistortion):
+    """Polynomial distortion fields in x and y
+
+    Parameters
+    ----------
+    order : `int`
+        Order of the polynomials.
+    box : `Box`
+        Range of the polynomials.
+    coefficients : `numpy.ndarray` of `float`
+        Coefficients for the distortion.
+    """
+    def __init__(
+        self,
+        order: int,
+        box: Box,
+        coefficients: np.ndarray,
+    ):
+        self.order = order
+        self.box = box
+        self.coefficients = coefficients
+
+    @staticmethod
+    def getExtName(index: int) -> str:
+        """Return FITS extension name
+
+        Parameters
+        ----------
+        index : `int`
+            Index of distortion.
+        """
+        return f"MosaicPolynomialDistortion_{index}"
+
+    @classmethod
+    def readFits(cls, fits: astropy.io.fits.HDUList, index: int) -> "PfsDistortion":
+        """Read from FITS file
+
+        Parameters
+        ----------
+        fits : `astropy.io.fits.HDUList`
+            FITS file in memory.
+        index : `int`
+            Index of distortion to read.
+
+        Returns
+        -------
+        self : ``cls``
+            Constructed distortion, from FITS file.
+        """
+        hdu = fits[cls.getExtName(index)]
+        order = hdu.header["ORDER"]
+        box = Box.fromFitsHeader(hdu.header)
+        coefficients = hdu.data.astype(float)
+        return cls(order, box, coefficients)
+
+    def writeFits(self, fits: astropy.io.fits.HDUList, index: int):
+        """Write to a FITS file
+
+        Parameters
+        ----------
+        fits : `astropy.io.fits.HDUList`
+            FITS file in memory; modified.
+        index : `int`
+            Index of distortion to write.
+        """
+        header = astropy.io.fits.Header()
+        header["ORDER"] = self.order
+        header["INHERIT"] = True
+        header.update(self.box.toFitsHeader())
+
+        image = astropy.io.fits.ImageHDU(data=self.coefficients, header=header, name=self.getExtName(index))
+        fits.append(image)
 
 
 class RotScaleDistortion(PfsDistortion):
