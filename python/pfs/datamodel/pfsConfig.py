@@ -84,6 +84,7 @@ class TargetType(DocEnum):
     DCB = 8, "fiber goes to DCB/DCB2"
     HOME = 9, "cobra is going to home position"
     BLACKSPOT = 10, "cobra is going to black spot position"
+    AFL = 11, "fiber goes to all fiber lamp"
 
 
 class FiberStatus(DocEnum):
