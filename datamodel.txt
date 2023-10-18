@@ -80,10 +80,35 @@ objId
   objIds are written out using %016x formats for compactness reasons.
 
 catId
-  A small integer specifying the source of the objId.  Currently only
-    0: Simulated
-    1: HSC
-  are defined.
+  A small integer specifying the source of the objId.  Currently the following catIds are defined.
+
+    catId |  description
+   -------|--------------------------------------------------
+        0 | Simulated catalog
+        1 | Gaia Data Release 1
+        2 | Gaia Data Release 2
+        3 | Gaia Early Data Release 3
+        4 | Gaia Data Release 3
+        5 | HSC-SSP Public Data Release 1 (Wide)
+        6 | HSC-SSP Public Data Release 1 (Deep+UltraDeep)
+        7 | HSC-SSP Public Data Release 2 (Wide)
+        8 | HSC-SSP Public Data Release 2 (Deep+UltraDeep)
+        9 | HSC-SSP Public Data Release 3 (Wide)
+       10 | HSC-SSP Public Data Release 3 (Deep+UltraDeep)
+       11 | HSC-SSP Public Data Release 4 (Wide)
+       12 | HSC-SSP Public Data Release 4 (Deep+UltraDeep)
+     1001 | Sky positions from S21A HSC-SSP (Wide)
+     1002 | Sky positions from PS1
+     1003 | Sky positions from Gaia
+     1004 | Sky positions for regions without PS1 data
+    90001 | Messier 15 stars for the engineering observation
+    90002 | NGC1904 for the engineering run in November 2022
+    90003 | NGC2419 for the engineering run in November 2022
+    90004 | NGC5272 for the engineering run in February 2023
+    90005 | NGC5904 for the engineering run in February 2023
+    90006 | NGC7078 for the engineering run in July 2023
+    90007 | NGC7089 for the engineering run in July 2023
+    90008 | NGC7099 for the engineering run in July 2023
 
 pfsDesignId
   An integer uniquely specifying the configuration of the PFI; specifically a SHA-1 of the
