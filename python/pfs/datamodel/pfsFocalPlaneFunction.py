@@ -12,6 +12,7 @@ __all__ = (
     "PfsOversampledSpline",
     "PfsBlockedOversampledSpline",
     "PfsPolynomialPerFiber",
+    "PfsFluxCalib",
 )
 
 
@@ -95,7 +96,9 @@ class PfsFocalPlaneFunction(ABC):
         header = astropy.io.fits.Header()
         header["HIERARCH " + self._classIdentifier] = type(self).__name__
         header["DAMD_VER"] = (1, "PfsFocalPlaneFunction datamodel version")
-        fits = astropy.io.fits.HDUList([astropy.io.fits.PrimaryHDU(header=header), *self.toFits()])
+        fits = astropy.io.fits.HDUList(
+            [astropy.io.fits.PrimaryHDU(header=header), *self.toFits()]
+        )
         with open(filename, "wb") as fd:
             fits.writeto(fd)
 
@@ -325,7 +328,9 @@ class PfsBlockedOversampledSpline(PfsFocalPlaneFunction):
         defaultValue = [sp.defaultValue for sp in self.splines.values()]
         knots = np.array([sp.knots for sp in self.splines.values()], dtype=object)
         coeffs = np.array([sp.coeffs for sp in self.splines.values()], dtype=object)
-        wavelength = np.array([sp.wavelength for sp in self.splines.values()], dtype=object)
+        wavelength = np.array(
+            [sp.wavelength for sp in self.splines.values()], dtype=object
+        )
         variance = np.array([sp.variance for sp in self.splines.values()], dtype=object)
         table = astropy.io.fits.BinTableHDU.from_columns(
             [
@@ -427,4 +432,97 @@ class PfsPolynomialPerFiber(PfsFocalPlaneFunction):
                     name="POLYPERFIBER",
                 ),
             ],
+        )
+
+
+class PfsFluxCalib(PfsFocalPlaneFunction):
+    r"""Flux calibration vector such that pfsMerged divided by fluxCalib
+    will be the calibrated spectra.
+
+    This is the product of a ConstantFocalPlaneFunction ``h(\lambda)``
+    multiplied by the exponential of a trivariate polynomial
+    ``g(x, y, \lambda)``, where ``(x, y)`` is the fiber position.
+    ``h(\lambda)`` represents the average shape of flux calibration vectors
+    up to ``exp g(x, y, \lambda)``. ``exp g(x, y, \lambda)``, which is
+    expected to be almost independent of ``\lambda``, represents the overall
+    height of a flux calibration vector at ``(x, y)``. The height varies from
+    fiber to fiber (or, according to ``(x, y)``) because of imperfect fiber
+    positioning. ``g(x, y, \lambda)`` indeed depends slightly on ``\lambda``
+    because seeing depends on wavelength.
+
+    Parameters
+    ----------
+    polyParams : `numpy.ndarray` of `float`
+        Parameters used by ``NormalizedPolynomialND`` in ``drp_stella``.
+        These parameters define ``g(x, y, \lambda)``.
+    polyMin : `numpy.ndarray` of `float`, shape ``(3,)``
+        Vertex of the rectangular-parallelepipedal domain of the polynomial
+        at which ``(x, y, \lambda)`` are minimal.
+    polyMax : `numpy.ndarray` of `float`, shape ``(3,)``
+        Vertex of the rectangular-parallelepipedal domain of the polynomial
+        at which ``(x, y, \lambda)`` are maximal.
+    constantFocalPlaneFunction : `PfsConstantFocalPlaneFunction`
+        ``h(\lambda)`` as explaned above.
+    """
+
+    def __init__(
+        self,
+        polyParams: np.ndarray,
+        polyMin: np.ndarray,
+        polyMax: np.ndarray,
+        constantFocalPlaneFunction: PfsConstantFocalPlaneFunction,
+    ) -> None:
+        self.polyParams = polyParams
+        self.polyMin = polyMin
+        self.polyMax = polyMax
+        self.constantFocalPlaneFunction = constantFocalPlaneFunction
+
+    @classmethod
+    def fromFits(cls, fits: astropy.io.fits.HDUList) -> "PfsFluxCalib":
+        """Construct from FITS file
+
+        Parameters
+        ----------
+        fits : `astropy.io.fits.HDUList`
+            FITS file from which to read.
+
+        Returns
+        -------
+        self : cls
+            Constructed focal plane function.
+        """
+        constantFocalPlaneFunction = PfsConstantFocalPlaneFunction.fromFits(fits)
+
+        catalog = fits["POLYNOMIAL"].data
+        polyParams = catalog["params"][0]
+        polyMin = catalog["min"][0]
+        polyMax = catalog["max"][0]
+
+        return cls(polyParams, polyMin, polyMax, constantFocalPlaneFunction)
+
+    def toFits(self) -> astropy.io.fits.HDUList:
+        """Write to FITS file
+
+        Returns
+        -------
+        fits : `astropy.io.fits.HDUList`
+            FITS file to write.
+        """
+        catalog = np.empty(
+            shape=(1,),
+            dtype=[
+                ("params", float, self.polyParams.shape),
+                ("min", float, self.polyMin.shape),
+                ("max", float, self.polyMax.shape),
+            ],
+        )
+        catalog["params"][0, :] = self.polyParams
+        catalog["min"][0, :] = self.polyMin
+        catalog["max"][0, :] = self.polyMax
+
+        return astropy.io.fits.HDUList(
+            hdus=[
+                *self.constantFocalPlaneFunction.toFits(),
+                astropy.io.fits.BinTableHDU(catalog, name="POLYNOMIAL"),
+            ]
         )
