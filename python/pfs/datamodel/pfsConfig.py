@@ -56,6 +56,15 @@ class DocEnum(enum.IntEnum):
         """Return the enum's name"""
         return self.name
 
+    def __invert__(self):
+        """Return all the elements of the enum except self
+
+        Returns
+        -------
+        elements : list of all members of enumeration except self
+        """
+        return [member for member in type(self) if member != self]
+
     @classmethod
     def fromString(cls, name):
         """Construct from the string name
