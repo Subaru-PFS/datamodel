@@ -799,7 +799,14 @@ class PfsDesign:
                      spectrograph=None):
         """Return a boolean array indicating which fibers are selected
 
-        Multiple attributes will be combined with ``AND``.
+        The values may be scalars or lists/tuples (sets are not supported)
+
+        Multiple attributes will be combined with ``AND``, so
+           select(fiberId=myFiberIds, fiberStatus=FiberStatus.GOOD, targetType=~TargetType.ENGINEERING)
+        means
+           fiberId is in myFiberIds and
+           fiberStatus equals FiberStatus.GOOD and
+           targetType is not in TargetType.ENGINEERING
 
         Parameters
         ----------
@@ -847,7 +854,14 @@ class PfsDesign:
     def select(self, **kwargs):
         """Return an instance containing only the selected attributes
 
-        Multiple attributes will be combined with ``AND``.
+        The values may be scalars or lists/tuples (sets are not supported)
+
+        Multiple attributes will be combined with ``AND``, so
+           select(fiberId=myFiberIds, fiberStatus=FiberStatus.GOOD, targetType=~TargetType.ENGINEERING)
+        means
+           fiberId is in myFiberIds and
+           fiberStatus equals FiberStatus.GOOD and
+           targetType is not in TargetType.ENGINEERING
 
         Parameters
         ----------
@@ -865,6 +879,8 @@ class PfsDesign:
             Patch name to select.
         objId : `int` (scalar or array_like), optional
             Object identifier to select.
+        spectrograph : `int` (scalar or array_like), optional
+            Spectrograph to select.
 
         Returns
         -------
