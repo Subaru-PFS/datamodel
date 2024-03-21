@@ -1,4 +1,5 @@
 from types import SimpleNamespace
+import warnings
 import numpy as np
 import os
 import re
@@ -424,6 +425,65 @@ class PfsDesign:
     def getVariant(self):
         """Return the (variantNum, basePfsDesign) pair, or (0, 0) if we are not a variant """
         return self.variant, self.designId0
+
+    def getPhotometry(self, filterName, psfFlux=False, fiberFlux=False, totalFlux=False, getError=False):
+        """Return the flux, and optionally errors, for a requested filter.
+
+        If the filtername is invalid, the valid names printer and an exception raised
+
+        Parameters
+        ----------
+            filterName : `str`
+                Name of desired filter (e.g. g_hsc)
+            psfFlux: `bool`
+                Return the PSF flux (default)
+            fiberFlux: `bool`
+                Return the fiber flux
+            totalFlux: `bool`
+                Return the totalflux
+            getError: `bool`
+                Return the flux error in addition to the flux
+
+        Returns
+        -------
+        flux: `np.ndarray`  if getError is False
+        flux, fluxErr: (`np.ndarray`, `np.ndarray`)   if getError is False
+        """
+
+        if not (psfFlux or fiberFlux or totalFlux):
+            psfFlux = True
+
+        fluxRequested = []
+        if psfFlux:
+            fluxRequested.append("psf")
+            flux, fluxErr = self.psfFlux, self.psfFluxErr
+        elif fiberFlux:
+            fluxRequested.append("fiber")
+            flux, fluxErr = self.fiberFlux, self.fiberFluxErr
+        else:
+            fluxRequested.append("total")
+            flux, fluxErr = self.totalFlux, self.totalFluxErr
+
+        if len(fluxRequested) > 1:
+            raise RuntimeError(f"Please only specify one type of flux at a time: saw "
+                               f"{', '.join(fluxRequested)}")
+
+        myFilterData = np.array(self.filterNames) == filterName
+        if np.sum(myFilterData) == 0:
+            filterNames = sorted(set([fn for fn in sum(self.filterNames, []) if fn != "none"]))
+            raise RuntimeError(f"No flux data for filter \"{filterName}\" is available. "
+                               f"Options are: {', '.join(filterNames)}")
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", category=RuntimeWarning)  # All-NaN slice encountered
+
+            flux = np.nanmean(np.where(myFilterData, flux, np.NaN), axis=1)
+
+            if getError:
+                fluxErr = np.nanmean(np.where(myFilterData, fluxErr, np.NaN), axis=1)
+                return flux, fluxErr
+            else:
+                return flux
 
     @classmethod
     def _readHeader(cls, header, kwargs=None):
