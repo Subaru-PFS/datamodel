@@ -144,3 +144,11 @@ products.
 
 * <no DAMD_VER header keyword>: written before I/O moved to datamodel package.
 * 1: Initial version in datamodel package. Class names were prepended with "Pfs".
+
+
+PfsFiberNorms
+-------------
+
+This class is used for the fiber normalisations calib product.
+
+* 1: Initial version in datamodel package.
