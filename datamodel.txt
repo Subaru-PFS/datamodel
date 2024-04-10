@@ -1098,6 +1098,11 @@ HDU#0 PHDU
      STAR_ZERROR    INT64       Error code for star solver
      GALAXY_LERROR    INT64       Error code for galaxy line measurement solver
      QSO_LERROR    INT64       Error code for QSO line measurement solver
+     G_ZERR    KEYWORD       Error message for galaxy solver
+     Q_ZERR    KEYWORD       Error message for QSO solver
+     S_ZERR    KEYWORD       Error message for star solver
+     G_LERR    KEYWORD       Error message for galaxy line measurement solver
+     Q_LERR    KEYWORD       Error message for QSO line measurement solver
      CLASSIFICATION_ERROR    INT64       Error code for classification solver
      
 
