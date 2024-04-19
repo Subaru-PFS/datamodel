@@ -132,7 +132,7 @@ class PfsFiberArraySet:
                          name in ("fiberId", "wavelength", "flux", "mask", "sky", "norm", "covar", "notes")})
         return type(self)(**kwargs)
 
-    def select(self, pfsConfig, **kwargs):
+    def select(self, pfsConfig=None, **kwargs):
         """Return an instance containing only the selected attributes
 
         Multiple attributes will be combined with ``AND``.
@@ -140,9 +140,9 @@ class PfsFiberArraySet:
         Parameters
         ----------
         pfsConfig : `pfs.datamodel.PfsConfig`
-            Top-end configuration.
+            Top-end configuration.  Optional if the only selection is on spectrograph or fiberId
         fiberId : `int` (scalar or array_like), optional
-            Fiber identifier to select.
+            Fiber identifier to select.  pfsConfig may be omitted
         targetType : `TargetType` (scalar or array_like), optional
             Target type to select.
         fiberStatus : `FiberStatus` (scalar or array_like), optional
@@ -156,13 +156,28 @@ class PfsFiberArraySet:
         objId : `int` (scalar or array_like), optional
             Object identifier to select.
         spectrograph : `int` (scalar or array_like), optional
-            Spectrograph number to select.
+            Spectrograph number to select.  pfsConfig may be omitted
 
         Returns
         -------
         selected : ``type(self)``
             An instance containing only the selected attributes.
         """
+        keys = set(kwargs)
+        ll = np.ones(len(self), dtype=bool)
+        for kw in ["fiberId", "spectrograph"]:    # no need for a pfsConfig
+            if kw in kwargs:
+                ll &= np.isin(getattr(self, kw), kwargs[kw])
+                keys.discard(kw)
+
+        if len(keys) == 0:
+            return self[ll]
+
+        if pfsConfig is None:
+            raise RuntimeError(
+                "You must provide a pfsConfig file for all selections except"
+                " spectrograph=[...], fiberId=[...]" + ("; saw \"%s\"" % '", "'.join(keys)))
+
         selection = pfsConfig.getSelection(**kwargs)
         return self[np.isin(self.fiberId, pfsConfig.fiberId[selection])]
 
