@@ -14,3 +14,4 @@ from .pfsDetectorMap import *
 from .guideStars import *
 from .pfsTable import *
 from .pfsFocalPlaneFunction import *
+from .pfsFiberNorms import *
