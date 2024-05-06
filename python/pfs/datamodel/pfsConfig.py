@@ -337,12 +337,12 @@ class PfsDesign:
         self.objId = np.array(objId)
         self.targetType = np.array(targetType)
         self.fiberStatus = np.array(fiberStatus)
-        self.epoch = np.array(epoch)
+        self.epoch = np.array(epoch, dtype=str)
         self.pmRa = np.array(pmRa).astype(np.float32)
         self.pmDec = np.array(pmDec).astype(np.float32)
         self.parallax = np.array(parallax).astype(np.float32)
-        self.proposalId = np.array(proposalId)
-        self.obCode = np.array(obCode)
+        self.proposalId = np.array(proposalId, dtype=str)
+        self.obCode = np.array(obCode, dtype=str)
         self.fiberFlux = [np.array(flux).astype(float) for flux in fiberFlux]
         self.psfFlux = [np.array(pflux).astype(float) for pflux in psfFlux]
         self.totalFlux = [np.array(tflux).astype(float) for tflux in totalFlux]
