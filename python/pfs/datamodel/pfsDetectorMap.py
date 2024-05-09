@@ -2,7 +2,7 @@ import os
 import re
 from types import SimpleNamespace
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Type
+from typing import Any, Dict, List, Optional, Type
 import warnings
 
 import numpy as np
@@ -29,6 +29,7 @@ __all__ = (
     "RotScaleDistortion",
     "DoubleRotScaleDistortion",
     "MultipleDistortionsDetectorMap",
+    "LayeredDetectorMap",
 )
 
 
@@ -1651,6 +1652,140 @@ class MultipleDistortionsDetectorMap(PfsDetectorMap):
 
         tableHeader = astropy.io.fits.Header()
         tableHeader["INHERIT"] = True
+        names = [distortion.getName() for distortion in self.distortions]
+        table = astropy.io.fits.BinTableHDU.from_columns([
+            astropy.io.fits.Column("name", format="PA()", array=names),
+        ], header=tableHeader, name="DISTORTIONS")
+        fits.append(table)
+        for ii, distortion in enumerate(self.distortions):
+            distortion.writeFits(fits, ii)
+
+        return fits
+
+
+class LayeredDetectorMap(PfsDetectorMap):
+    """Layered corrections to a SplinedDetectorMap
+
+    This implementation handles I/O only. For a fully-functional implementation
+    that includes evaluation of the mappings, see the drp_stella package.
+
+    Parameters
+    ----------
+    identity : `pfs.datamodel.CalibIdentity`
+        Identity of the data of interest.
+    box : `Box`
+        Bounding box for detector.
+    base : `pfs.datamodel.SplinedDetectorMap`
+        Base detectorMap.
+    distortions : `list` of `pfs.datamodel.Distortion`
+        Distortions to apply.
+    metadata : `dict`
+        Keyword-value pairs to put in the header.
+    """
+    def __init__(
+        self,
+        identity: CalibIdentity,
+        box: Box,
+        spatial: np.ndarray,
+        spectral: np.ndarray,
+        base: SplinedDetectorMap,
+        distortions: List[PfsDistortion],
+        rightCcd: np.ndarray,
+        metadata: Optional[Dict[str, Any]] = None
+    ):
+        self.identity = identity
+        self.box = box
+        self.spatial = spatial
+        self.spectral = spectral
+        self.base = base
+        self.distortions = distortions
+        self.rightCcd = rightCcd
+        self.metadata = metadata if metadata else {}
+        self.validate()
+
+    def validate(self):
+        """Ensure that array lengths are as expected
+
+        Raises
+        ------
+        AssertionError
+            When an array length doesn't match that expected.
+        """
+        assert self.spatial.shape == (self.base.fiberId.size,)
+        assert self.spectral.shape == (self.base.fiberId.size,)
+        assert self.rightCcd.shape == (6,)
+        pass
+
+    def __len__(self) -> int:
+        """Number of fibers"""
+        return len(self.base.fiberId)
+
+    @classmethod
+    def _readImpl(
+        cls, fits: astropy.io.fits.HDUList, identity: CalibIdentity
+    ) -> "LayeredDetectorMap":
+        """Implementation of reading from a FITS file in memory
+
+        Parameters
+        ----------
+        fits : `astropy.io.fits.HDUList`
+            FITS file in memory.
+        identity : `pfs.datamodel.CalibIdentity`
+            Identity of the calib data.
+
+        Returns
+        -------
+        self : `LayeredDetectorMap`
+            DetectorMap read from FITS file.
+        """
+        header = astropyHeaderToDict(fits[0].header)
+        box = Box.fromFitsHeader(header)
+        base = SplinedDetectorMap._readImpl(fits, identity)
+
+        spatial = fits["LAYERS"].data["spatial"][0].astype(float)
+        spectral = fits["LAYERS"].data["spectral"][0].astype(float)
+        rightCcd = fits["LAYERS"].data["rightCcd"][0].astype(float)
+
+        names = ("".join(nn.tolist()) for nn in fits["DISTORTIONS"].data["name"])
+        classes = (PfsDistortion.getDistortion(nn) for nn in names)
+        distortions = [DistortionClass.readFits(fits, ii) for ii, DistortionClass in enumerate(classes)]
+
+        return cls(identity, box, spatial, spectral, base, distortions, rightCcd, header)
+
+    def _writeImpl(self):
+        """Implementation of writing to FITS file
+
+        Returns
+        -------
+        fits : `astropy.io.fits.HDUList`
+            FITS file representation.
+        """
+        # NOTE: When making any changes to this method that modify the output
+        # format, increment the DAMD_VER header value in the
+        # SplinedDetectorMap._writeImpl method, and record the change in
+        # the versions.txt file.
+        fits = self.base._writeImpl()
+
+        header = self.metadata.copy()
+        header.update(self.box.toFitsHeader())
+        if "pfs_detectorMap_class" in header:
+            del header["pfs_detectorMap_class"]
+        header["OBSTYPE"] = "detectorMap"
+        header["HIERARCH pfs_detectorMap_class"] = "LayeredDetectorMap"
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=astropy.io.fits.verify.VerifyWarning)
+            fits[0].header.update(astropyHeaderFromDict(header))
+
+        tableHeader = astropy.io.fits.Header()
+        tableHeader["INHERIT"] = True
+
+        table = astropy.io.fits.BinTableHDU.from_columns([
+            astropy.io.fits.Column(name="spatial", format="PD()", array=[self.spatial]),
+            astropy.io.fits.Column(name="spectral", format="PD()", array=[self.spectral]),
+            astropy.io.fits.Column(name="rightCcd", format="PD()", array=[self.rightCcd]),
+        ], header=tableHeader, name="LAYERS")
+        fits.append(table)
+
         names = [distortion.getName() for distortion in self.distortions]
         table = astropy.io.fits.BinTableHDU.from_columns([
             astropy.io.fits.Column("name", format="PA()", array=names),
