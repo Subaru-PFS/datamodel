@@ -1683,7 +1683,7 @@ class LayeredDetectorMap(PfsDetectorMap):
         Distortions to apply.
     dividedDetector : `bool`
         Is the detector divided into two halves?
-    upperCcd : `numpy.ndarray` of `float`, shape ``(6,)``
+    rightCcd : `numpy.ndarray` of `float`, shape ``(6,)``
         Coefficients for the upper-fiberId CCD.
     metadata : `dict`
         Keyword-value pairs to put in the header.
@@ -1697,7 +1697,7 @@ class LayeredDetectorMap(PfsDetectorMap):
         base: SplinedDetectorMap,
         distortions: List[PfsDistortion],
         dividedDetector: bool,
-        upperCcd: np.ndarray,
+        rightCcd: np.ndarray,
         metadata: Optional[Dict[str, Any]] = None
     ):
         self.identity = identity
@@ -1707,7 +1707,7 @@ class LayeredDetectorMap(PfsDetectorMap):
         self.base = base
         self.distortions = distortions
         self.dividedDetector = dividedDetector
-        self.upperCcd = upperCcd
+        self.rightCcd = rightCcd
         self.metadata = metadata if metadata else {}
         self.validate()
 
@@ -1721,7 +1721,7 @@ class LayeredDetectorMap(PfsDetectorMap):
         """
         assert self.spatial.shape == (self.base.fiberId.size,)
         assert self.spectral.shape == (self.base.fiberId.size,)
-        assert self.upperCcd.shape == (6,)
+        assert self.rightCcd.shape == (6,)
         pass
 
     def __len__(self) -> int:
@@ -1747,19 +1747,19 @@ class LayeredDetectorMap(PfsDetectorMap):
             DetectorMap read from FITS file.
         """
         header = astropyHeaderToDict(fits[0].header)
-        box = Box.fromFitsHeader(header)
         base = SplinedDetectorMap._readImpl(fits, identity)
 
+        box = Box(*fits["LAYERS"].data["box"][0].astype(int))
         spatial = fits["LAYERS"].data["spatial"][0].astype(float)
         spectral = fits["LAYERS"].data["spectral"][0].astype(float)
         dividedDetector = fits["LAYERS"].data["dividedDetector"][0]
-        upperCcd = fits["LAYERS"].data["upperCcd"][0].astype(float)
+        rightCcd = fits["LAYERS"].data["rightCcd"][0].astype(float)
 
         names = ("".join(nn.tolist()) for nn in fits["DISTORTIONS"].data["name"])
         classes = (PfsDistortion.getDistortion(nn) for nn in names)
         distortions = [DistortionClass.readFits(fits, ii) for ii, DistortionClass in enumerate(classes)]
 
-        return cls(identity, box, spatial, spectral, base, distortions, dividedDetector, upperCcd, header)
+        return cls(identity, box, spatial, spectral, base, distortions, dividedDetector, rightCcd, header)
 
     def _writeImpl(self):
         """Implementation of writing to FITS file
@@ -1788,11 +1788,13 @@ class LayeredDetectorMap(PfsDetectorMap):
         tableHeader = astropy.io.fits.Header()
         tableHeader["INHERIT"] = True
 
+        box = [self.box.xMin, self.box.yMin, self.box.xMax, self.box.yMax]
         table = astropy.io.fits.BinTableHDU.from_columns([
+            astropy.io.fits.Column(name="box", format="4I", array=[box]),
             astropy.io.fits.Column(name="spatial", format="PD()", array=[self.spatial]),
             astropy.io.fits.Column(name="spectral", format="PD()", array=[self.spectral]),
             astropy.io.fits.Column(name="dividedDetector", format="L", array=[self.dividedDetector]),
-            astropy.io.fits.Column(name="upperCcd", format="PD()", array=[self.upperCcd]),
+            astropy.io.fits.Column(name="rightCcd", format="PD()", array=[self.rightCcd]),
         ], header=tableHeader, name="LAYERS")
         fits.append(table)
 
