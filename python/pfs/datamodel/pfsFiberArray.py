@@ -44,6 +44,7 @@ class PfsFiberArray(PfsSimpleSpectrum):
     """
     filenameFormat = None  # Subclasses should override
     NotesClass: Type[Notes]  # Subclasses should override
+    FluxTableClass = FluxTable  # Subclasses may override
 
     def __init__(
         self,
@@ -114,7 +115,7 @@ class PfsFiberArray(PfsSimpleSpectrum):
         data["covar"] = fits["COVAR"].data.astype(np.float32)
         data["covar2"] = fits["COVAR2"].data.astype(np.float32)
         try:
-            fluxTable = FluxTable.fromFits(fits)
+            fluxTable = cls.FluxTableClass.fromFits(fits)
         except KeyError as exc:
             # Only want to catch "Extension XXX not found."
             if not exc.args[0].startswith("Extension"):
@@ -151,3 +152,4 @@ class PfsFiberArray(PfsSimpleSpectrum):
         self.notes.writeFits(fits)
         if self.fluxTable is not None:
             self.fluxTable.toFits(fits)
+        return header
