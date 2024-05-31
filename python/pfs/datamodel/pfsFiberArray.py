@@ -44,7 +44,7 @@ class PfsFiberArray(PfsSimpleSpectrum):
     """
     filenameFormat = None  # Subclasses should override
     NotesClass: Type[Notes]  # Subclasses should override
-    FluxTableClass = FluxTable  # Subclasses may override
+    FluxTableClass: Type[FluxTable] = FluxTable  # Subclasses may override
 
     def __init__(
         self,
