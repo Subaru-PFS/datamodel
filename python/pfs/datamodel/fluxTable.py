@@ -38,11 +38,11 @@ class FluxTable:
     _hduName = "FLUX_TABLE"  # HDU name to use
 
     def __init__(self, wavelength, flux, error, mask, flags):
-        dims = np.array([len(wavelength.shape), len(flux.shape), len(error.shape), len(mask.shape)])
-        lengths = set([wavelength.shape, flux.shape, error.shape, mask.shape])
-        if np.any(dims != 1) or len(lengths) > 1:
-            raise RuntimeError("Bad shapes for wavelength,flux,error,mask: %s,%s,%s,%s" %
-                               (wavelength.shape, flux.shape, error.shape, mask.shape))
+        self.checkShapes(wavelength=wavelength,
+                         flux=flux,
+                         error=error,
+                         mask=mask)
+        
         self.wavelength = wavelength
         self.flux = flux
         self.error = error
@@ -52,6 +52,17 @@ class FluxTable:
     def __len__(self):
         """Return number of elements"""
         return len(self.wavelength)
+    
+    def checkShapes(self, **kwargs):
+        keys = list(sorted(kwargs.keys()))
+        dims = np.array([ len(kwargs[k].shape) for k in keys ])
+        lengths = set([ kwargs[k].shape for k in keys ])
+
+        if np.any(dims != 1) or len(lengths) > 1:
+            names = ','.join(keys)
+            shapes = ','.join([str(kwargs[k].shape) for k in keys])
+            raise RuntimeError("Bad shapes for %s: %s" %
+                               (names, shapes))
 
     def toFits(self, fits):
         """Write to a FITS file
