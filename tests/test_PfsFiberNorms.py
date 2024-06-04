@@ -34,6 +34,12 @@ class PfsFiberNormsTestCase(lsst.utils.tests.TestCase):
             self.assertFloatsEqual(self.fiberNorms[fiberId], self.coeff[ii])
         self.assertRaises(KeyError, self.fiberNorms.__getitem__, 1234567890)
 
+    def testContains(self):
+        """Test PfsFiberNorms.__contains__"""
+        for fiberId in self.fiberId:
+            self.assertTrue(fiberId in self.fiberNorms)
+        self.assertFalse(1234567890 in self.fiberNorms)
+
     def testIo(self):
         """Test PfsFiberNorms I/O
 

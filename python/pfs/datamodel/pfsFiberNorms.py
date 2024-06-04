@@ -63,6 +63,10 @@ class PfsFiberNorms:
         index = self._lookup[fiberId]
         return self.coeff[index]
 
+    def __contains__(self, fiberId: int) -> bool:
+        """Is this fiberId present in this object?"""
+        return fiberId in self._lookup
+
     @classmethod
     def _readImpl(cls, fits: astropy.io.fits.HDUList) -> Dict[str, Any]:
         """Implementation for reading from FITS file
