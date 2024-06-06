@@ -5,7 +5,7 @@ from typing import Dict, Union
 import numpy as np
 import astropy.io.fits
 
-from .utils import combineArms
+from .utils import combineArms, createHash
 
 __all__ = ("Identity", "CalibIdentity", "ObsTimeMergeStrategy", "ExpTimeMergeStrategy")
 
@@ -80,6 +80,16 @@ class Identity(types.SimpleNamespace):
             _obsTime=obsTime,
             _expTime=expTime,
         )
+
+    def __eq__(self, other):
+        for attr in ("visit", "arm", "spectrograph", "pfsDesignId"):
+            if getattr(self, attr) != getattr(other, attr):
+                return False
+        # Ignoring obsTime, expTime
+        return True
+
+    def __hash__(self):
+        return createHash(self.visit, self.arm, self.spectrograph, self.pfsDesignId)
 
     @property
     def arm(self):
@@ -302,6 +312,15 @@ class CalibIdentity(types.SimpleNamespace):
     def __reduce__(self):
         """Support pickling"""
         return (self.__class__, (self.obsDate, self.spectrograph, self.arm, self.visit0))
+
+    def __eq__(self, other):
+        for attr in ("obsDate", "spectrograph", "arm", "visit0"):
+            if getattr(self, attr) != getattr(other, attr):
+                return False
+        return True
+
+    def __hash__(self):
+        return createHash((self.obsDate, self.spectrograph, self.arm, self.visit0))
 
     @classmethod
     def fromDict(cls, identity):

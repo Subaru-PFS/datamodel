@@ -153,3 +153,4 @@ PfsFiberNorms
 This class is used for the fiber normalisations calib product.
 
 * 1: Initial version in datamodel package.
+* 2: Major format changes.

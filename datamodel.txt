@@ -799,16 +799,18 @@ The fiber normalizations consist of polynomial coefficients used to correct the
 normalization of fiber fluxes, so that the fluxes in different fibers may be
 compared accurately.
 
-    "pfsFiberNorms-%s-%06d-%s%1d.fits" % (calibDate, visit0, arm, spectrograph)
+    "pfsFiberNorms-%s-%06d-%s.fits" % (calibDate, visit0, arm)
 
 The file contains multiple image HDUs:
 
 HDU #0 PDU
 HDU #1 FIBERID      Fiber identifiers       [32-bit INT]        NFIBER
-HDU #2 COEFF        Coefficients            [64-bit FLOAT]      NFIBER*NCOEFF
+HUD #2 WAVELENGTH   Wavelength (nm)         [64-bit FLOAT]      NFIBER*NROW
+HDU #3 VALUES       Normalization values    [64-bit FLOAT]      NFIBER*NROW
+HDU #4 MODEL        Model details
 
-The PDU (HDU #0) header contains a HEIGHT keyword, which is the height of the
-detector (used to normalize the polynomial inputs).
+The MODEL HDU contains the details of the model used to create the normalization
+values. The format is not specified here, and varies according to the model.
 
 
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-

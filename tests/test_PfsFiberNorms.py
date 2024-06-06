@@ -1,6 +1,7 @@
 import sys
 import unittest
 
+import astropy.io.fits
 import numpy as np
 
 import lsst.utils.tests
@@ -13,25 +14,54 @@ class PfsFiberNormsTestCase(lsst.utils.tests.TestCase):
     """Test for PfsFiberNorms"""
     def setUp(self):
         self.rng = np.random.RandomState(12345)
-        self.numCoeffs = 3
+        self.length = 123
 
         self.identity = CalibIdentity(visit0=12345, arm="r", spectrograph=1, obsDate="2024-04-15")
         self.fiberId = np.arange(1, 100, 3, dtype=int)
         self.numFibers = self.fiberId.size
-        self.height = 123
-        self.coeff = self.rng.uniform(1, 2, size=(self.numFibers, self.numCoeffs))
+        self.wavelength = self.rng.uniform(size=(self.numFibers, self.length))
+        self.values = self.rng.uniform(1, 2, size=(self.numFibers, self.length))
+        self.insrot = 123.456
+        self.fiberProfilesHash = {1: 0x12345678, 2: 0x23456789}
+        self.model = astropy.io.fits.ImageHDU(
+            self.rng.uniform(size=1234),
+            astropy.io.fits.Header(cards=dict(KEY="VALUE")),
+        )
         self.metadata = {"KEY": "VALUE", "NUMBER": 67890}
 
-        self.fiberNorms = PfsFiberNorms(self.identity, self.fiberId, self.height, self.coeff, self.metadata)
+        self.fiberNorms = PfsFiberNorms(
+            self.identity,
+            self.fiberId,
+            self.wavelength,
+            self.values,
+            self.insrot,
+            self.fiberProfilesHash,
+            self.model,
+            self.metadata,
+        )
 
     def testLen(self):
         """Test PfsFiberNorms.__len__"""
         self.assertEqual(len(self.fiberNorms), self.numFibers)
 
+    def testHash(self):
+        """Test PfsFiberNorms.hash"""
+        fiberNorms = PfsFiberNorms(
+            self.identity,
+            self.fiberId,
+            self.wavelength,
+            self.values + 1.0e-6,
+            self.insrot,
+            self.fiberProfilesHash,
+            self.model,
+            self.metadata,
+        )
+        self.assertNotEqual(fiberNorms.hash, self.fiberNorms.hash)
+
     def testGetItem(self):
         """Test PfsFiberNorms.__getitem__"""
         for ii, fiberId in enumerate(self.fiberId):
-            self.assertFloatsEqual(self.fiberNorms[fiberId], self.coeff[ii])
+            self.assertFloatsEqual(self.fiberNorms[fiberId], self.values[ii])
         self.assertRaises(KeyError, self.fiberNorms.__getitem__, 1234567890)
 
     def testContains(self):
@@ -49,10 +79,16 @@ class PfsFiberNormsTestCase(lsst.utils.tests.TestCase):
         with lsst.utils.tests.getTempFilePath(".fits") as filename:
             self.fiberNorms.writeFits(filename)
             fiberNorms = PfsFiberNorms.readFits(filename)
+            self.assertEqual(fiberNorms.hash, self.fiberNorms.hash)
             self.assertEqual(fiberNorms.identity, self.identity)
             self.assertFloatsEqual(fiberNorms.fiberId, self.fiberId)
-            self.assertEqual(fiberNorms.height, self.height)
-            self.assertFloatsEqual(fiberNorms.coeff, self.coeff)
+            self.assertFloatsEqual(fiberNorms.wavelength, self.wavelength)
+            self.assertFloatsEqual(fiberNorms.values, self.values)
+            self.assertEqual(fiberNorms.insrot, self.insrot)
+            self.assertEqual(fiberNorms.fiberProfilesHash, self.fiberProfilesHash)
+            self.assertFloatsEqual(fiberNorms.model.data, self.model.data)
+            for kk, vv in self.model.header.items():
+                self.assertEqual(fiberNorms.model.header[kk], vv)
             for kk, vv in self.metadata.items():
                 self.assertEqual(fiberNorms.metadata[kk], vv)
 
