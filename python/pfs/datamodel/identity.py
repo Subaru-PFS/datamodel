@@ -1,18 +1,45 @@
+import enum
 import types
 from typing import Dict, Union
 
+import numpy as np
 import astropy.io.fits
 
 from .utils import combineArms
 
-__all__ = ("Identity", "CalibIdentity")
+__all__ = ("Identity", "CalibIdentity", "ObsTimeMergeStrategy", "ExpTimeMergeStrategy")
+
+
+class ObsTimeMergeStrategy(enum.Enum):
+    """Strategy enum for merging observation times
+
+    * ``EARLIEST``: Use the earliest observation time.
+    * ``LATEST``: Use the latest observation time.
+
+    In the future, we may add an ``AVERAGE`` strategy, but this has not been
+    implemented yet in order to avoid the need to parse the observation times.
+    """
+    EARLIEST = enum.auto()
+    LATEST = enum.auto()
+
+
+class ExpTimeMergeStrategy(enum.Enum):
+    """Strategy enum for merging exposure times
+
+    * ``SUM``: Sum the exposure times.
+    * ``AVERAGE``: Average the exposure times.
+    """
+    SUM = enum.auto()
+    AVERAGE = enum.auto()
 
 
 class Identity(types.SimpleNamespace):
     """Identification of an exposure
 
     An exposure is identified by its ``visit``, ``arm`` and ``spectrograph``,
-    for which a corresponding ``pfsDesignId`` was used.
+    for which a corresponding ``pfsDesignId`` was used. We also include
+    ``obsTime`` (time of observation) and ``expTime`` (exposure time), for
+    convenience.
 
     Sometimes, exposures are combined, in which case the ``arm`` and
     ``spectrograph`` will be set to default values (``defaultArm`` and
@@ -32,17 +59,27 @@ class Identity(types.SimpleNamespace):
         Spectrograph module identifier.
     pfsDesignId : `int`, optional
         Top-end design identifier.
+    obsTime : `str`, optional
+        Time of observation.
+    expTime : `float`, optional
+        Exposure time (sec).
     """
     defaultArm = "x"  # Default value for 'arm'
     defaultSpectrograph = 0  # Default value for spectrograph
     defaultPfsDesignId = -1  # Default value for pfsDesignId
+    defaultObsTime = "UNKNOWN"  # Default value for obsTime
+    defaultExpTime = np.nan  # Default value for expTime
     fitsExtension = "CONFIG"  # Name for FITS extension; choice of "CONFIG" is historical
 
-    def __init__(self, visit, arm=None, spectrograph=None, pfsDesignId=None):
-        super().__init__(visit=visit, _arm=arm, _spectrograph=spectrograph, _pfsDesignId=pfsDesignId)
-
-    def __hash__(self):
-        return hash((self.visit, self.arm, self.spectrograph, self.pfsDesignId))
+    def __init__(self, visit, arm=None, spectrograph=None, pfsDesignId=None, obsTime=None, expTime=None):
+        super().__init__(
+            visit=visit,
+            _arm=arm,
+            _spectrograph=spectrograph,
+            _pfsDesignId=pfsDesignId,
+            _obsTime=obsTime,
+            _expTime=expTime,
+        )
 
     @property
     def arm(self):
@@ -55,6 +92,14 @@ class Identity(types.SimpleNamespace):
     @property
     def pfsDesignId(self):
         return self._pfsDesignId if self._pfsDesignId is not None else self.defaultPfsDesignId
+
+    @property
+    def obsTime(self):
+        return self._obsTime if self._obsTime is not None else self.defaultObsTime
+
+    @property
+    def expTime(self):
+        return self._expTime if self._expTime is not None else self.defaultExpTime
 
     def getDict(self):
         """Generate a set of keyword-value pairs
@@ -71,6 +116,10 @@ class Identity(types.SimpleNamespace):
             identity["spectrograph"] = self._spectrograph
         if self._pfsDesignId is not None:
             identity["pfsDesignId"] = self._pfsDesignId
+        if self._obsTime is not None:
+            identity["obsTime"] = self._obsTime
+        if self._expTime is not None:
+            identity["expTime"] = self._expTime
         return identity
 
     @classmethod
@@ -95,6 +144,15 @@ class Identity(types.SimpleNamespace):
             del kwargs["spectrograph"]
         if kwargs["pfsDesignId"] == cls.defaultPfsDesignId:
             del kwargs["pfsDesignId"]
+        # obsTime and expTime are optional, for backwards compatibility
+        if "obsTime" in hdu.columns.names:
+            obsTime = hdu.data["obsTime"][0].tobytes().decode("utf-32")
+            if obsTime != cls.defaultObsTime:
+                kwargs["obsTime"] = obsTime
+        if "expTime" in hdu.columns.names:
+            expTime = hdu.data["expTime"][0]
+            if not np.isfinite(expTime):
+                kwargs["expTime"] = expTime
         return cls(**kwargs)
 
     def toFits(self, fits):
@@ -114,18 +172,30 @@ class Identity(types.SimpleNamespace):
                    astropy.io.fits.Column(name="arm", format=f"{len(self.arm)}A", array=[self.arm]),
                    astropy.io.fits.Column(name="spectrograph", format="J", array=[self.spectrograph]),
                    astropy.io.fits.Column(name="pfsDesignId", format="K", array=[self.pfsDesignId]),
+                   astropy.io.fits.Column(name="obsTime", format="PA()", array=[self.obsTime]),
+                   astropy.io.fits.Column(name="expTime", format="D", array=[self.expTime]),
                    ]
         hdu = astropy.io.fits.BinTableHDU.from_columns(columns, name=self.fitsExtension, header=header)
         fits.append(hdu)
 
     @classmethod
-    def fromMerge(cls, identities):
+    def fromMerge(
+        cls,
+        identities,
+        *,
+        obsTimeStrategy=ObsTimeMergeStrategy.EARLIEST,
+        expTimeStrategy=ExpTimeMergeStrategy.SUM,
+    ):
         """Construct by merging multiple identities
 
         Parameters
         ----------
         identities : `list` of `Identity`
             Identities to merge.
+        obsTimeStrategy : `ObsTimeMergeStrategy`, optional
+            Strategy for merging observation times.
+        expTime : `ExpTimeMergeStrategy`, optional
+            Strategy for merging exposure times.
 
         Returns
         -------
@@ -154,7 +224,23 @@ class Identity(types.SimpleNamespace):
         spectrograph = set([ident._spectrograph for ident in identities if ident._spectrograph is not None])
         spectrograph = spectrograph.pop() if len(spectrograph) == 1 else None
 
-        return cls(visit, arm, spectrograph, pfsDesignId)
+        obsTime = [ident._obsTime for ident in identities if ident._obsTime is not None]
+        if not obsTime:
+            obsTime = None
+        elif obsTimeStrategy == ObsTimeMergeStrategy.EARLIEST:
+            obsTime = min(obsTime)
+        elif obsTimeStrategy == ObsTimeMergeStrategy.LATEST:
+            obsTime = max(obsTime)
+
+        expTime = np.array([ident._expTime for ident in identities if ident._expTime is not None])
+        if expTime.size == 0:
+            expTime = None
+        elif expTimeStrategy == ExpTimeMergeStrategy.SUM:
+            expTime = np.sum(expTime)
+        elif expTimeStrategy == ExpTimeMergeStrategy.AVERAGE:
+            expTime = np.mean(expTime)
+
+        return cls(visit, arm, spectrograph, pfsDesignId, obsTime, expTime)
 
     @classmethod
     def fromDict(cls, identity):
@@ -174,8 +260,14 @@ class Identity(types.SimpleNamespace):
         self : `Identity`
             Constructed identity.
         """
-        return cls(identity["visit"], identity.get("arm", None), identity.get("spectrograph", None),
-                   identity.get("pfsDesignId", None))
+        return cls(
+            identity["visit"],
+            identity.get("arm", None),
+            identity.get("spectrograph", None),
+            identity.get("pfsDesignId", None),
+            identity.get("obsTime", None),
+            identity.get("expTime", None),
+        )
 
 
 class CalibIdentity(types.SimpleNamespace):

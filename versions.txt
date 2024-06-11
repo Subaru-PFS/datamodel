@@ -101,6 +101,7 @@ Observations
 This is written as a FITS table inside other products.
 
 * 1: Initial version.
+* 2: Added obsTime, expTime.
 
 
 Target
