@@ -58,6 +58,9 @@ class Abundances(PfsTable):
         Column("covarId", np.uint8, "Param position within covariance matrix", -1),
         Column("value", np.float32, "Abundance value", np.nan),
         Column("valueErr", np.float32, "Abundance error", np.nan),
+        # TODO: will we have systematic errors?
+        Column("flag", bool, "Measurement flag (true means bad)", False),
+        Column("status", str, "Measurement flags", ""),
     ]
     fitsExtName = 'ABUND'
 
@@ -279,11 +282,11 @@ class PfsGAObject(PfsFiberArray):
 
         # TODO: handle missing extensions
 
-        data["stellarParams"] = StellarParams.readHdu(fits)
         data["velocityCorrections"] = VelocityCorrections.readHdu(fits)
-        data["abundances"] = Abundances.readHdu(fits)
+        data["stellarParams"] = StellarParams.readHdu(fits)
         if cls.StellarParamsFitsExtName in fits:
             data["paramsCovar"] = fits[cls.StellarParamsFitsExtName].data.astype(np.float32)
+        data["abundances"] = Abundances.readHdu(fits)
         if cls.AbundancesFitsExtName in fits:
             data["abundCovar"] = fits[cls.AbundancesFitsExtName].data.astype(np.float32)
 
@@ -294,14 +297,14 @@ class PfsGAObject(PfsFiberArray):
 
         header = super()._writeImpl(fits)
 
-        if self.stellarParams is not None:
-            self.stellarParams.writeHdu(fits)
         if self.velocityCorrections is not None:
             self.velocityCorrections.writeHdu(fits)
-        if self.abundances is not None:
-            self.abundances.writeHdu(fits)
+        if self.stellarParams is not None:
+            self.stellarParams.writeHdu(fits)
         if self.paramsCovar is not None:
             fits.append(ImageHDU(self.paramsCovar.astype(np.float32), header=header, name=self.StellarParamsFitsExtName))
+        if self.abundances is not None:
+            self.abundances.writeHdu(fits)
         if self.abundCovar is not None:
             fits.append(ImageHDU(self.abundCovar.astype(np.float32), header=header, name=self.AbundancesFitsExtName))
 
