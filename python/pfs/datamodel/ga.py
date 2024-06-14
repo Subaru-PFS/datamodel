@@ -1,4 +1,3 @@
-from typing import Type
 import numpy as np
 
 from .notes import makeNotesClass, Notes
@@ -18,6 +17,7 @@ __all__ = [
     "PfsGAObject",
 ]
 
+
 class VelocityCorrections(PfsTable):
     """A table of velocity corrections applied to the individual visits."""
 
@@ -29,6 +29,7 @@ class VelocityCorrections(PfsTable):
         Column("bary", np.float32, "Barycentric correction", np.nan),
     ]
     fitsExtName = 'VELCORR'
+
 
 class StellarParams(PfsTable):
     """List of measured stellar parameters for a target."""
@@ -48,6 +49,7 @@ class StellarParams(PfsTable):
     ]
     fitsExtName = 'STELLARPARAM'
 
+
 class Abundances(PfsTable):
     """List of measured abundance parameters for stellar targets."""
 
@@ -63,6 +65,7 @@ class Abundances(PfsTable):
         Column("status", str, "Measurement flags", ""),
     ]
     fitsExtName = 'ABUND'
+
 
 class GAFluxTable(FluxTable):
     """Table of coadded fluxes at near-original sampling and model fits
@@ -115,7 +118,7 @@ class GAFluxTable(FluxTable):
                          norm_error=norm_error,
                          norm_model=norm_model,
                          mask=mask)
-        
+
         self.wavelength = wavelength
         self.flux = flux
         self.error = error
@@ -182,17 +185,19 @@ class GAFluxTable(FluxTable):
                    hdu.data["mask"].astype(np.int32),
                    flags)
 
+
 PfsGAObjectNotes = makeNotesClass(
     "PfsGAObjectNotes",
     []
 )
 
+
 @inheritDocstrings
 class PfsGAObject(PfsFiberArray):
     """Coadded spectrum of a GA target with derived quantities.
-    
+
     Produced by ˙˙gapipe``
-    
+
     Parameters
     ----------
     target : `pfs.datamodel.Target`
@@ -262,7 +267,8 @@ class PfsGAObject(PfsFiberArray):
         abundCovar=None,
         notes: Notes = None,
     ):
-        super().__init__(target, observations, wavelength, flux, mask, sky, covar, covar2, flags, metadata=metadata, fluxTable=fluxTable, notes=notes)
+        super().__init__(target, observations, wavelength, flux, mask, sky,
+                         covar, covar2, flags, metadata=metadata, fluxTable=fluxTable, notes=notes)
 
         self.stellarParams = stellarParams
         self.velocityCorrections = velocityCorrections
@@ -302,10 +308,14 @@ class PfsGAObject(PfsFiberArray):
         if self.stellarParams is not None:
             self.stellarParams.writeHdu(fits)
         if self.paramsCovar is not None:
-            fits.append(ImageHDU(self.paramsCovar.astype(np.float32), header=header, name=self.StellarParamsFitsExtName))
+            fits.append(ImageHDU(self.paramsCovar.astype(np.float32),
+                        header=header,
+                        name=self.StellarParamsFitsExtName))
         if self.abundances is not None:
             self.abundances.writeHdu(fits)
         if self.abundCovar is not None:
-            fits.append(ImageHDU(self.abundCovar.astype(np.float32), header=header, name=self.AbundancesFitsExtName))
+            fits.append(ImageHDU(self.abundCovar.astype(np.float32),
+                        header=header,
+                        name=self.AbundancesFitsExtName))
 
         return header
