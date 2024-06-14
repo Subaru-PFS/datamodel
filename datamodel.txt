@@ -299,6 +299,7 @@ the "HIERARCH pfs_detectorMap_class" header card:
 * DistortedDetectorMap: a mapping of x,y to dx,dy corrections to a SplinedDetectorMap.
   This is deprecated and due to be removed.
 * MultipleDistortionsDetectorMap: multiple mappings of x,y to dx,dy corrections to a SplinedDetectorMap.
+* LayeredDetectorMap: layered corrections to a SplinedDetectorMap.
 
 SplinedDetectorMap format:
 
@@ -404,6 +405,24 @@ The COEFFICIENTS table contains:
 
 The RIGHTCCD table contains:
         coefficients        32-bit float    Affine transform coefficients
+
+
+LayeredDetectorMap format:
+
+HDU #0 PDU
+HDU #1 FIBERID      Identifier of each fiber                [32-bit INT]            NFIBER
+HDU #2 SLITOFF      Slit offsets in x,y,z                   [32-bit FLOAT]          3*NFIBER
+HDU #3 CENTER       Spline for column with trace center     [BINARY FITS TABLE]     NFIBER
+HDU #4 WAVELENGTH   Spline for wavelength (nm)              [BINARY FITS TABLE]     NFIBER
+HDU #5 LAYERS       Slit offsets, CCD transform             [BINARY FITS TABLE]
+HDU #6 DISTORTIONS  Distortion list                         [BINARY FITS TABLE]
+HDUs ...
+
+The LAYERS HDU contains arrays of parameters for the spatial and spectral offsets,
+and the affine transformation for the right-hand CCD.
+
+The DISTORTIONS HDU contains a list of distortions to be applied, each of which
+is appended as a separate HDU.
 
 
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
