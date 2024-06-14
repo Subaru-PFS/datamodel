@@ -9,6 +9,7 @@ from pfs.datamodel import MaskHelper
 from pfs.datamodel import GAFluxTable
 from pfs.datamodel import PfsGAObject, StellarParams, Abundances, VelocityCorrections
 
+
 class PfsGAObjectTestCase(TestCase):
     """ Check the format of example datamodel files are
         consistent with that specified in the corresponding
@@ -28,8 +29,8 @@ class PfsGAObjectTestCase(TestCase):
 
         target = Target(catId, tract, patch, objId, ra, dec, targetType)
 
-        visit = np.array([ 83219, 83220 ])
-        arm = np.array([ 'b', 'm', ])
+        visit = np.array([83219, 83220])
+        arm = np.array(['b', 'm'])
         spectrograph = np.array([1, 1])
         pfsDesignId = np.array([8854764194165386399, 8854764194165386400])
         fiberId = np.array([476, 476])
@@ -55,7 +56,7 @@ class PfsGAObjectTestCase(TestCase):
         covar = np.zeros((3, wavelength.size), dtype=np.float32)    # Tridiagonal covariance matrix of flux
         covar2 = np.zeros((1, 1), dtype=np.float32)                 # ?
 
-        flags = MaskHelper()                                        # {'BAD': 0, 'BAD_FIBERTRACE': 11, 'BAD_FLAT': 9, 'BAD_FLUXCAL': 13, 'BAD_SKY': 12, 'CR': 3, 'DETECTED': 5, 'DETECTED_NEGATIVE': 6, 'EDGE': 4, 'FIBERTRACE': 10, 'INTRP': 2, 'IPC': 14, 'NO_DATA': 8, 'REFLINE': 15, 'SAT': 1, 'SUSPECT': 7, 'UNMASKEDNAN': 16})
+        flags = MaskHelper()                                        #
         metadata = {}                                               # Key-value pairs to put in the header
         fluxTable = GAFluxTable(wavelength, flux, error, model, cont,
                                 norm_flux, norm_error, norm_model,
@@ -95,16 +96,16 @@ class PfsGAObjectTestCase(TestCase):
         notes = None
 
         return PfsGAObject(target, observations,
-                                  wavelength, flux, mask, sky, covar, covar2,
-                                  flags, metadata,
-                                  fluxTable,
-                                  stellarParams,
-                                  velocityCorrections,
-                                  abundances,
-                                  paramsCovar,
-                                  abundCovar,
-                                  notes)
-    
+                           wavelength, flux, mask, sky, covar, covar2,
+                           flags, metadata,
+                           fluxTable,
+                           stellarParams,
+                           velocityCorrections,
+                           abundances,
+                           paramsCovar,
+                           abundCovar,
+                           notes)
+
     def assertPfsGAObject(self, lhs, rhs):
         np.testing.assert_array_equal(lhs.observations.visit, rhs.observations.visit)
 
@@ -134,11 +135,11 @@ class PfsGAObjectTestCase(TestCase):
                 ii = vv
             d[kk] = ii
         return d
-    
+
     def test_filenameRegex(self):
         d = self.extractAttributes(
-                PfsGAObject,
-                'pfsGAObject-07621-01234-2,2-02468ace1234abcd-003-0x0123456789abcdef.fits')
+            PfsGAObject,
+            'pfsGAObject-07621-01234-2,2-02468ace1234abcd-003-0x0123456789abcdef.fits')
         self.assertEqual(d['catId'], 7621)
         self.assertEqual(d['tract'], 1234)
         self.assertEqual(d['patch'], '2,2')
@@ -180,6 +181,6 @@ class PfsGAObjectTestCase(TestCase):
             other = PfsGAObject.readFits(filename)
             self.assertPfsGAObject(pfsGAObject, other)
         except Exception as e:
-            raise
+            raise e
         finally:
             os.unlink(filename)

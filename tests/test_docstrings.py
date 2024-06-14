@@ -17,8 +17,9 @@ class DocstringsTestCase(unittest.TestCase):
                 docstring = attr.__doc__
                 for base in cls.__mro__[1:-1]:
                     if not name.endswith("Class"):
-                        self.assertNotIn(base.__name__, docstring,
-                                         f"{cls.__name__}.{name}.__doc__ contains {base.__name__}: {docstring}")
+                        self.assertNotIn(
+                            base.__name__, docstring,
+                            f"{cls.__name__}.{name}.__doc__ contains {base.__name__}: {docstring}")
 
 
 class TestMemory(lsst.utils.tests.MemoryTestCase):
