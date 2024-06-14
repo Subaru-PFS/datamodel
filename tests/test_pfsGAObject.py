@@ -86,6 +86,8 @@ class PfsGAObjectTestCase(TestCase):
             covarId=np.array([0, 1, 2]),
             value=np.array([0.0, 0.0, 0.0]),
             valueErr=np.array([0.0, 0.0, 0.0]),
+            flag=np.array([False, False, False]),
+            status=np.array(['', '', '']),
         )
 
         paramsCovar = np.eye(3, dtype=np.float32)
