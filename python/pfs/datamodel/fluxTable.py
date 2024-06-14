@@ -42,7 +42,7 @@ class FluxTable:
                          flux=flux,
                          error=error,
                          mask=mask)
-        
+
         self.wavelength = wavelength
         self.flux = flux
         self.error = error
@@ -52,11 +52,11 @@ class FluxTable:
     def __len__(self):
         """Return number of elements"""
         return len(self.wavelength)
-    
+
     def checkShapes(self, **kwargs):
         keys = list(sorted(kwargs.keys()))
-        dims = np.array([ len(kwargs[k].shape) for k in keys ])
-        lengths = set([ kwargs[k].shape for k in keys ])
+        dims = np.array([len(kwargs[k].shape) for k in keys])
+        lengths = set([kwargs[k].shape for k in keys])
 
         if np.any(dims != 1) or len(lengths) > 1:
             names = ','.join(keys)
