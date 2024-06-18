@@ -260,12 +260,17 @@ class Identity(types.SimpleNamespace):
         self : `Identity`
             Constructed identity.
         """
+        obsTime = None
+        for key in ("obsTime", "taiObs"):
+            if key in identity:
+                obsTime = identity[key]
+                break
         return cls(
             identity["visit"],
             identity.get("arm", None),
             identity.get("spectrograph", None),
             identity.get("pfsDesignId", None),
-            identity.get("obsTime", None),
+            obsTime,
             identity.get("expTime", None),
         )
 
