@@ -436,7 +436,8 @@ class PfsDesign:
         """Return the (variantNum, basePfsDesign) pair, or (0, 0) if we are not a variant """
         return self.variant, self.designId0
 
-    def getPhotometry(self, filterName, psfFlux=False, fiberFlux=False, totalFlux=False, getError=False):
+    def getPhotometry(self, filterName, psfFlux=False, fiberFlux=False, totalFlux=False, getError=False,
+                      asAB=False):
         """Return the flux, and optionally errors, for a requested filter.
 
         If the filtername is invalid, the valid names printer and an exception raised
@@ -453,6 +454,8 @@ class PfsDesign:
                 Return the totalflux
             getError: `bool`
                 Return the flux error in addition to the flux
+            asAB: `bool`
+                Return the flux/fluxError as AB magnitudes
 
         Returns
         -------
@@ -481,19 +484,46 @@ class PfsDesign:
         myFilterData = np.array(self.filterNames) == filterName
         if np.sum(myFilterData) == 0:
             filterNames = sorted(set([fn for fn in sum(self.filterNames, []) if fn != "none"]))
-            raise RuntimeError(f"No flux data for filter \"{filterName}\" is available. "
-                               f"Options are: {', '.join(filterNames)}")
+
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", category=RuntimeWarning)  # All-NaN slice encountered
+
+                goodFilterNames = []
+                for possibleFilterName in filterNames:
+                    myFilterData = np.array(self.filterNames) == possibleFilterName
+
+                    if np.isfinite(np.nanmean(np.where(myFilterData, flux, np.NaN), axis=1)):
+                        goodFilterNames.append(possibleFilterName)
+
+            raise RuntimeError(f"No flux data for filter \"{filterName}\" are available. " +
+                               (f"Options are: {', '.join(goodFilterNames)}" if len(goodFilterNames) > 0
+                                else ""))
+
+        def nJyToAB(nJy):
+            return 8.9 - 2.5*np.log10(1e-9*nJy)
 
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", category=RuntimeWarning)  # All-NaN slice encountered
 
             flux = np.nanmean(np.where(myFilterData, flux, np.NaN), axis=1)
 
+            if asAB:
+                AB = nJyToAB(flux)
+
             if getError:
                 fluxErr = np.nanmean(np.where(myFilterData, fluxErr, np.NaN), axis=1)
-                return flux, fluxErr
+
+                if asAB:
+                    if fluxErr < flux:
+                        ABErr = np.mean([nJyToAB(flux + fluxErr) - AB, AB - nJyToAB(flux - fluxErr)])
+                    else:
+                        ABErr = nJyToAB(flux + fluxErr) - AB
+
+                    return AB, ABErr
+                else:
+                    return flux, fluxErr
             else:
-                return flux
+                return AB if asAB else flux
 
     @classmethod
     def _readHeader(cls, header, kwargs=None):
