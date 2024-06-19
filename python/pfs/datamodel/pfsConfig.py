@@ -437,7 +437,7 @@ class PfsDesign:
         return self.variant, self.designId0
 
     def getPhotometry(self, filterName, psfFlux=False, fiberFlux=False, totalFlux=False, getError=False,
-                      asAB=False):
+                      asABMag=False):
         """Return the flux, and optionally errors, for a requested filter.
 
         If the filtername is invalid, the valid names printer and an exception raised
@@ -454,7 +454,7 @@ class PfsDesign:
                 Return the totalflux
             getError: `bool`
                 Return the flux error in addition to the flux
-            asAB: `bool`
+            asABMag: `bool`
                 Return the flux/fluxError as AB magnitudes
 
         Returns
@@ -507,23 +507,23 @@ class PfsDesign:
 
             flux = np.nanmean(np.where(myFilterData, flux, np.NaN), axis=1)
 
-            if asAB:
-                AB = nJyToAB(flux)
+            if asABMag:
+                abMag = nJyToAB(flux)
 
             if getError:
                 fluxErr = np.nanmean(np.where(myFilterData, fluxErr, np.NaN), axis=1)
 
-                if asAB:
+                if asABMag:
                     if fluxErr < flux:
-                        ABErr = np.mean([nJyToAB(flux + fluxErr) - AB, AB - nJyToAB(flux - fluxErr)])
+                        abMagErr = np.mean([nJyToAB(flux + fluxErr) - abMag, abMag - nJyToAB(flux - fluxErr)])
                     else:
-                        ABErr = nJyToAB(flux + fluxErr) - AB
+                        abMagErr = nJyToAB(flux + fluxErr) - abMag
 
-                    return AB, ABErr
+                    return abMag, abMagErr
                 else:
                     return flux, fluxErr
             else:
-                return AB if asAB else flux
+                return abMag if asABMag else flux
 
     @classmethod
     def _readHeader(cls, header, kwargs=None):
