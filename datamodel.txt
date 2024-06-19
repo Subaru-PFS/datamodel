@@ -1087,6 +1087,7 @@ HDU#0 PHDU
      D1DP_VER    KEYWORD     Version of the DRP_1DPIPE pipeline
      DAMD_VER    KEYWORD     Version of the data model
      U_PARAM     KEYWORD     User parameters contents, json
+     INIT_WARNING	     INT64	     Quality flags for spectrum initialization
      GALAXY_ZWARNING    INT64       Quality flags for galaxy solver
      QSO_ZWARNING    INT64       Quality flags for QSO solver
      STAR_ZWARNING    INT64       Quality flags for star solver
@@ -1098,11 +1099,13 @@ HDU#0 PHDU
      STAR_ZERROR    INT64       Error code for star solver
      GALAXY_LERROR    INT64       Error code for galaxy line measurement solver
      QSO_LERROR    INT64       Error code for QSO line measurement solver
+     INIT_ERROR	   INT46       Error code for spectrum initialization
      G_ZERR    KEYWORD       Error message for galaxy solver
      Q_ZERR    KEYWORD       Error message for QSO solver
      S_ZERR    KEYWORD       Error message for star solver
      G_LERR    KEYWORD       Error message for galaxy line measurement solver
      Q_LERR    KEYWORD       Error message for QSO line measurement solver
+     I_ERR     KEYWORD	     Error message for spectrum initialization
      CLASSIFICATION_ERROR    INT64       Error code for classification solver
      
 
