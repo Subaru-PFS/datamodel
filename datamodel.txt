@@ -1193,6 +1193,7 @@ HDU#0 PHDU
      D1DP_VER    KEYWORD     Version of the DRP_1DPIPE pipeline
      DAMD_VER    KEYWORD     Version of the data model
      U_PARAM     KEYWORD     User parameters contents, json
+     INIT_WARNING	     INT64	     Quality flags for spectrum initialization
      GALAXY_ZWARNING    INT64       Quality flags for galaxy solver
      QSO_ZWARNING    INT64       Quality flags for QSO solver
      STAR_ZWARNING    INT64       Quality flags for star solver
@@ -1204,11 +1205,13 @@ HDU#0 PHDU
      STAR_ZERROR    INT64       Error code for star solver
      GALAXY_LERROR    INT64       Error code for galaxy line measurement solver
      QSO_LERROR    INT64       Error code for QSO line measurement solver
+     INIT_ERROR	   INT46       Error code for spectrum initialization
      G_ZERR    KEYWORD       Error message for galaxy solver
      Q_ZERR    KEYWORD       Error message for QSO solver
      S_ZERR    KEYWORD       Error message for star solver
      G_LERR    KEYWORD       Error message for galaxy line measurement solver
      Q_LERR    KEYWORD       Error message for QSO line measurement solver
+     I_ERR     KEYWORD	     Error message for spectrum initialization
      CLASSIFICATION_ERROR    INT64       Error code for classification solver
      
 
@@ -1233,7 +1236,7 @@ HDU#2 GALAXY_CANDIDATES         Binary table            [FITS BINARY TABLE]     
 HDU#3 GALAXY_PDF                Binary table            [FITS BINARY TABLE]     NPIX
         Colums for :
         REDSHIFT                FLOAT[NPIX]             Redshift grid
-        PDF                     FLOAT[NPIX]             PDF marginalised over all models
+        ln PDF                  FLOAT[NPIX]             ln(Probability) marginalised over all models
 
 HDU#4 GALAXY_LINES              Binary table            [FITS BINARY TABLE]     NLINE
         Columns for :
@@ -1264,7 +1267,7 @@ HDU#5 QSO_CANDIDATES            Binary table            [FITS BINARY TABLE]     
 HDU#6 QSO_PDF                   Binary table            [FITS BINARY TABLE]     NPIX
         Colums for :
         REDSHIFT                FLOAT[NPIX]             Redshift grid
-        PDF                     FLOAT[NPIX]             PDF marginalised over all models
+        ln PDF                  FLOAT[NPIX]             ln(Probability) marginalised over all models
 
 HDU#7 QSO_LINES                 Binary table            [FITS BINARY TABLE]     NLINE
         Columns for :
@@ -1296,7 +1299,7 @@ HDU#8 STAR_CANDIDATES            Binary table            [FITS BINARY TABLE]    
 HDU#9 STAR_PDF                   Binary table            [FITS BINARY TABLE]     NPIX
         Colums for :
         VELOCITY                FLOAT[NPIX]             Radial velocity grid
-        PDF                     FLOAT[NPIX]             PDF related to best model
+        ln PDF                  FLOAT[NPIX]             PDF related to best model
 
 
 Warning mask values
