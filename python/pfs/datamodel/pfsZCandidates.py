@@ -1,11 +1,33 @@
 import numpy as np
 from .utils import inheritDocstrings
 import astropy
+from enum import Flag, auto
 
 objects = ["galaxy","qso","star"]
 
 stage_to_pfs_sym = {"redshiftSolver":"Z",
                     "lineMeasSolver":"L"}
+
+class ZLWarning(Flag):
+    AIR_VACUUM_CONVERSION_IGNORED = auto()
+    PDF_PEAK_NOT_FOUND = auto()
+    ESTIMATED_STD_FAR_FROM_INPUT = auto()
+    LINEMATCHING_REACHED_ENDLOOP = auto()
+    FORCED_IGNORELINESUPPORT_TO_FALSE = auto()
+    FORCED_CONTINUUM_COMPONENT_TO_FROMSPECTRUM = auto()
+    AIR_VACUUM_REACHED_MAX_ITERATIONS = auto()
+    ASYMFIT_NAN_PARAMS = auto()
+    DELTAZ_COMPUTATION_FAILED = auto()
+    INVALID_FOLDER_PATH = auto()
+    FORCED_CONTINUUM_TO_NOCONTINUUM = auto()
+    FORCED_CONTINUUM_REESTIMATION_TO_NO = auto()
+    LESS_OBSERVED_SAMPLES_THAN_AMPLITUDES_TO_FIT = auto()
+    LBFGSPP_ERROR = auto()
+    PDF_INTEGRATION_WINDOW_TOO_SMALL = auto()
+    UNUSED_PARAMETER = auto()
+    SPECTRUM_WAVELENGTH_TIGHTER_THAN_PARAM = auto()
+    MULTI_OBS_ARBITRARY_LSF = auto()
+
 
 @inheritDocstrings
 class ZObjectCandidates:
@@ -72,8 +94,9 @@ class ZClassification:
         self.name = class_
         self.probabilities = probas
         self.error = error
-        self.warning = warning
-        
+        self.warning = ZLWarning(warning)
+
+
 @inheritDocstrings
 class PfsZCandidates:
     """Redshift Candidates for a single object
@@ -130,7 +153,7 @@ class PfsZCandidates:
         data["errors"]["init"]["message"]=fits[0].header["INIT_ERR"]
         
 #        self.init_error=data["errors"]["init"]
-        data["init_warning"]=cls.get_warning(fits,None,"init")
+        data["init_warning"]=ZLWarning(cls.get_warning(fits,None,"init"))
         for o in objects:
             od = ZObjectCandidates(o,fits)
             stage = "redshiftSolver"
@@ -138,14 +161,14 @@ class PfsZCandidates:
             data["errors"][f"{o}_{stage}"]["code"]=fits[0].header[f"{o.upper()}_ZERROR"]
             data["errors"][f"{o}_{stage}"]["message"]=fits[0].header[f"{o.upper()[0]}_ZERR"]
             setattr(od,"ZError",data["errors"][f"{o}_{stage}"])
-            setattr(od,"ZWarning",cls.get_warning(fits,o,stage))
+            setattr(od,"ZWarning",ZLWarning(cls.get_warning(fits,o,stage)))
             if o != "star":
                 stage = "lineMeasSolver"
                 data["errors"][f"{o}_{stage}"] = dict()
                 data["errors"][f"{o}_{stage}"]["code"]=fits[0].header[f"{o.upper()}_LERROR"]
                 data["errors"][f"{o}_{stage}"]["message"]=fits[0].header[f"{o.upper()[0]}_LERR"]
                 setattr(od,"LErrors",data["errors"][f"{o}_{stage}"])
-                setattr(od,"LWarning",cls.get_warning(fits,o,stage))            
+                setattr(od,"LWarning",ZLWarning(cls.get_warning(fits,o,stage)))            
             data[o]=od
         
 
