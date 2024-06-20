@@ -210,7 +210,7 @@ class PfsFluxReference:
             data["identity"] = Identity.fromFits(fd)
             data["metadata"] = astropyHeaderToDict(fd[0].header)
             data["wavelength"] = WavelengthArray.fromFitsHeader(
-                wcsHeader, data["flux"].shape[1], dtype=np.float
+                wcsHeader, data["flux"].shape[1], dtype=float
             )
             data["fitFlagNames"] = MaskHelper.fromFitsHeader(flagHeader)
 
