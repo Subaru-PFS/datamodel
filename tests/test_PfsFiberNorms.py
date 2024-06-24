@@ -21,7 +21,6 @@ class PfsFiberNormsTestCase(lsst.utils.tests.TestCase):
         self.numFibers = self.fiberId.size
         self.wavelength = self.rng.uniform(size=(self.numFibers, self.length))
         self.values = self.rng.uniform(1, 2, size=(self.numFibers, self.length))
-        self.insrot = 123.456
         self.fiberProfilesHash = {1: 0x12345678, 2: 0x23456789}
         self.model = astropy.io.fits.ImageHDU(
             self.rng.uniform(size=1234),
@@ -34,7 +33,6 @@ class PfsFiberNormsTestCase(lsst.utils.tests.TestCase):
             self.fiberId,
             self.wavelength,
             self.values,
-            self.insrot,
             self.fiberProfilesHash,
             self.model,
             self.metadata,
@@ -51,7 +49,6 @@ class PfsFiberNormsTestCase(lsst.utils.tests.TestCase):
             self.fiberId,
             self.wavelength,
             self.values + 1.0e-6,
-            self.insrot,
             self.fiberProfilesHash,
             self.model,
             self.metadata,
@@ -84,7 +81,6 @@ class PfsFiberNormsTestCase(lsst.utils.tests.TestCase):
             self.assertFloatsEqual(fiberNorms.fiberId, self.fiberId)
             self.assertFloatsEqual(fiberNorms.wavelength, self.wavelength)
             self.assertFloatsEqual(fiberNorms.values, self.values)
-            self.assertEqual(fiberNorms.insrot, self.insrot)
             self.assertEqual(fiberNorms.fiberProfilesHash, self.fiberProfilesHash)
             self.assertFloatsEqual(fiberNorms.model.data, self.model.data)
             for kk, vv in self.model.header.items():
