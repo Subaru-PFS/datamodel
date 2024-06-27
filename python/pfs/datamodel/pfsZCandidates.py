@@ -39,17 +39,17 @@ class ZObjectCandidates:
         spectrum models for each candidate on full wavelength range
     parameters : `dict`
         parameter of the models for each candidate
-    pdf : np.array
+    pdf : `np.array`
         PDF marginalised over all models
-    lines : np.array
+    lines : `np.array`
         Lines measurements (only for qso and galaxy)
-    ZWarnings: Flag
+    ZWarning: Flag
         warning flags for redshift solver
-    ZError: dict
-        dictionnary with two keys, code and message, both strings values, for line measurement solver error
-    LWarnings: Flag
+    ZError: `dict` of string
+        dictionnary with two keys, code and message, for redshift solver error
+    LWarning: `Flag`
         warning flags for redshift solver
-    LError: dict
+    LError: `dict` of strings
         dictionnary with two keys, code and message, both strings values, for line measurement solver error
     """
 
@@ -110,10 +110,10 @@ class PfsZCandidates:
         qso candidates
     star : `pfs.datamodel.ZObjectCandidates`
         star candidates
-    classification: `pfs.datamodel.ZClassification
-    init_flags: Flag
+    classification: `pfs.datamodel.ZClassification`
+    init_flags: `Flag`
         warning flags for spectrum initialization
-    init_errors: dict
+    init_errors: `dict`
         dictionnary with two keys, code and message, both strings values, for initialization error
     
     """
@@ -167,7 +167,7 @@ class PfsZCandidates:
                 data["errors"][f"{o}_{stage}"] = dict()
                 data["errors"][f"{o}_{stage}"]["code"]=fits[0].header[f"{o.upper()}_LERROR"]
                 data["errors"][f"{o}_{stage}"]["message"]=fits[0].header[f"{o.upper()[0]}_LERR"]
-                setattr(od,"LErrors",data["errors"][f"{o}_{stage}"])
+                setattr(od,"LError",data["errors"][f"{o}_{stage}"])
                 setattr(od,"LWarning",ZLWarning(cls.get_warning(fits,o,stage)))            
             data[o]=od
         
