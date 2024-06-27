@@ -27,8 +27,9 @@ class PfsArmNotes(PfsTable):
     fitsExtName = "NOTES"
     schema = [
         Column("blackSpotId", np.int32, "ID of black spot", -1),
-        Column("blackSpotDistance", np.float32, "Distance to nearest black spot (mm)", np.nan),
+        Column("blackSpotDistance", np.float32, "Distance to nearest black spot center (mm)", np.nan),
         Column("blackSpotCorrection", np.float32, "Black spot flux correction", np.nan),
+        Column("barycentricCorrection", np.float32, "Barycentric correction applied (km/s)", np.nan),
     ]
 
 
@@ -50,8 +51,9 @@ class PfsMergedNotes(PfsTable):
     fitsExtName = "NOTES"
     schema = [
         Column("blackSpotId", np.int32, "ID of black spot", -1),
-        Column("blackSpotDistance", np.float32, "Distance to nearest black spot (mm)", np.nan),
+        Column("blackSpotDistance", np.float32, "Distance to nearest black spot center (mm)", np.nan),
         Column("blackSpotCorrection", np.float32, "Black spot flux correction", np.nan),
+        Column("barycentricCorrection", np.float32, "Barycentric correction applied (km/s)", np.nan),
     ]
 
 
