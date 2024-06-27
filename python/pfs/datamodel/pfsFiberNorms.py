@@ -25,9 +25,6 @@ class PfsFiberNorms:
         Wavelength for each pixel of each fiber.
     values : `numpy.ndarray` of `float`
         Norm value for each pixel of each fiber.
-    insrot : `float`
-        Instrument rotator angle in degrees of the quartz exposure used to
-        measure these normalisations.
     fiberProfilesHash : `dict` mapping `int` to `int`
         Hash of the fiberProfiles used to generate the coefficients, indexed
         by spectrograph number.
@@ -44,7 +41,6 @@ class PfsFiberNorms:
         fiberId: np.ndarray,
         wavelength: np.ndarray,
         values: np.ndarray,
-        insrot: float,
         fiberProfilesHash: Dict[int, int],
         model: astropy.io.fits.BinTableHDU,
         metadata: Optional[Dict[str, Any]] = None,
@@ -53,7 +49,6 @@ class PfsFiberNorms:
         self.fiberId = fiberId
         self.wavelength = wavelength
         self.values = values
-        self.insrot = insrot
         self.fiberProfilesHash = fiberProfilesHash
         self.model = model
         self.metadata = metadata if metadata is not None else {}
@@ -106,7 +101,6 @@ class PfsFiberNorms:
             self.fiberId.tobytes(),
             self.wavelength.tobytes(),
             self.values.tobytes(),
-            self.insrot,
         ))
 
     @classmethod
@@ -131,7 +125,6 @@ class PfsFiberNorms:
         data["fiberId"] = fits["FIBERID"].data.astype(int)
         data["wavelength"] = fits["WAVELENGTH"].data.astype(float)
         data["values"] = fits["VALUES"].data.astype(float)
-        data["insrot"] = fits[0].header["INSROT"]
         data["fiberProfilesHash"] = dict(zip(
             fits["FIBERPROFILESHASH"].data["SPECTROGRAPH"],
             fits["FIBERPROFILESHASH"].data["HASH"],
@@ -181,7 +174,6 @@ class PfsFiberNorms:
             metadata.update(self.metadata)
         header = astropyHeaderFromDict(metadata)
         header["DAMD_VER"] = (2, "PfsFiberNorms datamodel version")
-        header["INSROT"] = (self.insrot, "Instrument rotator angle in degrees")
         header["HIERARCH PFS.HASH.FIBERNORMS"] = (self.hash, "Hash of this fiberNorms")
         fits.append(PrimaryHDU(header=header))
 
