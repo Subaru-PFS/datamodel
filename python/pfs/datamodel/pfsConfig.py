@@ -776,14 +776,14 @@ class PfsDesign:
         psfFluxErr = np.array(sum((pfErr.tolist() for pfErr in self.psfFluxErr), []))
         totalFluxErr = np.array(sum((tfErr.tolist() for tfErr in self.totalFluxErr), []))
         filterNames = sum(self.filterNames, [])
-        assert(len(fiberId) == numRows)
-        assert(len(fiberFlux) == numRows)
-        assert(len(psfFlux) == numRows)
-        assert(len(totalFlux) == numRows)
-        assert(len(fiberFluxErr) == numRows)
-        assert(len(psfFluxErr) == numRows)
-        assert(len(totalFluxErr) == numRows)
-        assert(len(filterNames) == numRows)
+        assert (len(fiberId) == numRows)
+        assert (len(fiberFlux) == numRows)
+        assert (len(psfFlux) == numRows)
+        assert (len(totalFlux) == numRows)
+        assert (len(fiberFluxErr) == numRows)
+        assert (len(psfFluxErr) == numRows)
+        assert (len(totalFluxErr) == numRows)
+        assert (len(filterNames) == numRows)
         maxLength = max(len(ff) for ff in filterNames) if filterNames else 1
 
         fits.append(pyfits.BinTableHDU.from_columns([
@@ -797,7 +797,7 @@ class PfsDesign:
             pyfits.Column(name='filterName', format='A%d' % maxLength, array=filterNames),
         ], hdr, name='PHOTOMETRY'))
 
-        assert(self.guideStars is not None)
+        assert (self.guideStars is not None)
         self.guideStars.toFits(fits)
 
         # clobber=True in writeto prints a message, so use open instead
