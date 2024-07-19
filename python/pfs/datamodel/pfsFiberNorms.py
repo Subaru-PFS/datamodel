@@ -5,6 +5,9 @@ import astropy.io.fits
 
 from .utils import astropyHeaderFromDict, astropyHeaderToDict, createHash
 from .identity import CalibIdentity
+from .pfsConfig import PfsConfig
+from .pfsFiberArraySet import PfsFiberArraySet
+from .masks import MaskHelper
 
 __all__ = ("PfsFiberNorms",)
 
@@ -55,7 +58,6 @@ class PfsFiberNorms:
 
         self.numFibers = len(fiberId)
         self.height = wavelength.shape[1]
-        self._lookup = {fiberId[ii]: ii for ii in range(self.numFibers)}
 
         self.validate()
 
@@ -69,14 +71,77 @@ class PfsFiberNorms:
         """Return the number of fibers"""
         return self.numFibers
 
-    def __getitem__(self, fiberId: int) -> np.ndarray:
-        """Return the values for a given fiberId"""
-        index = self._lookup[fiberId]
-        return self.values[index]
+    def __getitem__(self, logical: np.ndarray) -> "PfsFiberNorms":
+        """Sub-selection
 
-    def __contains__(self, fiberId: int) -> bool:
-        """Is this fiberId present in this object?"""
-        return fiberId in self._lookup
+        Parameters
+        ----------
+        logical : `numpy.ndarray` of `bool`
+            Boolean array (of same length as ``self``) indicating which fibers
+            to select.
+
+        Returns
+        -------
+        new : ``type(self)``
+            A new instance containing only the selected fibers.
+        """
+        kwargs = {
+            name: getattr(self, name) for name in ("identity", "fiberProfilesHash", "model", "metadata")
+        }
+        kwargs.update(**{
+            name: getattr(self, name)[logical] for name in ("fiberId", "wavelength", "values")
+        })
+        return type(self)(**kwargs)
+
+    def select(self, pfsConfig: Optional[PfsConfig] = None, **kwargs) -> "PfsFiberNorms":
+        """Return an instance containing only the selected attributes
+
+        Multiple attributes will be combined with ``AND``.
+
+        Parameters
+        ----------
+        pfsConfig : `pfs.datamodel.PfsConfig`
+            Top-end configuration.  Optional if the only selection is on spectrograph or fiberId
+        fiberId : `int` (scalar or array_like), optional
+            Fiber identifier to select.  pfsConfig may be omitted
+        targetType : `TargetType` (scalar or array_like), optional
+            Target type to select.
+        fiberStatus : `FiberStatus` (scalar or array_like), optional
+            Fiber status to select.
+        catId : `int` (scalar or array_like), optional
+            Catalog identifier to select.
+        tract : `int` (scalar or array_like), optional
+            Tract number to select.
+        patch : `str` (scalar or array_like), optional
+            Patch name to select.
+        objId : `int` (scalar or array_like), optional
+            Object identifier to select.
+        spectrograph : `int` (scalar or array_like), optional
+            Spectrograph number to select.  pfsConfig may be omitted
+
+        Returns
+        -------
+        selected : ``type(self)``
+            An instance containing only the selected attributes.
+        """
+        keys = set(kwargs)
+        ll = np.ones(len(self), dtype=bool)
+        for kw in ["fiberId", "spectrograph"]:    # no need for a pfsConfig
+            if kw in kwargs:
+                ll &= np.isin(getattr(self, kw), kwargs[kw])
+                keys.discard(kw)
+
+        if len(keys) == 0:
+            return self[ll]
+
+        if pfsConfig is None:
+            raise RuntimeError(
+                "You must provide a pfsConfig file for all selections except"
+                " spectrograph=[...], fiberId=[...]" + ("; saw \"%s\"" % '", "'.join(keys))
+            )
+
+        selection = pfsConfig.getSelection(**kwargs)
+        return self[np.isin(self.fiberId, pfsConfig.fiberId[selection])]
 
     def __eq__(self, other):
         """Compare for equality"""
@@ -213,3 +278,28 @@ class PfsFiberNorms:
         self._writeImpl(fits)
         with open(filename, "wb") as fd:
             fits.writeto(fd)
+
+    def toPfsFiberArraySet(self) -> PfsFiberArraySet:
+        """Convert to PfsFiberArraySet
+
+        The converted object won't be ideal, but it could be useful for some
+        purposes (e.g., plotting).
+
+        Returns
+        -------
+        fiberArraySet : `PfsFiberArraySet`
+            Equivalent PfsFiberArraySet.
+        """
+        flags = MaskHelper(NO_DATA=0)
+        return PfsFiberArraySet(
+            self.identity,
+            self.fiberId,
+            self.wavelength,
+            self.values,
+            np.where(np.isfinite(self.values), 0, flags.get("NO_DATA")),
+            np.zeros_like(self.values, dtype=np.float32),
+            np.ones_like(self.values, dtype=np.float32),
+            np.zeros((self.numFibers, 3, self.height), dtype=np.float32),
+            flags,
+            self.metadata,
+        )

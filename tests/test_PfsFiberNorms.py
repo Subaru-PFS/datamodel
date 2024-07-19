@@ -55,18 +55,6 @@ class PfsFiberNormsTestCase(lsst.utils.tests.TestCase):
         )
         self.assertNotEqual(fiberNorms.hash, self.fiberNorms.hash)
 
-    def testGetItem(self):
-        """Test PfsFiberNorms.__getitem__"""
-        for ii, fiberId in enumerate(self.fiberId):
-            self.assertFloatsEqual(self.fiberNorms[fiberId], self.values[ii])
-        self.assertRaises(KeyError, self.fiberNorms.__getitem__, 1234567890)
-
-    def testContains(self):
-        """Test PfsFiberNorms.__contains__"""
-        for fiberId in self.fiberId:
-            self.assertTrue(fiberId in self.fiberNorms)
-        self.assertFalse(1234567890 in self.fiberNorms)
-
     def testIo(self):
         """Test PfsFiberNorms I/O
 
@@ -87,6 +75,27 @@ class PfsFiberNormsTestCase(lsst.utils.tests.TestCase):
                 self.assertEqual(fiberNorms.model.header[kk], vv)
             for kk, vv in self.metadata.items():
                 self.assertEqual(fiberNorms.metadata[kk], vv)
+
+    def testSelect(self):
+        """Test select"""
+        select = slice(None, None, 2)
+        fiberId = self.fiberId[select]
+        fiberNorms = self.fiberNorms.select(fiberId=fiberId)
+        self.assertEqual(len(fiberNorms), fiberId.size)
+        self.assertTrue(np.array_equal(fiberNorms.fiberId, fiberId))
+        self.assertTrue(np.array_equal(fiberNorms.wavelength, self.wavelength[select]))
+        self.assertTrue(np.array_equal(fiberNorms.values, self.values[select]))
+        self.assertEqual(fiberNorms.fiberProfilesHash, self.fiberNorms.fiberProfilesHash)
+
+        selection = np.zeros(self.numFibers, dtype=bool)
+        selection[select] = True
+        fiberNorms = self.fiberNorms[selection]
+        self.assertEqual(fiberNorms.fiberId.size, fiberId.size)
+        self.assertEqual(len(fiberNorms), fiberId.size)
+        self.assertTrue(np.array_equal(fiberNorms.fiberId, fiberId))
+        self.assertTrue(np.array_equal(fiberNorms.wavelength, self.wavelength[select]))
+        self.assertTrue(np.array_equal(fiberNorms.values, self.values[select]))
+        self.assertEqual(fiberNorms.fiberProfilesHash, self.fiberNorms.fiberProfilesHash)
 
 
 def setup_module(module):
