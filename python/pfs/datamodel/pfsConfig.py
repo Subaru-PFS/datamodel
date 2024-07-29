@@ -92,8 +92,10 @@ class DocEnum(enum.IntEnum):
 
         Returns
         -------
-        enums : `set` of ``cls``
+        enums : `list` of ``cls``
             List of enums with the supplied names.
+            This could be a set, but that doesn't work with ``np.isin``, which
+            is what you probably want this for.
         """
         include = set()
         exclude = set()
@@ -115,7 +117,7 @@ class DocEnum(enum.IntEnum):
                     continue
                 include.add(member.name)
 
-        return {cls.fromString(name) for name in include}
+        return [cls.fromString(name) for name in include]
 
 
 class TargetType(DocEnum):
