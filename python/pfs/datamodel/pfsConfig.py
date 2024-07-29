@@ -81,6 +81,44 @@ class DocEnum(enum.IntEnum):
         """
         return getattr(cls, name)
 
+    @classmethod
+    def fromList(cls, names):
+        """Construct a set of values from a list of string names
+
+        Parameters
+        ----------
+        names : list of `str`
+            Names of the enums.
+
+        Returns
+        -------
+        enums : `list` of ``cls``
+            List of enums with the supplied names.
+            This could be a set, but that doesn't work with ``np.isin``, which
+            is what you probably want this for.
+        """
+        include = set()
+        exclude = set()
+        for nn in names:
+            if nn.startswith("^"):
+                exclude.add(nn[1:])
+            else:
+                include.add(nn)
+
+        if exclude:
+            intersection = include.intersection(exclude)
+            if include.intersection(exclude):
+                raise ValueError(
+                    f"Explicitly included values that were explicitly excluded: {intersection}"
+                )
+
+            for member in cls:
+                if member.name in exclude:
+                    continue
+                include.add(member.name)
+
+        return [cls.fromString(name) for name in include]
+
 
 class TargetType(DocEnum):
     """Enumerated options for what a fiber is targeting"""
