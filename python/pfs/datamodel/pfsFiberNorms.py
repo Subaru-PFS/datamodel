@@ -93,6 +93,10 @@ class PfsFiberNorms:
         })
         return type(self)(**kwargs)
 
+    def __contains__(self, fiberId: int) -> bool:
+        """Return whether the fiberId is present"""
+        return fiberId in self.fiberId
+
     def select(self, pfsConfig: Optional[PfsConfig] = None, **kwargs) -> "PfsFiberNorms":
         """Return an instance containing only the selected attributes
 
