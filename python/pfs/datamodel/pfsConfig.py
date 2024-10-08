@@ -100,7 +100,7 @@ class DocEnum(enum.IntEnum):
         include = set()
         exclude = set()
         for nn in names:
-            if nn.startswith("^"):
+            if nn.startswith("^") or nn.startswith("~"):  # Both ^ and ~ mean inverse
                 exclude.add(nn[1:])
             else:
                 include.add(nn)
