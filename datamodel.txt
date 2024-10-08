@@ -506,7 +506,7 @@ The 'fiberStatus' in the DESIGN table is an enumerated type, with values:
     BLACKSPOT = 4: The fiber is hidden behind its spot, and any flux should be ignored.
     UNILLUMINATED = 5: The fiber is not being illuminated.
     BROKENCOBRA = 6: The cobra cannot move, but the fiber still carries flux.
-
+    NOTCONVERGED = 7: The Cobra did not converge to the target.
 
 The PHOTOMETRY table lists:
       fiberId            32-bit int

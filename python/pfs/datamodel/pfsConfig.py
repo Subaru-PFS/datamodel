@@ -143,6 +143,7 @@ class FiberStatus(DocEnum):
     BLACKSPOT = 4, "hidden behind spot; ignore any flux"
     UNILLUMINATED = 5, "not illuminated; ignore any flux"
     BROKENCOBRA = 6, "Cobra does not move, but the fiber still carries flux."
+    NOTCONVERGED = 7, "Cobra did not converge to the target."
 
 
 class PfsDesign:
