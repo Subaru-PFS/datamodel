@@ -43,10 +43,11 @@ class DocEnumTestCase(lsst.utils.tests.TestCase):
         self.assertIn(TestEnum.ONE, result)
         self.assertIn(TestEnum.THREE, result)
 
-        result = TestEnum.fromList(["~THREE"])
-        self.assertEqual(len(result), 2)
-        self.assertIn(TestEnum.ONE, result)
-        self.assertIn(TestEnum.TWO, result)
+        for invert in ("~", "^"):
+            result = TestEnum.fromList([invert + "THREE"])
+            self.assertEqual(len(result), 2)
+            self.assertIn(TestEnum.ONE, result)
+            self.assertIn(TestEnum.TWO, result)
 
         result = TestEnum.fromList(["TWO", "~ONE"])
         self.assertEqual(len(result), 2)
