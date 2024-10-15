@@ -81,6 +81,44 @@ class DocEnum(enum.IntEnum):
         """
         return getattr(cls, name)
 
+    @classmethod
+    def fromList(cls, names):
+        """Construct a set of values from a list of string names
+
+        Parameters
+        ----------
+        names : list of `str`
+            Names of the enums.
+
+        Returns
+        -------
+        enums : `list` of ``cls``
+            List of enums with the supplied names.
+            This could be a set, but that doesn't work with ``np.isin``, which
+            is what you probably want this for.
+        """
+        include = set()
+        exclude = set()
+        for nn in names:
+            if nn.startswith("^") or nn.startswith("~"):  # Both ^ and ~ mean inverse
+                exclude.add(nn[1:])
+            else:
+                include.add(nn)
+
+        if exclude:
+            intersection = include.intersection(exclude)
+            if include.intersection(exclude):
+                raise ValueError(
+                    f"Explicitly included values that were explicitly excluded: {intersection}"
+                )
+
+            for member in cls:
+                if member.name in exclude:
+                    continue
+                include.add(member.name)
+
+        return [cls.fromString(name) for name in include]
+
 
 class TargetType(DocEnum):
     """Enumerated options for what a fiber is targeting"""
@@ -776,14 +814,14 @@ class PfsDesign:
         psfFluxErr = np.array(sum((pfErr.tolist() for pfErr in self.psfFluxErr), []))
         totalFluxErr = np.array(sum((tfErr.tolist() for tfErr in self.totalFluxErr), []))
         filterNames = sum(self.filterNames, [])
-        assert(len(fiberId) == numRows)
-        assert(len(fiberFlux) == numRows)
-        assert(len(psfFlux) == numRows)
-        assert(len(totalFlux) == numRows)
-        assert(len(fiberFluxErr) == numRows)
-        assert(len(psfFluxErr) == numRows)
-        assert(len(totalFluxErr) == numRows)
-        assert(len(filterNames) == numRows)
+        assert (len(fiberId) == numRows)
+        assert (len(fiberFlux) == numRows)
+        assert (len(psfFlux) == numRows)
+        assert (len(totalFlux) == numRows)
+        assert (len(fiberFluxErr) == numRows)
+        assert (len(psfFluxErr) == numRows)
+        assert (len(totalFluxErr) == numRows)
+        assert (len(filterNames) == numRows)
         maxLength = max(len(ff) for ff in filterNames) if filterNames else 1
 
         fits.append(pyfits.BinTableHDU.from_columns([
@@ -797,7 +835,7 @@ class PfsDesign:
             pyfits.Column(name='filterName', format='A%d' % maxLength, array=filterNames),
         ], hdr, name='PHOTOMETRY'))
 
-        assert(self.guideStars is not None)
+        assert (self.guideStars is not None)
         self.guideStars.toFits(fits)
 
         # clobber=True in writeto prints a message, so use open instead
