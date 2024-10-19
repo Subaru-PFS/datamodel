@@ -505,33 +505,35 @@ class PfsDesign:
         if not (psfFlux or fiberFlux or totalFlux):
             psfFlux = True
 
+        _self = self.select(targetType=~TargetType.ENGINEERING)
+
         fluxRequested = []
         if psfFlux:
             fluxRequested.append("psf")
-            flux, fluxErr = self.psfFlux, self.psfFluxErr
+            flux, fluxErr = _self.psfFlux, _self.psfFluxErr
         elif fiberFlux:
             fluxRequested.append("fiber")
-            flux, fluxErr = self.fiberFlux, self.fiberFluxErr
+            flux, fluxErr = _self.fiberFlux, _self.fiberFluxErr
         else:
             fluxRequested.append("total")
-            flux, fluxErr = self.totalFlux, self.totalFluxErr
+            flux, fluxErr = _self.totalFlux, _self.totalFluxErr
 
         if len(fluxRequested) > 1:
             raise RuntimeError(f"Please only specify one type of flux at a time: saw "
                                f"{', '.join(fluxRequested)}")
 
-        myFilterData = np.array(self.filterNames) == filterName
+        myFilterData = np.array(_self.filterNames) == filterName
         if np.sum(myFilterData) == 0:
-            filterNames = sorted(set([fn for fn in sum(self.filterNames, []) if fn != "none"]))
+            filterNames = sorted(set([fn for fn in sum(_self.filterNames, []) if fn != "none"]))
 
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore", category=RuntimeWarning)  # All-NaN slice encountered
 
                 goodFilterNames = []
                 for possibleFilterName in filterNames:
-                    myFilterData = np.array(self.filterNames) == possibleFilterName
+                    myFilterData = np.array(_self.filterNames) == possibleFilterName
 
-                    if np.isfinite(np.nanmean(np.where(myFilterData, flux, np.NaN), axis=1)):
+                    if np.isfinite(np.nanmean(np.where(myFilterData, flux, np.NaN), axis=1)).any():
                         goodFilterNames.append(possibleFilterName)
 
             raise RuntimeError(f"No flux data for filter \"{filterName}\" are available. " +
