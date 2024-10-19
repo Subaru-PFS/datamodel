@@ -475,16 +475,19 @@ class PfsDesign:
         """Return the (variantNum, basePfsDesign) pair, or (0, 0) if we are not a variant """
         return self.variant, self.designId0
 
-    def getPhotometry(self, filterName, psfFlux=False, fiberFlux=False, totalFlux=False, getError=False,
+    def getPhotometry(self, filterName=None, psfFlux=False, fiberFlux=False, totalFlux=False, getError=False,
                       asABMag=False):
         """Return the flux, and optionally errors, for a requested filter.
 
-        If the filtername is invalid, the valid names printer and an exception raised
+        If the filtername is `None`, a list of valid filter names is returned;
+        if it's invalid, the valid names are printed and an exception raised.
+
+        Note that `pfsConfig.select(fiberId=666).getPhotometry()` returns an object's filters
 
         Parameters
         ----------
             filterName : `str`
-                Name of desired filter (e.g. g_hsc)
+                Name of desired filter (e.g. g_hsc) or `None` to list available filters
             psfFlux: `bool`
                 Return the PSF flux (default)
             fiberFlux: `bool`
@@ -505,34 +508,39 @@ class PfsDesign:
         if not (psfFlux or fiberFlux or totalFlux):
             psfFlux = True
 
+        _self = self.select(targetType=~TargetType.ENGINEERING)
+
         fluxRequested = []
         if psfFlux:
             fluxRequested.append("psf")
-            flux, fluxErr = self.psfFlux, self.psfFluxErr
+            flux, fluxErr = _self.psfFlux, _self.psfFluxErr
         elif fiberFlux:
             fluxRequested.append("fiber")
-            flux, fluxErr = self.fiberFlux, self.fiberFluxErr
+            flux, fluxErr = _self.fiberFlux, _self.fiberFluxErr
         else:
             fluxRequested.append("total")
-            flux, fluxErr = self.totalFlux, self.totalFluxErr
+            flux, fluxErr = _self.totalFlux, _self.totalFluxErr
 
         if len(fluxRequested) > 1:
             raise RuntimeError(f"Please only specify one type of flux at a time: saw "
                                f"{', '.join(fluxRequested)}")
 
-        myFilterData = np.array(self.filterNames) == filterName
+        myFilterData = np.array(_self.filterNames) == filterName
         if np.sum(myFilterData) == 0:
-            filterNames = sorted(set([fn for fn in sum(self.filterNames, []) if fn != "none"]))
+            filterNames = sorted(set([fn for fn in sum(_self.filterNames, []) if fn != "none"]))
 
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore", category=RuntimeWarning)  # All-NaN slice encountered
 
                 goodFilterNames = []
                 for possibleFilterName in filterNames:
-                    myFilterData = np.array(self.filterNames) == possibleFilterName
+                    myFilterData = np.array(_self.filterNames) == possibleFilterName
 
-                    if np.isfinite(np.nanmean(np.where(myFilterData, flux, np.NaN), axis=1)):
+                    if np.isfinite(np.nanmean(np.where(myFilterData, flux, np.NaN), axis=1)).any():
                         goodFilterNames.append(possibleFilterName)
+
+            if filterName is None:
+                return goodFilterNames
 
             raise RuntimeError(f"No flux data for filter \"{filterName}\" are available. " +
                                (f"Options are: {', '.join(goodFilterNames)}" if len(goodFilterNames) > 0
