@@ -703,7 +703,9 @@ class PfsDesign:
 
             photometry = fd["PHOTOMETRY"].data
 
+            # List of fiberIds we want to load the fluxes for
             fiberId = kwargs["fiberId"]
+
             fiberFlux = {ii: [] for ii in fiberId}
             psfFlux = {ii: [] for ii in fiberId}
             totalFlux = {ii: [] for ii in fiberId}
@@ -711,14 +713,18 @@ class PfsDesign:
             psfFluxErr = {ii: [] for ii in fiberId}
             totalFluxErr = {ii: [] for ii in fiberId}
             filterNames = {ii: [] for ii in fiberId}
-            for row in photometry:
-                fiberFlux[row['fiberId']].append(row['fiberFlux'])
-                psfFlux[row['fiberId']].append(row['psfFlux'])
-                totalFlux[row['fiberId']].append(row['totalFlux'])
-                fiberFluxErr[row['fiberId']].append(row['fiberFluxErr'])
-                psfFluxErr[row['fiberId']].append(row['psfFluxErr'])
-                totalFluxErr[row['fiberId']].append(row['totalFluxErr'])
-                filterNames[row['fiberId']].append(row['filterName'])
+
+            # Get all the data at once to save of data type conversions
+            columns = { k: photometry[k] for k in photometry.columns.names }
+            for ii in fiberId:
+                mask = columns["fiberId"] == ii
+                fiberFlux[ii] = columns["fiberFlux"][mask]
+                psfFlux[ii] = columns["psfFlux"][mask]
+                totalFlux[ii] = columns["totalFlux"][mask]
+                fiberFluxErr[ii] = columns["fiberFluxErr"][mask]
+                psfFluxErr[ii] = columns["psfFluxErr"][mask]
+                totalFluxErr[ii] = columns["totalFluxErr"][mask]
+                filterNames[ii] = columns["filterName"][mask]
 
             if damdVer is not None and damdVer >= 2:
                 guideStars = GuideStars.fromFits(fd)
@@ -730,13 +736,13 @@ class PfsDesign:
                 guideStars = GuideStars.empty()
 
         return cls(**kwargs, raBoresight=raBoresight, decBoresight=decBoresight,
-                   fiberFlux=[np.array(fiberFlux[ii]) for ii in fiberId],
-                   psfFlux=[np.array(psfFlux[ii]) for ii in fiberId],
-                   totalFlux=[np.array(totalFlux[ii]) for ii in fiberId],
-                   fiberFluxErr=[np.array(fiberFluxErr[ii]) for ii in fiberId],
-                   psfFluxErr=[np.array(psfFluxErr[ii]) for ii in fiberId],
-                   totalFluxErr=[np.array(totalFluxErr[ii]) for ii in fiberId],
-                   filterNames=[filterNames[ii] for ii in fiberId],
+                   fiberFlux=[fiberFlux[ii] for ii in fiberId],
+                   psfFlux=[psfFlux[ii] for ii in fiberId],
+                   totalFlux=[totalFlux[ii] for ii in fiberId],
+                   fiberFluxErr=[fiberFluxErr[ii] for ii in fiberId],
+                   psfFluxErr=[psfFluxErr[ii] for ii in fiberId],
+                   totalFluxErr=[totalFluxErr[ii] for ii in fiberId],
+                   filterNames=[list(filterNames[ii]) for ii in fiberId],
                    guideStars=guideStars)
 
     @classmethod
