@@ -3,6 +3,7 @@ import types
 import numpy as np
 from astropy.io.fits import BinTableHDU, Column, Header
 
+from .identity import Identity
 from .utils import calculatePfsVisitHash, wraparoundNVisit
 
 __all__ = ("Observations",)
@@ -29,8 +30,23 @@ class Observations(types.SimpleNamespace):
     pfiCenter : `numpy.ndarray` of `float`
         Array of actual fiber positions (x,y) for this object in each
         observation.
+    obsTime : iterable of `str`, optional
+        Observation times for each observation.
+    expTime : `numpy.ndarray` of `float`, optional
+        Exposure times for each observation.
     """
-    def __init__(self, visit, arm, spectrograph, pfsDesignId, fiberId, pfiNominal, pfiCenter):
+    def __init__(
+        self,
+        visit,
+        arm,
+        spectrograph,
+        pfsDesignId,
+        fiberId,
+        pfiNominal,
+        pfiCenter,
+        obsTime=None,
+        expTime=None,
+    ):
         self.visit = visit
         self.arm = arm
         self.spectrograph = spectrograph
@@ -38,6 +54,14 @@ class Observations(types.SimpleNamespace):
         self.fiberId = fiberId
         self.pfiNominal = pfiNominal
         self.pfiCenter = pfiCenter
+
+        if obsTime is None:
+            obsTime = [Identity.defaultObsTime] * len(self.visit)
+        self.obsTime = obsTime
+
+        if expTime is None:
+            expTime = np.full(len(self.visit), Identity.defaultExpTime, dtype=float)
+        self.expTime = expTime
 
         self.num = len(self.fiberId)
         self.validate()
@@ -56,6 +80,8 @@ class Observations(types.SimpleNamespace):
         assert self.fiberId.shape == (self.num,)
         assert self.pfiNominal.shape == (self.num, 2)
         assert self.pfiCenter.shape == (self.num, 2)
+        assert len(self.obsTime) == self.num
+        assert self.expTime.shape == (self.num,)
 
     def calculateVisitHash(self):
         """Calculate hash of the exposure inputs
@@ -96,6 +122,11 @@ class Observations(types.SimpleNamespace):
         hdu = fits["OBSERVATIONS"]
         kwargs = {col: hdu.data[col] for col in
                   ("visit", "arm", "spectrograph", "pfsDesignId", "fiberId", "pfiNominal", "pfiCenter")}
+        # Backwards compatibility for obsTime,expTime
+        if "obsTime" in hdu.data.columns.names:
+            kwargs["obsTime"] = [obsTime for obsTime in hdu.data["obsTime"]]
+        if "expTime" in hdu.data.columns.names:
+            kwargs["expTime"] = hdu.data["expTime"]
         return cls(**kwargs)
 
     def toFits(self, fits):
@@ -110,8 +141,9 @@ class Observations(types.SimpleNamespace):
         # format, increment the DAMD_VER header value and record the change in
         # the versions.txt file.
         header = Header()
-        header['DAMD_VER'] = (1, "Observations datamodel version")
+        header['DAMD_VER'] = (2, "Observations datamodel version")
         armLength = max(len(arm) for arm in self.arm)
+        obsTimeLength = max(len(obsTime) for obsTime in self.obsTime)
         columns = [Column("visit", "J", array=self.visit),
                    Column("arm", f"{armLength}A", array=self.arm),
                    Column("spectrograph", "J", array=self.spectrograph),
@@ -119,6 +151,8 @@ class Observations(types.SimpleNamespace):
                    Column("pfsDesignId", "K", array=self.pfsDesignId),
                    Column("pfiNominal", "2E", array=self.pfiNominal),
                    Column("pfiCenter", "2E", array=self.pfiCenter),
+                   Column("obsTime", f"{obsTimeLength}A", array=self.obsTime),
+                   Column("expTime", "E", array=self.expTime)
                    ]
         hdu = BinTableHDU.from_columns(columns, name="OBSERVATIONS", header=header)
         fits.append(hdu)
@@ -155,4 +189,6 @@ class Observations(types.SimpleNamespace):
             pfsDesignId=np.array([pfsConfig.pfsDesignId]),
             pfiNominal=np.array([pfsConfig.pfiNominal[index]]),
             pfiCenter=np.array([pfsConfig.pfiCenter[index]]),
+            obsTime=[identity.obsTime],
+            expTime=np.array([identity.expTime]),
         )

@@ -81,6 +81,44 @@ class DocEnum(enum.IntEnum):
         """
         return getattr(cls, name)
 
+    @classmethod
+    def fromList(cls, names):
+        """Construct a set of values from a list of string names
+
+        Parameters
+        ----------
+        names : list of `str`
+            Names of the enums.
+
+        Returns
+        -------
+        enums : `list` of ``cls``
+            List of enums with the supplied names.
+            This could be a set, but that doesn't work with ``np.isin``, which
+            is what you probably want this for.
+        """
+        include = set()
+        exclude = set()
+        for nn in names:
+            if nn.startswith("^") or nn.startswith("~"):  # Both ^ and ~ mean inverse
+                exclude.add(nn[1:])
+            else:
+                include.add(nn)
+
+        if exclude:
+            intersection = include.intersection(exclude)
+            if include.intersection(exclude):
+                raise ValueError(
+                    f"Explicitly included values that were explicitly excluded: {intersection}"
+                )
+
+            for member in cls:
+                if member.name in exclude:
+                    continue
+                include.add(member.name)
+
+        return [cls.fromString(name) for name in include]
+
 
 class TargetType(DocEnum):
     """Enumerated options for what a fiber is targeting"""
@@ -105,6 +143,7 @@ class FiberStatus(DocEnum):
     BLACKSPOT = 4, "hidden behind spot; ignore any flux"
     UNILLUMINATED = 5, "not illuminated; ignore any flux"
     BROKENCOBRA = 6, "Cobra does not move, but the fiber still carries flux."
+    NOTCONVERGED = 7, "Cobra did not converge to the target."
 
 
 class PfsDesign:
@@ -436,7 +475,8 @@ class PfsDesign:
         """Return the (variantNum, basePfsDesign) pair, or (0, 0) if we are not a variant """
         return self.variant, self.designId0
 
-    def getPhotometry(self, filterName, psfFlux=False, fiberFlux=False, totalFlux=False, getError=False):
+    def getPhotometry(self, filterName, psfFlux=False, fiberFlux=False, totalFlux=False, getError=False,
+                      asABMag=False):
         """Return the flux, and optionally errors, for a requested filter.
 
         If the filtername is invalid, the valid names printer and an exception raised
@@ -453,6 +493,8 @@ class PfsDesign:
                 Return the totalflux
             getError: `bool`
                 Return the flux error in addition to the flux
+            asABMag: `bool`
+                Return the flux/fluxError as AB magnitudes
 
         Returns
         -------
@@ -481,19 +523,46 @@ class PfsDesign:
         myFilterData = np.array(self.filterNames) == filterName
         if np.sum(myFilterData) == 0:
             filterNames = sorted(set([fn for fn in sum(self.filterNames, []) if fn != "none"]))
-            raise RuntimeError(f"No flux data for filter \"{filterName}\" is available. "
-                               f"Options are: {', '.join(filterNames)}")
+
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", category=RuntimeWarning)  # All-NaN slice encountered
+
+                goodFilterNames = []
+                for possibleFilterName in filterNames:
+                    myFilterData = np.array(self.filterNames) == possibleFilterName
+
+                    if np.isfinite(np.nanmean(np.where(myFilterData, flux, np.NaN), axis=1)):
+                        goodFilterNames.append(possibleFilterName)
+
+            raise RuntimeError(f"No flux data for filter \"{filterName}\" are available. " +
+                               (f"Options are: {', '.join(goodFilterNames)}" if len(goodFilterNames) > 0
+                                else ""))
+
+        def nJyToAB(nJy):
+            return 8.9 - 2.5*np.log10(1e-9*nJy)
 
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", category=RuntimeWarning)  # All-NaN slice encountered
 
             flux = np.nanmean(np.where(myFilterData, flux, np.NaN), axis=1)
 
+            if asABMag:
+                abMag = nJyToAB(flux)
+
             if getError:
                 fluxErr = np.nanmean(np.where(myFilterData, fluxErr, np.NaN), axis=1)
-                return flux, fluxErr
+
+                if asABMag:
+                    if fluxErr < flux:
+                        abMagErr = np.mean([nJyToAB(flux + fluxErr) - abMag, abMag - nJyToAB(flux - fluxErr)])
+                    else:
+                        abMagErr = nJyToAB(flux + fluxErr) - abMag
+
+                    return abMag, abMagErr
+                else:
+                    return flux, fluxErr
             else:
-                return flux
+                return abMag if asABMag else flux
 
     @classmethod
     def _readHeader(cls, header, kwargs=None):
@@ -634,7 +703,9 @@ class PfsDesign:
 
             photometry = fd["PHOTOMETRY"].data
 
+            # List of fiberIds we want to load the fluxes for
             fiberId = kwargs["fiberId"]
+
             fiberFlux = {ii: [] for ii in fiberId}
             psfFlux = {ii: [] for ii in fiberId}
             totalFlux = {ii: [] for ii in fiberId}
@@ -642,14 +713,18 @@ class PfsDesign:
             psfFluxErr = {ii: [] for ii in fiberId}
             totalFluxErr = {ii: [] for ii in fiberId}
             filterNames = {ii: [] for ii in fiberId}
-            for row in photometry:
-                fiberFlux[row['fiberId']].append(row['fiberFlux'])
-                psfFlux[row['fiberId']].append(row['psfFlux'])
-                totalFlux[row['fiberId']].append(row['totalFlux'])
-                fiberFluxErr[row['fiberId']].append(row['fiberFluxErr'])
-                psfFluxErr[row['fiberId']].append(row['psfFluxErr'])
-                totalFluxErr[row['fiberId']].append(row['totalFluxErr'])
-                filterNames[row['fiberId']].append(row['filterName'])
+
+            # Get all the data at once to save of data type conversions
+            columns = { k: photometry[k] for k in photometry.columns.names }
+            for ii in fiberId:
+                mask = columns["fiberId"] == ii
+                fiberFlux[ii] = columns["fiberFlux"][mask]
+                psfFlux[ii] = columns["psfFlux"][mask]
+                totalFlux[ii] = columns["totalFlux"][mask]
+                fiberFluxErr[ii] = columns["fiberFluxErr"][mask]
+                psfFluxErr[ii] = columns["psfFluxErr"][mask]
+                totalFluxErr[ii] = columns["totalFluxErr"][mask]
+                filterNames[ii] = columns["filterName"][mask]
 
             if damdVer is not None and damdVer >= 2:
                 guideStars = GuideStars.fromFits(fd)
@@ -661,13 +736,13 @@ class PfsDesign:
                 guideStars = GuideStars.empty()
 
         return cls(**kwargs, raBoresight=raBoresight, decBoresight=decBoresight,
-                   fiberFlux=[np.array(fiberFlux[ii]) for ii in fiberId],
-                   psfFlux=[np.array(psfFlux[ii]) for ii in fiberId],
-                   totalFlux=[np.array(totalFlux[ii]) for ii in fiberId],
-                   fiberFluxErr=[np.array(fiberFluxErr[ii]) for ii in fiberId],
-                   psfFluxErr=[np.array(psfFluxErr[ii]) for ii in fiberId],
-                   totalFluxErr=[np.array(totalFluxErr[ii]) for ii in fiberId],
-                   filterNames=[filterNames[ii] for ii in fiberId],
+                   fiberFlux=[fiberFlux[ii] for ii in fiberId],
+                   psfFlux=[psfFlux[ii] for ii in fiberId],
+                   totalFlux=[totalFlux[ii] for ii in fiberId],
+                   fiberFluxErr=[fiberFluxErr[ii] for ii in fiberId],
+                   psfFluxErr=[psfFluxErr[ii] for ii in fiberId],
+                   totalFluxErr=[totalFluxErr[ii] for ii in fiberId],
+                   filterNames=[list(filterNames[ii]) for ii in fiberId],
                    guideStars=guideStars)
 
     @classmethod
@@ -746,14 +821,14 @@ class PfsDesign:
         psfFluxErr = np.array(sum((pfErr.tolist() for pfErr in self.psfFluxErr), []))
         totalFluxErr = np.array(sum((tfErr.tolist() for tfErr in self.totalFluxErr), []))
         filterNames = sum(self.filterNames, [])
-        assert(len(fiberId) == numRows)
-        assert(len(fiberFlux) == numRows)
-        assert(len(psfFlux) == numRows)
-        assert(len(totalFlux) == numRows)
-        assert(len(fiberFluxErr) == numRows)
-        assert(len(psfFluxErr) == numRows)
-        assert(len(totalFluxErr) == numRows)
-        assert(len(filterNames) == numRows)
+        assert (len(fiberId) == numRows)
+        assert (len(fiberFlux) == numRows)
+        assert (len(psfFlux) == numRows)
+        assert (len(totalFlux) == numRows)
+        assert (len(fiberFluxErr) == numRows)
+        assert (len(psfFluxErr) == numRows)
+        assert (len(totalFluxErr) == numRows)
+        assert (len(filterNames) == numRows)
         maxLength = max(len(ff) for ff in filterNames) if filterNames else 1
 
         fits.append(pyfits.BinTableHDU.from_columns([
@@ -767,7 +842,7 @@ class PfsDesign:
             pyfits.Column(name='filterName', format='A%d' % maxLength, array=filterNames),
         ], hdr, name='PHOTOMETRY'))
 
-        assert(self.guideStars is not None)
+        assert (self.guideStars is not None)
         self.guideStars.toFits(fits)
 
         # clobber=True in writeto prints a message, so use open instead

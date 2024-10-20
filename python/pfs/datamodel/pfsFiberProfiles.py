@@ -3,7 +3,7 @@ import re
 
 import numpy as np
 
-from .utils import astropyHeaderToDict, astropyHeaderFromDict
+from .utils import astropyHeaderToDict, astropyHeaderFromDict, createHash
 from .identity import CalibIdentity
 
 __all__ = ("PfsFiberProfiles",)
@@ -89,6 +89,34 @@ class PfsFiberProfiles:
     def __str__(self):
         """Stringify"""
         return "%s{%d profiles}" % (self.__class__.__name__, self.length)
+
+    def __eq__(self, other):
+        if self.identity != other.identity:
+            return False
+        for attr in ("fiberId", "radius", "oversample"):
+            if not np.array_equal(getattr(self, attr), getattr(other, attr)):
+                return False
+        for attr in ("rows", "profiles", "norm"):
+            selfList = getattr(self, attr)
+            otherList = getattr(other, attr)
+            if len(selfList) != len(otherList):
+                return False
+            if not all(np.array_equal(ss, oo) for ss, oo in zip(selfList, otherList)):
+                return False
+        # Not comparing metadata
+        return True
+
+    @property
+    def hash(self):
+        """Provide hash of this object
+
+        Note: not using ``__hash__`` because the seed for that varies between
+        runs, and we want this to be constant for the same data.
+        """
+        values = [self.identity]
+        values += [getattr(self, attr).tobytes() for attr in ("fiberId", "radius", "oversample")]
+        values += [tuple(xx.tobytes() for xx in getattr(self, attr)) for attr in ("rows", "profiles", "norm")]
+        return createHash(values)
 
     @property
     def filename(self):
@@ -273,6 +301,7 @@ class PfsFiberProfiles:
         header = astropyHeaderFromDict(header)
         header["OBSTYPE"] = "fiberProfiles"
         header['DAMD_VER'] = (2, "PfsFiberProfiles datamodel version")
+        header["HIERARCH PFS.HASH.FIBERPROFILES"] = (self.hash, "Hash of fiber profiles")
 
         fibersHdu = astropy.io.fits.BinTableHDU.from_columns([
             astropy.io.fits.Column("fiberId", format="J", array=self.fiberId),
