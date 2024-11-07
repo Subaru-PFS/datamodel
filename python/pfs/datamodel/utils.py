@@ -167,7 +167,7 @@ def astropyHeaderFromDict(metadata):
             continue
         if len(key) > 8 and not key.startswith("HIERARCH"):
             key = "HIERARCH " + key
-        if isinstance(value, str) and key.startswith("HIERARCH") and len(key) + len(value) > 80:
+        if isinstance(value, str) and key.startswith("HIERARCH") and len(key) + len(value) >= 77:
             # astropy.io.fits.Header doesn't handle long HIERARCH strings
             continue
         header.append((key, value))
