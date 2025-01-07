@@ -1130,7 +1130,7 @@ HDU#2 GALAXY_CANDIDATES         Binary table            [FITS BINARY TABLE]     
 HDU#3 GALAXY_PDF                Binary table            [FITS BINARY TABLE]     NPIX
         Colums for :
         REDSHIFT                FLOAT[NPIX]             Redshift grid
-        PDF                     FLOAT[NPIX]             PDF marginalised over all models
+        ln PDF                  FLOAT[NPIX]             ln(Probability) marginalised over all models
 
 HDU#4 GALAXY_LINES              Binary table            [FITS BINARY TABLE]     NLINE
         Columns for :
@@ -1161,7 +1161,7 @@ HDU#5 QSO_CANDIDATES            Binary table            [FITS BINARY TABLE]     
 HDU#6 QSO_PDF                   Binary table            [FITS BINARY TABLE]     NPIX
         Colums for :
         REDSHIFT                FLOAT[NPIX]             Redshift grid
-        PDF                     FLOAT[NPIX]             PDF marginalised over all models
+        ln PDF                  FLOAT[NPIX]             ln(Probability) marginalised over all models
 
 HDU#7 QSO_LINES                 Binary table            [FITS BINARY TABLE]     NLINE
         Columns for :
@@ -1193,7 +1193,7 @@ HDU#8 STAR_CANDIDATES            Binary table            [FITS BINARY TABLE]    
 HDU#9 STAR_PDF                   Binary table            [FITS BINARY TABLE]     NPIX
         Colums for :
         VELOCITY                FLOAT[NPIX]             Radial velocity grid
-        PDF                     FLOAT[NPIX]             PDF related to best model
+        ln PDF                  FLOAT[NPIX]             ln(Probability) related to best model
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 
