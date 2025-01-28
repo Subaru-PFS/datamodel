@@ -335,6 +335,12 @@ class PfsDesign:
             if matrix.shape != (len(self.fiberId), 2):
                 raise RuntimeError("Wrong shape for %s: %s vs (%d,2)" % (nn, matrix.shape, len(self.fiberId)))
 
+        # Check for duplicates of fiberId
+        counts = Counter(self.fiberId)
+        if counts and counts.most_common(1)[0][1] > 1:
+            duplicates = [ff for ff, num in counts.items() if num > 1]
+            raise ValueError(f"Design {self.pfsDesignId:#016x} contains duplicate fiberIds: {duplicates}")
+
         # Check for duplicates of catId, objId combinations.
         counts = Counter(zip(self.catId, self.objId))
         counts.pop((-1, -1), None)  # ignore untargetted fibers

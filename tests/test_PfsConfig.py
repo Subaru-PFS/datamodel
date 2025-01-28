@@ -267,6 +267,12 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
             with self.assertRaises(RuntimeError):
                 self.makePfsConfig(**{name: array})
 
+        # Duplicate fiberIds
+        fiberId = self.fiberId.copy()
+        fiberId[123] = fiberId[456]
+        with self.assertRaises(ValueError):
+            self.makePfsDesign(fiberId=fiberId)
+
         # Duplicate (catId, objId) combos
         catId = list(self.catId)
         objId = list(self.objId)
