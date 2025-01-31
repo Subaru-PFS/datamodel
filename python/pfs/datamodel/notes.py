@@ -82,7 +82,7 @@ class Notes:
 
 def makeNotesClass(
     name: str, schema: Iterable[Column], fitsExtName: str = "NOTES"
-) -> type:
+) -> Type[Notes]:
     """Build a Notes class
 
     The class will be a `dataclass` with members according to the provided
