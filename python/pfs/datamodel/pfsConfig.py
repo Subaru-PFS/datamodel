@@ -415,8 +415,8 @@ class PfsDesign:
 
     def __iter__(self):
         """Iteration returns the target for each fiber"""
-        for ii in range(len(self)):
-            yield self.getTarget(ii)
+        for ff in self.fiberId:
+            yield self.getTarget(ff)
 
     def __getitem__(self, logical):
         """Sub-selection
@@ -458,13 +458,13 @@ class PfsDesign:
         from pfs.utils.fibers import spectrographFromFiberId
         return spectrographFromFiberId(self.fiberId)
 
-    def getTarget(self, index):
-        """Return target by index
+    def getTarget(self, fiberId):
+        """Return target by fiberId
 
         Parameters
         ----------
-        index : `int`
-            Index of fiber of interest.
+        fiberId : `int`
+            Identifier of fiber of interest.
 
         Returns
         -------
@@ -472,7 +472,7 @@ class PfsDesign:
             Target for fiber.
         """
         from pfs.datamodel.target import Target  # noqa: prevent circular import dependency
-        return Target.fromPfsConfig(self, index)
+        return Target.fromPfsConfig(self, fiberId)
 
     @property
     def filename(self):

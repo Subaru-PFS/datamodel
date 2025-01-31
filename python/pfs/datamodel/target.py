@@ -127,21 +127,22 @@ class Target(types.SimpleNamespace):
         return hash((self.catId, self.objId))
 
     @classmethod
-    def fromPfsConfig(cls, pfsConfig, index):
+    def fromPfsConfig(cls, pfsConfig, fiberId):
         """Construct from a PfsConfig
 
         Parameters
         ----------
         pfsConfig : `pfs.datamodel.PfsConfig`
             Top-end configuration.
-        index : `int`
-            Index into the ``pfsConfig`` arrays for the target of interest.
+        fiberId : `int`
+            Fiber identifier.
 
         Returns
         -------
         self : cls
             Constructed `Target`.
         """
+        index = pfsConfig.selectFiber(fiberId)
         catId = pfsConfig.catId[index]
         tract = pfsConfig.tract[index]
         patch = pfsConfig.patch[index]
