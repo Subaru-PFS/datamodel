@@ -6,7 +6,7 @@ import re
 import enum
 from collections import Counter
 from logging import Logger
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
 try:
     import astropy.io.fits as pyfits
@@ -39,6 +39,10 @@ class DocEnum(enum.IntEnum):
         self._value_ = value
         self.__doc__ = doc
         return self
+
+    if TYPE_CHECKING:
+        def __init__(self, value: int):
+            ...
 
     @classmethod
     def getFitsHeaders(cls):
