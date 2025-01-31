@@ -863,7 +863,7 @@ extinction.
 
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-Combined spectra.
+Combined spectrum
 
 In SDSS we used "spPlate" files, named by the plugplate and MJD of observation but this is not suitable for
 PFS where we:
@@ -956,6 +956,90 @@ the same information, but in practice SDSS's OR masks were not very useful.
 
 For data taken with the medium resolution spectrograph, HDU #1 is expected to be at the resolution of
 the medium arm, and to omit the data from the blue and IR arms.
+
+-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+Combined spectra: pfsCoadd
+
+Having a single spectrum file per object is difficult for the pipeline to
+handle, and inefficient when we have thousands of objects per exposure. Since
+the transition to the LSST Gen3 middleware in the latter half of 2024, we have
+been putting multiple coadded spectra in a single file, essentially bundling
+pfsObject spectra. This file is currently constructed per object catalog
+(catId), but it will be necessary in the future to use a different division,
+TBD, possibly incorporating some form of spatial indexing by RA,Dec.
+
+Some elements of this scheme are inefficient. This might be remedied by
+introducing compression.
+
+The file format is as follows:
+
+HDU #0 PDU
+HDU #1 TARGET           Target information                          [FITS BINARY TABLE] NOBJECT
+    Columns:
+        targetId [16-bit INT]: Target identifier, used to tie to data in other HDUs
+        catId [32-bit INT]: Catalog identifier
+        tract [32-bit INT]: Tract identifier
+        patch [STRING]: Patch identifier
+        objId [64-bit INT]: Object identifier
+        ra [64-bit FLOAT]: Right Ascension (ICRS)
+        dec [64-bit FLOAT]: Declination (ICRS)
+        targetType [16-bit INT]: Type of target (enumerated type, usually 1 = SCIENCE)
+HDU #2 TARGETFLUX       Target flux data                            [FITS BINARY TABLE] NFLUX
+    Columns:
+        targetId [16-bit INT]: Target identifier, links to TARGET HDU
+        filterName [STRING]: Name of filter for flux
+        fiberFlux [32-bit FLOAT]: Flux in filter
+HDU #3 OBSERVATIONS     PFS observations of target                  [FITS BINARY TABLE] NOBS
+    Columns:
+        targetId [16-bit INT]: Target identifier, links to TARGET HDU
+        visit [32-bit INT]: PFS visit number of observation
+        arm [STRING]: PFS arm used in observation
+        spectrograph [16-bit INT]: PFS spectrograph module number used in observation
+        pfsDesignId [64-bit INT]: PFS fiber configuration identifier
+        fiberId [32-bit INT]: PFS fiber identifier
+        pfiNominal [2 * 64-bit FLOAT]: Nominal fiber position on the focal plane
+        pfiCenter [2 * 64-bit FLOAT]: Actual measured fiber position on the focal plane
+HDU #4 WAVELENGTH       Wavelengths, as an image, array or table    [64-bit FLOAT]      NWAVELENGTH*NOBJECT?
+HDU #5 FLUX             Fluxes (nJy), as an image or table          [32-bit FLOAT]      NWAVELENGTH*NOBJECT
+HDU #6 MASK             Quality bitmask, as an image or table       [32-bit INT]        NWAVELENGTH*NOBJECT
+HDU #7 SKY              Coadded sky spectra, as an image or table   [32-bit FLOAT]      NWAVELENGTH*NOBJECT
+HDU #8 COVAR            Near-diagonal covariance as image or table  [32-bit FLOAT]      NWAVELENGTH*NOBJECT*3
+HDU #9 COVAR2           Low-resolution non-sparse covariance        [32-bit FLOAT]      ???
+HDU #10 METADATA        Spectra METADATA                            [FITS BINARY TABLE] NOBJECT
+    Columns:
+        targetId [16-bit INT]: Target identifier, links to TARGET HDU
+        metadata [STRING]: Key-value pairs as YAML
+HDU #11 FLUXTABLE       Un-resampled measurements                   [FITS BINARY TABLE] NOBJECT*NOBS*NWAVELENGTH
+    Columns:
+        targetId [16-bit INT]: Target identifier, links to TARGET HDU
+        wavelength [64-bit FLOAT ARRAY]: Wavelength arrays
+        flux [32-bit FLOAT ARRAY]: Flux arrays
+        error [32-bit FLOAT ARRAY]: Flux error arrays
+        mask [32-bit INT ARRAY]: Quality bitmask arrays
+HDU #12 NOTES           Reduction notes                                [FITS BINARY TABLE] NNOTES
+
+
+If the wavelength arrays for all spectra are equal, the WAVELENGTH image will be
+written as a single array; otherwise all wavelength arrays will be written.
+
+The WAVELENGTH, FLUX, MASK, SKY, COVAR HDUs may be written as FITS binary
+tables if the lengths of the spectra are different. For quantities with a single
+array per spectrum (WAVELENGTH, FLUX, MASK, SKY), the sole column in the table
+will be called "value". For quantities with multiple arrays per spectrum
+(COVAR has 3 arrays per spectrum), the columns will be named "row_<rowNumber>".
+If the lengths of the spectra are identical (the usual case, since we have use
+the same wavelength sampling), these HDUs will be written as images, which is
+simpler and provides opportunities to use FITS tile compression.
+
+
+-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+Calibrated spectra: pfsCalibrated
+
+pfsCalibrated is a collection of calibrated spectra for a single visit: a
+bundle of pfsSingle spectra. The format is the same as for pfsCoadd.
+
 
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 

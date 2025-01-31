@@ -433,7 +433,7 @@ class PfsTargetSpectra(Mapping[Target, PfsFiberArray]):
                     ),
                     Column(
                         "flux",
-                        "PD()",
+                        "PE()",
                         array=[
                             spectrum.fluxTable.flux if spectrum.fluxTable else []
                             for spectrum in self.values()
@@ -441,7 +441,7 @@ class PfsTargetSpectra(Mapping[Target, PfsFiberArray]):
                     ),
                     Column(
                         "error",
-                        "PD()",
+                        "PE()",
                         array=[
                             spectrum.fluxTable.error if spectrum.fluxTable else []
                             for spectrum in self.values()
