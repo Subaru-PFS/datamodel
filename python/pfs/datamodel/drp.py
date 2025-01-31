@@ -5,6 +5,7 @@ from .pfsSimpleSpectrum import PfsSimpleSpectrum
 from .pfsFiberArray import PfsFiberArray
 from .pfsFiberArraySet import PfsFiberArraySet
 from .pfsTable import PfsTable, Column
+from .pfsTargetSpectra import PfsTargetSpectra
 from .utils import inheritDocstrings
 
 __all__ = [
@@ -18,6 +19,8 @@ __all__ = [
     "PfsObjectNotes",
     "PfsObject",
     "LineMeasurements",
+    "PfsCalibrated",
+    "PfsCoadd",
 ]
 
 
@@ -142,3 +145,27 @@ class LineMeasurements(PfsTable):
     ]
     fitsExtName = "ARCLINES"
     aliases = dict(flux=("intensity",), fluxErr=("intensityErr"),)
+
+
+class PfsCalibratedNotesTable(PfsTable):
+    """Table of notes for PfsCalibratedSpectra"""
+    schema = PfsSingleNotes.schema
+    fitsExtName = "NOTES"
+
+
+class PfsCalibrated(PfsTargetSpectra):
+    """A collection of PfsSingle (calibrated spectra) indexed by target"""
+    PfsFiberArrayClass = PfsSingle
+    NotesClass = PfsCalibratedNotesTable
+
+
+class PfsObjectNotesTable(PfsTable):
+    """Table of notes for PfsObjectSpectra"""
+    schema = PfsObjectNotes.schema
+    fitsExtName = "NOTES"
+
+
+class PfsCoadd(PfsTargetSpectra):
+    """A collection of PfsObject (coadded spectra) indexed by target"""
+    PfsFiberArrayClass = PfsObject
+    NotesClass = PfsObjectNotesTable
