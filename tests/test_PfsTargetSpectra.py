@@ -97,11 +97,11 @@ class PfsTargetSpectraTestCase(lsst.utils.tests.TestCase):
         """
         return Struct(
             wavelength=np.linspace(minWavelength, maxWavelength, length, dtype=float),
-            flux=self.rng.uniform(size=length),
-            mask=self.rng.randint(0xFFFF, size=length),
-            sky=self.rng.uniform(size=length),
-            covar=self.rng.uniform(size=(3, length)),
-            covar2=self.rng.uniform(size=(5, 5)),
+            flux=self.rng.uniform(size=length).astype(np.float32),
+            mask=self.rng.randint(0xFFFF, size=length).astype(np.int32),
+            sky=self.rng.uniform(size=length).astype(np.float32),
+            covar=self.rng.uniform(size=(3, length)).astype(np.float32),
+            covar2=self.rng.uniform(size=(5, 5)).astype(np.float32),
         )
 
     def makeFlags(self) -> MaskHelper:
@@ -143,9 +143,9 @@ class PfsTargetSpectraTestCase(lsst.utils.tests.TestCase):
         """
         return FluxTable(
             wavelength=np.linspace(minWavelength, maxWavelength, length, dtype=float),
-            flux=self.rng.uniform(size=length),
-            error=self.rng.uniform(size=length),
-            mask=self.rng.randint(0xFFFF, size=length),
+            flux=self.rng.uniform(size=length).astype(np.float32),
+            error=self.rng.uniform(size=length).astype(np.float32),
+            mask=self.rng.randint(0xFFFF, size=length).astype(np.int32),
             flags=self.makeFlags(),
         )
 
@@ -192,7 +192,7 @@ class PfsTargetSpectraTestCase(lsst.utils.tests.TestCase):
         objId: Iterable[int],
         *,
         catId: Optional[Iterable[int]] = None,
-        length: int = 1000,
+        length: Optional[Iterable[int]] = None,
         numObservations: int = 3,
     ) -> PfsTargetSpectra:
         """Create a set of spectra
@@ -208,8 +208,9 @@ class PfsTargetSpectraTestCase(lsst.utils.tests.TestCase):
         catId : iterable of `int`, optional
             Catalog identifiers to use. If not provided, we use a constant
             value.
-        length : `int`
-            Length of each spectrum (pixels).
+        length : iterable of `int`, optional
+            Lengths of each spectrum (pixels). If not provided, we use a
+            constant value.
         numObservations : `int`
             Number of observations made.
 
@@ -220,8 +221,10 @@ class PfsTargetSpectraTestCase(lsst.utils.tests.TestCase):
         """
         if catId is None:
             catId = itertools.repeat(12345)
+        if length is None:
+            length = itertools.repeat(1000)
         return PfsCoadd([
-            self.makePfsFiberArray(ii, jj, length, numObservations) for ii, jj in zip(catId, objId)
+            self.makePfsFiberArray(ii, jj, ll, numObservations) for ii, jj, ll in zip(catId, objId, length)
         ])
 
     def assertPfsTargetSpectraEqual(self, left: PfsTargetSpectra, right: PfsTargetSpectra):
@@ -339,6 +342,14 @@ class PfsTargetSpectraTestCase(lsst.utils.tests.TestCase):
     def testIO(self):
         """Test I/O functionality"""
         spectra = self.makePfsTargetSpectra(list(range(123)))
+        with lsst.utils.tests.getTempFilePath(".fits") as filename:
+            spectra.writeFits(filename)
+            copy = PfsCoadd.readFits(filename)
+            self.assertPfsTargetSpectraEqual(copy, spectra)
+
+    def testDifferentLengths(self):
+        """Test I/O when the spectra have different lengths"""
+        spectra = self.makePfsTargetSpectra(list(range(123)), length=itertools.cycle([999, 1000, 1001]))
         with lsst.utils.tests.getTempFilePath(".fits") as filename:
             spectra.writeFits(filename)
             copy = PfsCoadd.readFits(filename)
