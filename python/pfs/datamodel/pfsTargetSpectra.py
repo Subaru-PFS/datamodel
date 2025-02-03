@@ -1,10 +1,10 @@
 from collections.abc import Mapping
-from typing import Dict, Iterator, Iterable, List, Optional, Tuple, Type, Union, cast, overload
+from typing import Dict, Iterator, List, Optional, Sequence, Tuple, Type, Union, cast, overload
 
 import astropy.io.fits
 import numpy as np
 import yaml
-from astropy.io.fits import BinTableHDU, Column, HDUList, ImageHDU
+from astropy.io.fits import BinTableHDU, Column, CompImageHDU, HDUList, ImageHDU
 
 from .masks import MaskHelper
 from .observations import Observations
@@ -22,14 +22,14 @@ class PfsTargetSpectra(Mapping[Target, PfsFiberArray]):
 
     Parameters
     ----------
-    spectra : iterable of `PfsFiberArray`
+    spectra : list of `PfsFiberArray`
         Spectra to be indexed by target.
     """
 
     PfsFiberArrayClass: Type[PfsFiberArray]  # Subclasses must override
     NotesClass: Type[PfsTable]  # Subclasses must override
 
-    def __init__(self, spectra: Iterable[PfsFiberArray]):
+    def __init__(self, spectra: Sequence[PfsFiberArray]):
         super().__init__()
         self.spectra: Dict[Target, PfsFiberArray] = {spectrum.target: spectrum for spectrum in spectra}
         if len(self.spectra) != len(spectra):
@@ -126,16 +126,43 @@ class PfsTargetSpectra(Mapping[Target, PfsFiberArray]):
         self : ``cls``
             Constructed instance, from FITS file.
         """
+
+        def readData(hduName: str, dtype: type) -> Union[np.ndarray, List[np.ndarray]]:
+            """Read data from FITS file
+
+            Parameters
+            ----------
+            hduName : `str`
+                Name of the HDU.
+            dtype : `type`
+                Data type.
+
+            Returns
+            -------
+            data : `np.ndarray` or list of `np.ndarray`
+                Data read from FITS file.
+            """
+            hdu = fits[hduName]
+            if isinstance(hdu, (ImageHDU, CompImageHDU)):
+                return hdu.data.astype(dtype)
+            numRows = len(hdu.data.dtype)
+            if numRows == 1:
+                return [row["value"].astype(dtype) for row in hdu.data]
+            data: List[np.ndarray] = []
+            for ii in range(len(hdu.data)):
+                data.append(np.array([hdu.data[f"row_{jj}"][ii] for jj in range(numRows)], dtype=dtype))
+            return data
+
         spectra = []
         with astropy.io.fits.open(filename) as fits:
             targetHdu = fits["TARGET"].data
             targetFluxHdu = fits["TARGETFLUX"].data
             observationsHdu = fits["OBSERVATIONS"].data
-            wavelengthHdu = fits["WAVELENGTH"].data
-            fluxHdu = fits["FLUX"].data
-            maskHdu = fits["MASK"].data
-            skyHdu = fits["SKY"].data
-            covarHdu = fits["COVAR"].data
+            wavelengthData = readData("WAVELENGTH", np.float64)
+            fluxData = readData("FLUX", np.float32)
+            maskData = readData("MASK", np.int32)
+            skyData = readData("SKY", np.float32)
+            covarData = readData("COVAR", np.float32)
             covar2Hdu = fits["COVAR2"].data if "COVAR2" in fits else None
             metadataHdu = fits["METADATA"].data
             fluxTableHdu = fits["FLUXTABLE"].data
@@ -196,14 +223,21 @@ class PfsTargetSpectra(Mapping[Target, PfsFiberArray]):
                     **{col.name: getattr(notesTable, col.name)[ii] for col in notesTable.schema}
                 )
 
+                # Wavelength: we might write a single array if everything has the same length and value
+                wavelength: np.ndarray
+                if isinstance(wavelengthData, np.ndarray) and len(wavelengthData.shape) == 1:
+                    wavelength = wavelengthData
+                else:
+                    wavelength = wavelengthData[ii]
+
                 spectrum = cls.PfsFiberArrayClass(
                     target,
                     observations,
-                    wavelengthHdu[ii],
-                    fluxHdu[ii],
-                    maskHdu[ii],
-                    skyHdu[ii],
-                    covarHdu[ii],
+                    wavelength,
+                    fluxData[ii],
+                    maskData[ii],
+                    skyData[ii],
+                    covarData[ii],
                     covar2Hdu[ii] if covar2Hdu is not None else [],
                     flags,
                     metadata,
@@ -308,11 +342,64 @@ class PfsTargetSpectra(Mapping[Target, PfsFiberArray]):
             )
         )
 
-        fits.append(ImageHDU(data=[spectrum.wavelength for spectrum in self.values()], name="WAVELENGTH"))
-        fits.append(ImageHDU(data=[spectrum.flux for spectrum in self.values()], name="FLUX"))
-        fits.append(ImageHDU(data=[spectrum.mask for spectrum in self.values()], name="MASK"))
-        fits.append(ImageHDU(data=[spectrum.sky for spectrum in self.values()], name="SKY"))
-        fits.append(ImageHDU(data=[spectrum.covar for spectrum in self.values()], name="COVAR"))
+        lengths = [len(spectrum) for spectrum in self.values()]
+        sameLengths = len(set(lengths)) == 1
+
+        def writeComponent(component: str, hduName: str, dtype: type[object]):
+            """Write a component of the spectra
+
+            If all spectra have the same length, then we write as an image.
+            Otherwise, we write as a table.
+
+            Parameters
+            ----------
+            component : `str`
+                Name of the component.
+            hduName : `str`
+                Name of the HDU.
+            dtype : `type`
+                Data type.
+            """
+            data = [getattr(spectrum, component).astype(dtype) for spectrum in self.values()]
+            if len(data) == 0:
+                fits.append(ImageHDU(data=np.array(data, dtype=dtype), name=hduName))
+                return
+            allDims = set([len(dd.shape) for dd in data])
+            if len(allDims) != 1:
+                raise RuntimeError(f"Data for {component} have different dimensions: {allDims}")
+            dims = allDims.pop()
+            if dims >= 3:
+                raise RuntimeError(f"Data for {component} have too many dimensions: {dims}")
+            if sameLengths and dims == 1:
+                HduClass = CompImageHDU if dtype in (np.int16, np.int32, np.int64) else ImageHDU
+                fits.append(HduClass(data=np.array(data), name=hduName))
+                return
+            code = {np.float32: "E", np.float64: "D", np.int16: "I", np.int32: "J", np.int64: "K"}[dtype]
+            if dims == 1:
+                table = BinTableHDU.from_columns([Column("value", f"P{code}()", array=data)], name=hduName)
+            else:
+                allNumRows = set([dd.shape[0] for dd in data])
+                if len(allNumRows) != 1:
+                    raise RuntimeError(f"Data for {component} have different numbers of rows: {allNumRows}")
+                numRows = allNumRows.pop()
+                columns = [
+                    Column(f"row_{ii}", f"P{code}()", array=[dd[ii] for dd in data]) for ii in range(numRows)
+                ]
+                table = BinTableHDU.from_columns(columns, name=hduName)
+            fits.append(table)
+
+        # Wavelength: we can write a single array if everything has the length and value
+        wavelength = [spectrum.wavelength for spectrum in self.values()]
+        if sameLengths and all(np.all(wl == wavelength[0]) for wl in wavelength):
+            fits.append(ImageHDU(data=wavelength[0], name="WAVELENGTH"))
+        else:
+            writeComponent("wavelength", "WAVELENGTH", np.float64)
+
+        writeComponent("flux", "FLUX", np.float32)
+        writeComponent("mask", "MASK", np.int32)
+        writeComponent("sky", "SKY", np.float32)
+        writeComponent("covar", "COVAR", np.float32)
+
         haveCovar2 = [spectrum.covar2 is not None for spectrum in self.values()]
         if len(set(haveCovar2)) == 2:
             raise RuntimeError("covar2 must be uniformly populated")
