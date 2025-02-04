@@ -361,6 +361,9 @@ class PfsTargetSpectra(Mapping[Target, PfsFiberArray]):
                 Data type.
             """
             data = [getattr(spectrum, component).astype(dtype) for spectrum in self.values()]
+            if len(data) == 0:
+                fits.append(ImageHDU(data=np.array(data, dtype=dtype), name=hduName))
+                return
             allDims = set([len(dd.shape) for dd in data])
             if len(allDims) != 1:
                 raise RuntimeError(f"Data for {component} have different dimensions: {allDims}")
