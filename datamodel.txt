@@ -1180,39 +1180,39 @@ The path would be
 The file will have several HDUs:
 
 HDU#0 PHDU
-     tract       INT         Tract identifier
-     patch       KEYWORD     Patch identifier
-     catId       INT         Catalog identifier
-     objId       INT         Object identifier
-     nvisit      INT         Number of visit
-     vHash       KEYWORD     63-bit SHA-1 list of visits
-     CRPIX1      FLOAT	     Pixel coordinate of reference point
-     CRVAL1      FLOAT	     [m] Coordinate value at reference point
-     CDELT1      FLOAT	     [m] Coordinate increment at reference point
-     D1D_VER     KEYWORD     Version of the DRP_1D library
-     D1DP_VER    KEYWORD     Version of the DRP_1DPIPE pipeline
-     DAMD_VER    KEYWORD     Version of the data model
-     U_PARAM     KEYWORD     User parameters contents, json
-     INIT_WARNING	     INT64	     Quality flags for spectrum initialization
-     GALAXY_ZWARNING    INT64       Quality flags for galaxy solver
-     QSO_ZWARNING    INT64       Quality flags for QSO solver
-     STAR_ZWARNING    INT64       Quality flags for star solver
-     GALAXY_LWARNING    INT64       Quality flags for galaxy line measurement solver
-     QSO_LWARNING    INT64       Quality flags for QSO line measurement solver
+     tract		       INT         Tract identifier
+     patch       	       KEYWORD     Patch identifier
+     catId       	       INT         Catalog identifier
+     objId       	       INT	   Object identifier
+     nvisit	     	       INT	   Number of visit
+     vHash	               KEYWORD     63-bit SHA-1 list of visits
+     CRPIX1	               FLOAT	   Pixel coordinate of reference point
+     CRVAL1	               FLOAT	   [m] Coordinate value at reference point
+     CDELT1	               FLOAT	   [m] Coordinate increment at reference point
+     D1D_VER                   KEYWORD     Version of the DRP_1D library
+     D1DP_VER                  KEYWORD     Version of the DRP_1DPIPE pipeline
+     DAMD_VER                  KEYWORD     Version of the data model
+     U_PARAM                   KEYWORD     User parameters contents, json
+     INIT_WARNING	       INT64	   Quality flags for spectrum initialization
+     GALAXY_ZWARNING           INT64       Quality flags for galaxy solver
+     QSO_ZWARNING              INT64       Quality flags for QSO solver
+     STAR_ZWARNING             INT64       Quality flags for star solver
+     GALAXY_LWARNING           INT64       Quality flags for galaxy line measurement solver
+     QSO_LWARNING              INT64       Quality flags for QSO line measurement solver
      CLASSIFICATION_WARNING    INT64       Quality flags for classification solver
-     GALAXY_ZERROR    INT64       Error code for galaxy solver
-     QSO_ZERROR    INT64       Error code for QSO solver
-     STAR_ZERROR    INT64       Error code for star solver
-     GALAXY_LERROR    INT64       Error code for galaxy line measurement solver
-     QSO_LERROR    INT64       Error code for QSO line measurement solver
-     INIT_ERROR	   INT46       Error code for spectrum initialization
-     G_ZERR    KEYWORD       Error message for galaxy solver
-     Q_ZERR    KEYWORD       Error message for QSO solver
-     S_ZERR    KEYWORD       Error message for star solver
-     G_LERR    KEYWORD       Error message for galaxy line measurement solver
-     Q_LERR    KEYWORD       Error message for QSO line measurement solver
-     I_ERR     KEYWORD	     Error message for spectrum initialization
-     CLASSIFICATION_ERROR    INT64       Error code for classification solver
+     GALAXY_ZERROR    	       INT64       Error code for galaxy solver
+     QSO_ZERROR    	       INT64       Error code for QSO solver
+     STAR_ZERROR    	       INT64       Error code for star solver
+     GALAXY_LERROR    	       INT64       Error code for galaxy line measurement solver
+     QSO_LERROR    	       INT64       Error code for QSO line measurement solver
+     INIT_ERROR	   	       INT46       Error code for spectrum initialization
+     G_ZERR    		       KEYWORD     Error message for galaxy solver
+     Q_ZERR    		       KEYWORD     Error message for QSO solver
+     S_ZERR    		       KEYWORD     Error message for star solver
+     G_LERR    		       KEYWORD     Error message for galaxy line measurement solver
+     Q_LERR    		       KEYWORD     Error message for QSO line measurement solver
+     I_ERR     		       KEYWORD	   Error message for spectrum initialization
+     CLASSIFICATION_ERROR      INT64       Error code for classification solver
      
 
 HDU#1 CLASSIFICATION
