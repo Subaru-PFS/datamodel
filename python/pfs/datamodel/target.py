@@ -92,9 +92,12 @@ class Target(types.SimpleNamespace):
         # the versions.txt file.
         from astropy.io.fits import BinTableHDU, Column
         maxLength = max(len(ff) for ff in self.fiberFlux.keys()) if self.fiberFlux else 1
-        header = astropyHeaderFromDict(
-            {attr.upper(): getattr(self, attr) for attr in self._attributes if attr != "targetType"}
-        )
+        metadata = {attr.upper(): getattr(self, attr) for attr in self._attributes if attr != "targetType"}
+        if not np.isfinite(metadata["RA"]):
+            del metadata["RA"]
+        if not np.isfinite(metadata["DEC"]):
+            del metadata["DEC"]
+        header = astropyHeaderFromDict(metadata)
         header["HIERARCH TARGETTYPE"] = int(self.targetType)
         header.update(TargetType.getFitsHeaders())
         header['DAMD_VER'] = (1, "Target datamodel version")
