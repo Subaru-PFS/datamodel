@@ -715,7 +715,7 @@ class PfsDesign:
             filterNames = {ii: [] for ii in fiberId}
 
             # Get all the data at once to save of data type conversions
-            columns = { k: photometry[k] for k in photometry.columns.names }
+            columns = {k: photometry[k] for k in photometry.columns.names}
             for ii in fiberId:
                 mask = columns["fiberId"] == ii
                 fiberFlux[ii] = columns["fiberFlux"][mask]
