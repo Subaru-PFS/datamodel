@@ -269,6 +269,8 @@ class PfsDesign:
     _hduName = "DESIGN"
     _POSANG_DEFAULT = 0.0
 
+    _allCams = [f'{arm}{specNum}' for specNum in list(range(1, 5)) for arm in 'brnm']
+
     fileNameFormat = "pfsDesign-0x%016x.fits"
 
     def validate(self):
@@ -1217,11 +1219,13 @@ class PfsConfig(PfsDesign):
         Counter of which variant of `designId0` we are. Requires `designId0`.
     designId0 : `int`, optional
         pfsDesignId of the pfsDesign we are a variant of. Requires `variant`.
+    camMask : `int`, optional
+        bitMask describing which cameras were use for that visit.
     """
     # Scalar values
     _scalars = ["pfsDesignId", "designName",
                 "visit", "raBoresight", "decBoresight", "posAng", "arms", "guideStars",
-                "variant", "designId0", "header"]
+                "variant", "designId0", "header", "camMask"]
 
     # List of fields required, and their FITS type
     # Some elements of the code expect the following to be present:
@@ -1275,10 +1279,12 @@ class PfsConfig(PfsDesign):
                  designName="",
                  variant=0,
                  designId0=0,
-                 header=None):
+                 header=None,
+                 camMask=0):
         self.visit = visit
         self.pfiCenter = np.array(pfiCenter)
         self.header = dict() if header is None else header
+        self.camMask = camMask
         super().__init__(pfsDesignId, raBoresight, decBoresight,
                          posAng,
                          arms,
@@ -1308,7 +1314,7 @@ class PfsConfig(PfsDesign):
         return self.fileNameFormat % (self.pfsDesignId, self.visit)
 
     @classmethod
-    def fromPfsDesign(cls, pfsDesign, visit, pfiCenter, header=None):
+    def fromPfsDesign(cls, pfsDesign, visit, pfiCenter, header=None, camMask=0):
         """Construct from a ``PfsDesign``
 
         Parameters
@@ -1331,6 +1337,7 @@ class PfsConfig(PfsDesign):
         kwargs["visit"] = visit
         kwargs["pfiCenter"] = pfiCenter
         kwargs["header"] = header
+        kwargs["camMask"] = camMask
 
         return PfsConfig(**kwargs)
 
@@ -1356,6 +1363,7 @@ class PfsConfig(PfsDesign):
         # Now we look for it in the W_VISIT header, but need to allow for the possibility that it's
         # not present.
         visit = header.get("W_VISIT", None)
+        kwargs["camMask"] = header.get("CAMMASK", 0)
         if visit is not None:
             if "visit" in kwargs and kwargs["visit"] != visit:
                 raise RuntimeError(f"visit mismatch: {kwargs['visit']} vs visit")
@@ -1375,6 +1383,7 @@ class PfsConfig(PfsDesign):
         """
         super()._writeHeader(header)
         header["W_VISIT"] = (self.visit, "Visit number")
+        header["CAMMASK"] = (self.camMask, "Camera Mask")
         header.update(self.header)
 
     @classmethod
@@ -1432,6 +1441,42 @@ class PfsConfig(PfsDesign):
         """
         index = np.nonzero(np.isin(self.fiberId, fiberId))[0]
         return self.pfiCenter[index]
+
+    @staticmethod
+    def getCameraMask(cameraList):
+        """Return bit mask for selected cameras.
+
+        Parameters
+        ----------
+        cameraList : `list` of `str`
+            List of selected camera names.
+
+        Returns
+        -------
+        mask : `int`
+            Bitmask representing the selected cameras.
+        """
+        mask = 0
+        for cam in cameraList:
+            if cam in PfsConfig._allCams:
+                mask |= (1 << PfsConfig._allCams.index(cam))
+            else:
+                raise ValueError(f'{cam} is not a valid camera : {",".join(PfsConfig._allCams)}')
+        return mask
+
+    def getCameraList(self):
+        """Return a list of cameras from camMask.
+
+        Returns
+        -------
+        cameraList : `list` of `str`
+            List of selected camera names.
+        """
+        cameraList = []
+        for i, cam in enumerate(PfsConfig._allCams):
+            if self.camMask & (1 << i):
+                cameraList.append(cam)
+        return cameraList
 
 
 PFSCONFIG_FILENAME_REGEX: str = r"^pfsConfig-(0x[0-9a-f]+)-([0-9]+)\.fits.*"
