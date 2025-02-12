@@ -123,6 +123,7 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
         self.designId0 = 0
 
         self.header = dict()
+        self.camMask = 0
 
     def _makeInstance(self, Class, **kwargs):
         """Construct a PfsDesign or PfsConfig using default values
@@ -590,6 +591,48 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
             indices = pfsConfig.selectByFiberStatus(fiberStatus, fiberId)
             self.assertEqual(len(indices), select.sum())
             self.assertFloatsEqual(pfsConfig.fiberId[indices], pfsConfig.fiberId[select[::-1]])
+
+    def testGetCameraMask(self):
+        """Test getCameraMask method."""
+        allCams = PfsConfig._allCams  # Retrieve the full list of cameras
+
+        # Test with an empty list
+        self.assertEqual(PfsConfig.getCameraMask([]), 0)
+
+        # Test with a single camera
+        self.assertEqual(PfsConfig.getCameraMask([allCams[0]]), 1 << 0)
+
+        # Test with multiple cameras
+        self.assertEqual(PfsConfig.getCameraMask([allCams[0], allCams[1]]), (1 << 0) | (1 << 1))
+
+        # Test with all cameras
+        expectedMask = sum(1 << i for i in range(len(allCams)))
+        self.assertEqual(PfsConfig.getCameraMask(allCams), expectedMask)
+
+        # Test with an invalid camera
+        with self.assertRaises(ValueError):
+            PfsConfig.getCameraMask(["invalidCam"])
+
+    def testGetCameraList(self):
+        """Test getCameraList method."""
+        allCams = PfsConfig._allCams  # Retrieve the full list of cameras
+        config = self.makePfsConfig()
+
+        # Test with an empty mask
+        config.camMask = 0
+        self.assertEqual(config.getCameraList(), [])
+
+        # Test with a single camera
+        config.camMask = 1 << 0
+        self.assertEqual(config.getCameraList(), [allCams[0]])
+
+        # Test with multiple cameras
+        config.camMask = (1 << 0) | (1 << 1)
+        self.assertEqual(config.getCameraList(), [allCams[0], allCams[1]])
+
+        # Test with all cameras
+        config.camMask = sum(1 << i for i in range(len(allCams)))
+        self.assertEqual(config.getCameraList(), allCams)
 
 
 class TestMemory(lsst.utils.tests.MemoryTestCase):
