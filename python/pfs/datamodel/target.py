@@ -111,37 +111,38 @@ class Target(types.SimpleNamespace):
         """Comparison
 
         We do not compare the full set of contents. We care only about the
-        parts that should uniquely identify the `Target`, viz., the ``catId``,
-        ``tract``, ``patch``, and ``objId``. The other attributes are
-        considered helpful additions, but are not used in determining whether
-        one `Target` is "equal" to another `Target`.
+        parts that should uniquely identify the `Target`, viz., the ``catId``
+        and ``objId``. The other attributes are considered helpful additions,
+        but are not used in determining whether one `Target` is "equal" to
+        another `Target`.
         """
         if not isinstance(other, self.__class__):
             return False
-        for attr in ("catId", "tract", "patch", "objId"):
+        for attr in ("catId", "objId"):
             if getattr(self, attr) != getattr(other, attr):
                 return False
         return True
 
     def __hash__(self):
-        return hash((self.catId, self.tract, self.patch, self.objId))
+        return hash((self.catId, self.objId))
 
     @classmethod
-    def fromPfsConfig(cls, pfsConfig, index):
+    def fromPfsConfig(cls, pfsConfig, fiberId):
         """Construct from a PfsConfig
 
         Parameters
         ----------
         pfsConfig : `pfs.datamodel.PfsConfig`
             Top-end configuration.
-        index : `int`
-            Index into the ``pfsConfig`` arrays for the target of interest.
+        fiberId : `int`
+            Fiber identifier.
 
         Returns
         -------
         self : cls
             Constructed `Target`.
         """
+        index = pfsConfig.selectFiber(fiberId)
         catId = pfsConfig.catId[index]
         tract = pfsConfig.tract[index]
         patch = pfsConfig.patch[index]
