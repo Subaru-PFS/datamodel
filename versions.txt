@@ -61,6 +61,14 @@ This class is used for the pfsArm and pfsMerged products.
 * 3: Added NOTES to PfsFiberArraySet.
 
 
+PfsTargetSpectra
+----------------
+
+This class is used for the pfsCalibrated and pfsCoadd products.
+
+* 1: Initial version.
+
+
 PfsFiberProfiles
 ----------------
 
