@@ -17,9 +17,7 @@ class FileFormatTestCase(unittest.TestCase):
     def extractAttributes(self, cls, fileName):
         matches = re.search(cls.filenameRegex, fileName)
         if not matches:
-            self.fail(
-                "Unable to parse filename: {} using regex {}"
-                .format(fileName, cls.filenameRegex))
+            raise RuntimeError(f"Unable to parse filename: {fileName} using regex {cls.filenameRegex}")
 
         # Cannot use algorithm in PfsSpectra._parseFilename(),
         # specifically cls.filenameKeys, due to ambiguity in parsing
@@ -39,11 +37,12 @@ class FileFormatTestCase(unittest.TestCase):
             d[kk] = ii
         return d
 
-    @unittest.expectedFailure
     def testBadHashInFileName(self):
-        self.extractAttributes(
-            PfsObject,
-            'pfsObject-07621-2,2-001-02468ace1234abcd-003-1234abcddeadbeef.fits')
+        with self.assertRaises(RuntimeError):
+            self.extractAttributes(
+                PfsObject,
+                'pfsObject-07621-2,2-001-02468ace1234abcd-003-1234abcddeadbeef.fits'
+            )
 
     def testPfsArm(self):
         d = self.extractAttributes(PfsArm, 'pfsArm-123450-b1.fits')
