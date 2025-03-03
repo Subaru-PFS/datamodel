@@ -59,6 +59,7 @@ This class is used for the pfsArm and pfsMerged products.
 * 1: Initial version.
 * 2: Added NORM for normalisations.
 * 3: Added NOTES to PfsFiberArraySet.
+* 4: Allow WAVELENGTH to be a single array if it applies to all spectra.
 
 
 PfsTargetSpectra
