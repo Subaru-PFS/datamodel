@@ -246,9 +246,15 @@ class PfsFiberArraySet:
         import astropy.io.fits
         with astropy.io.fits.open(filename) as fd:
             data["metadata"] = astropyHeaderToDict(fd[0].header)
-            for attr, dtype in (("fiberId", np.int32),
-                                ("wavelength", float),
-                                ("flux", np.float32),
+            data["fiberId"] = fd["FIBERID"].data.astype(np.int32)
+
+            # Wavelength: if there's only a single array, it applies to all spectra
+            wavelength = fd["WAVELENGTH"].data.astype(np.float64)
+            if len(wavelength.shape) == 1:
+                wavelength = np.tile(wavelength, (len(data["fiberId"]), 1))
+            data["wavelength"] = wavelength
+
+            for attr, dtype in (("flux", np.float32),
                                 ("mask", np.uint32),
                                 ("sky", np.float32),
                                 # "norm" is treated separately, for backwards-compatibility
@@ -311,11 +317,17 @@ class PfsFiberArraySet:
         header = self.metadata.copy()
         header.update(self.flags.toFitsHeader())
         header = astropyHeaderFromDict(header)
-        header['DAMD_VER'] = (3, "PfsFiberArraySet datamodel version")
+        header['DAMD_VER'] = (4, "PfsFiberArraySet datamodel version")
         fits.append(astropy.io.fits.PrimaryHDU(header=header))
+        fits.append(astropy.io.fits.ImageHDU(self.fiberId.astype(np.int32), name="FIBERID"))
+
+        # Wavelength: we can write a single array if they're all the same
+        wavelength = self.wavelength[0]
+        if not all(np.all(wl == wavelength) for wl in self.wavelength[1:]):
+            wavelength = self.wavelength
+        fits.append(astropy.io.fits.ImageHDU(data=wavelength.astype(np.float64), name="WAVELENGTH"))
+
         for attr, dtype in (
-            ("fiberId", np.int32),
-            ("wavelength", float),
             ("flux", np.float32),
             ("mask", np.uint32),
             ("sky", np.float32),
