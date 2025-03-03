@@ -4,7 +4,7 @@ from typing import Dict, Iterator, List, Optional, Sequence, Tuple, Type, Union,
 import astropy.io.fits
 import numpy as np
 import yaml
-from astropy.io.fits import BinTableHDU, Column, CompImageHDU, HDUList, ImageHDU
+from astropy.io.fits import BinTableHDU, Column, CompImageHDU, HDUList, Header, ImageHDU, PrimaryHDU
 
 from .masks import MaskHelper
 from .observations import Observations
@@ -259,7 +259,13 @@ class PfsTargetSpectra(Mapping[Target, PfsFiberArray]):
         filename : `str`
             Filename of FITS file.
         """
+        # NOTE: When making any changes to this method that modify the output
+        # format, increment the DAMD_VER header value and record the change in
+        # the versions.txt file.
         fits = HDUList()
+        header = Header()
+        header['DAMD_VER'] = (1, "PfsTargetSpectra datamodel version")
+        fits.append(PrimaryHDU(header=header))
 
         targetId = np.arange(len(self), dtype=np.int16)
         fits.append(

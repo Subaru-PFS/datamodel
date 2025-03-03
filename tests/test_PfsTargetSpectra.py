@@ -3,6 +3,8 @@ from typing import Any, Callable, Dict, Iterable, Optional, TYPE_CHECKING
 import unittest
 import itertools
 
+import astropy.io.fits
+
 import lsst.afw.image.testUtils
 import lsst.utils.tests
 import numpy as np
@@ -346,6 +348,10 @@ class PfsTargetSpectraTestCase(lsst.utils.tests.TestCase):
             spectra.writeFits(filename)
             copy = PfsCoadd.readFits(filename)
             self.assertPfsTargetSpectraEqual(copy, spectra)
+
+            # Check that the DAMD_VER is present
+            with astropy.io.fits.open(filename) as hdus:
+                self.assertIn("DAMD_VER", hdus[0].header)
 
     def testDifferentLengths(self):
         """Test I/O when the spectra have different lengths"""
