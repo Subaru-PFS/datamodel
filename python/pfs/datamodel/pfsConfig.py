@@ -228,11 +228,15 @@ class PfsDesign:
         Counter of which variant of `designId0` we are. Requires `designId0`.
     designId0 : `int`, optional
         pfsDesignId of the pfsDesign we are a variant of. Requires `variant`.
+    obstime : `str`, optional
+        Designed observation time ISO format (UTC-time).
+    pfsUtilsVer : `str`, optional
+        pfs_utils version used to create the design file.
     """
     # Scalar values
     _scalars = ["pfsDesignId", "designName",
                 "raBoresight", "decBoresight", "posAng", "arms", "guideStars",
-                "variant", "designId0"]
+                "variant", "designId0", "obstime", "pfsUtilsVer"]
     # List of fields required, and their FITS type
     # Some elements of the code expect the following to be present:
     #     fiberId, targetType
@@ -373,7 +377,9 @@ class PfsDesign:
                  guideStars,
                  designName="",
                  variant=0,
-                 designId0=0):
+                 designId0=0,
+                 obstime="",
+                 pfsUtilsVer=""):
         self.pfsDesignId = pfsDesignId
         self.raBoresight = raBoresight
         self.decBoresight = decBoresight
@@ -406,6 +412,8 @@ class PfsDesign:
         self.designName = designName
         self.variant = variant
         self.designId0 = designId0
+        self.obstime = obstime
+        self.pfsUtilsVer = pfsUtilsVer
         self.isSubset = False
         self.validate()
 
@@ -635,6 +643,11 @@ class PfsDesign:
         kwargs["variant"] = header.get("VARIANT", 0)
         kwargs["designId0"] = header.get("PFDSGN0", 0)
 
+        # adding pfs_utils version
+        kwargs["pfsUtilsVer"] = header.get('UTLS_VER', "")
+        # setting default for retro-compatiblity.
+        kwargs["obstime"] = header.get("OBSTIME", "")
+
         return kwargs
 
     def _writeHeader(self, header):
@@ -654,6 +667,8 @@ class PfsDesign:
         header["W_PFDSGN"] = (self.pfsDesignId, "Identifier for fiber configuration")
         header["VARIANT"] = (self.variant, "Which variant of PFDSGN0 we are.")
         header["PFDSGN0"] = (self.designId0, "The base design of which we are a variant")
+        header["UTLS_VER"] = (self.pfsUtilsVer, "pfs_utils version")
+        header["OBSTIME"] = (self.obstime, "Observation time")
 
     @classmethod
     def _readImpl(cls, filename, **kwargs):
@@ -1227,6 +1242,14 @@ class PfsConfig(PfsDesign):
         Human-readable name for the design.
     variant : `int`, optional
         Counter of which variant of `designId0` we are. Requires `designId0`.
+    obstime : `str`, optional
+        Observation time ISO format (UTC-time).
+    pfsUtilsVer : `str`, optional
+         pfs_utils version used to create the config file
+    obstimeDesign : `str`, optional
+        Designed observation time ISO format (UTC-time).
+    pfsUtilsVerDesign : `str`, optional
+         pfs_utils version used to create the design file.
     designId0 : `int`, optional
         pfsDesignId of the pfsDesign we are a variant of. Requires `variant`.
     camMask : `int`, optional
@@ -1235,7 +1258,8 @@ class PfsConfig(PfsDesign):
     # Scalar values
     _scalars = ["pfsDesignId", "designName",
                 "visit", "raBoresight", "decBoresight", "posAng", "arms", "guideStars",
-                "variant", "designId0", "header", "camMask"]
+                "variant", "designId0", "obstime", "pfsUtilsVer", "obstimeDesign", "pfsUtilsVerDesign",
+                "header", "camMask"]
 
     # List of fields required, and their FITS type
     # Some elements of the code expect the following to be present:
@@ -1289,12 +1313,18 @@ class PfsConfig(PfsDesign):
                  designName="",
                  variant=0,
                  designId0=0,
+                 obstime="",
+                 pfsUtilsVer="",
+                 obstimeDesign="",
+                 pfsUtilsVerDesign="",
                  header=None,
                  camMask=0):
         self.visit = visit
         self.pfiCenter = np.array(pfiCenter)
         self.header = dict() if header is None else header
         self.camMask = camMask
+        self.obstimeDesign = obstimeDesign
+        self.pfsUtilsVerDesign = pfsUtilsVerDesign
         super().__init__(pfsDesignId, raBoresight, decBoresight,
                          posAng,
                          arms,
@@ -1312,7 +1342,9 @@ class PfsConfig(PfsDesign):
                          guideStars,
                          designName,
                          variant=variant,
-                         designId0=designId0)
+                         designId0=designId0,
+                         obstime=obstime,
+                         pfsUtilsVer=pfsUtilsVer)
 
     def __str__(self):
         """String representation"""
@@ -1348,6 +1380,8 @@ class PfsConfig(PfsDesign):
         kwargs["pfiCenter"] = pfiCenter
         kwargs["header"] = header
         kwargs["camMask"] = camMask
+        kwargs["obstimeDesign"] = pfsDesign.obstime
+        kwargs["pfsUtilsVerDesign"] = pfsDesign.pfsUtilsVer
 
         return PfsConfig(**kwargs)
 
@@ -1374,6 +1408,9 @@ class PfsConfig(PfsDesign):
         # not present.
         visit = header.get("W_VISIT", None)
         kwargs["camMask"] = header.get("CAMMASK", 0)
+        kwargs["pfsUtilsVerDesign"] = header.get("DTLS_VER", "")
+        kwargs["obstimeDesign"] = header.get("DOBSTIME", "")
+
         if visit is not None:
             if "visit" in kwargs and kwargs["visit"] != visit:
                 raise RuntimeError(f"visit mismatch: {kwargs['visit']} vs visit")
@@ -1394,6 +1431,8 @@ class PfsConfig(PfsDesign):
         super()._writeHeader(header)
         header["W_VISIT"] = (self.visit, "Visit number")
         header["CAMMASK"] = (self.camMask, "Camera Mask")
+        header["DTLS_VER"] = (self.pfsUtilsVerDesign, "PfsDesign pfs_utils version")
+        header["DOBSTIME"] = (self.obstimeDesign, "Designed observation time")
         header.update(self.header)
 
     @classmethod
@@ -1487,6 +1526,28 @@ class PfsConfig(PfsDesign):
             if self.camMask & (1 << i):
                 cameraList.append(cam)
         return cameraList
+
+    def updateTargetPosition(self, ra, dec, pfiNominal, obstime, pfsUtilsVer):
+        """Update the target position with tweaked values.
+
+        Parameters
+        ----------
+        ra : `numpy.ndarray` of `float64`
+            Updated Right Ascension for each fiber, degrees.
+        dec : `numpy.ndarray` of `float64`
+            Updated Declination for each fiber, degrees.
+        pfiNominal : `numpy.ndarray` of `float`
+            Updated intended target position (2-vector) of each fiber on the PFI, millimeters.
+        obstime : `str`
+            Observation time in ISO format (UTC-time).
+        pfsUtilsVer : `str`, optional
+         pfs_utils version used to update the positions.
+        """
+        self.ra = ra
+        self.dec = dec
+        self.pfiNominal = pfiNominal
+        self.obstime = obstime
+        self.pfsUtilsVer = pfsUtilsVer
 
 
 PFSCONFIG_FILENAME_REGEX: str = r"^pfsConfig-(0x[0-9a-f]+)-([0-9]+)\.fits.*"

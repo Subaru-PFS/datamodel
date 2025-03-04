@@ -125,6 +125,11 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
         self.header = dict()
         self.camMask = 0
 
+        self.obstime = datetime.datetime.now(datetime.timezone.utc).isoformat()
+        self.pfsUtilsVer = "w.2025.06"
+        self.obstimeDesign = datetime.datetime.now(datetime.timezone.utc).isoformat()
+        self.pfsUtilsVerDesign = "w.2025.06"
+
     def _makeInstance(self, Class, **kwargs):
         """Construct a PfsDesign or PfsConfig using default values
 
