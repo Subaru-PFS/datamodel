@@ -644,9 +644,9 @@ class PfsDesign:
         kwargs["designId0"] = header.get("PFDSGN0", 0)
 
         # adding pfs_utils version
-        kwargs["pfsUtilsVer"] = header.get('UTLS_VER', "")
+        kwargs["pfsUtilsVer"] = header.get('W_DSGVER', "")
         # setting default for retro-compatiblity.
-        kwargs["obstime"] = header.get("OBSTIME", "")
+        kwargs["obstime"] = header.get("W_DSGOBS", "")
 
         return kwargs
 
@@ -667,8 +667,8 @@ class PfsDesign:
         header["W_PFDSGN"] = (self.pfsDesignId, "Identifier for fiber configuration")
         header["VARIANT"] = (self.variant, "Which variant of PFDSGN0 we are.")
         header["PFDSGN0"] = (self.designId0, "The base design of which we are a variant")
-        header["UTLS_VER"] = (self.pfsUtilsVer, "pfs_utils version")
-        header["OBSTIME"] = (self.obstime, "Observation time")
+        header["W_DSGVER"] = (self.pfsUtilsVer, "pfs_utils version used to design positions.")
+        header["W_DSGOBS"] = (self.obstime, "Designed observation time ISO format (UTC-time).")
 
     @classmethod
     def _readImpl(cls, filename, **kwargs):
@@ -1407,9 +1407,9 @@ class PfsConfig(PfsDesign):
         # Now we look for it in the W_VISIT header, but need to allow for the possibility that it's
         # not present.
         visit = header.get("W_VISIT", None)
-        kwargs["camMask"] = header.get("CAMMASK", 0)
-        kwargs["pfsUtilsVerDesign"] = header.get("DTLS_VER", "")
-        kwargs["obstimeDesign"] = header.get("DOBSTIME", "")
+        kwargs["camMask"] = header.get("W_CAMMSK", 0)
+        kwargs["pfsUtilsVerDesign"] = header.get("W_DSVER0", "")
+        kwargs["obstimeDesign"] = header.get("W_DSOBS0", "")
 
         if visit is not None:
             if "visit" in kwargs and kwargs["visit"] != visit:
@@ -1430,9 +1430,10 @@ class PfsConfig(PfsDesign):
         """
         super()._writeHeader(header)
         header["W_VISIT"] = (self.visit, "Visit number")
-        header["CAMMASK"] = (self.camMask, "Camera Mask")
-        header["DTLS_VER"] = (self.pfsUtilsVerDesign, "PfsDesign pfs_utils version")
-        header["DOBSTIME"] = (self.obstimeDesign, "Designed observation time")
+        header["W_CAMMSK"] = (self.camMask, "Camera Mask describing which camera was used for that visit.")
+        header["W_DSVER0"] = (self.pfsUtilsVerDesign, "pfs_utils version used to design original positions.")
+        header["W_DSOBS0"] = (self.obstimeDesign, "Original designed observation time ISO format (UTC-time).")
+
         header.update(self.header)
 
     @classmethod
