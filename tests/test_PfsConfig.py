@@ -11,7 +11,7 @@ import lsst.utils.tests
 import lsst.geom
 
 from pfs.datamodel.pfsConfig import PfsConfig, TargetType, FiberStatus, PfsDesign, GuideStars
-
+from pfs.datamodel.utils import convertToIso8601Utc
 display = None
 
 
@@ -125,10 +125,9 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
         self.header = dict()
         self.camMask = 0
 
-        self.obstime = datetime.datetime.now(datetime.timezone.utc).isoformat()
-        self.pfsUtilsVer = "w.2025.06"
-        self.obstimeDesign = datetime.datetime.now(datetime.timezone.utc).isoformat()
-        self.pfsUtilsVerDesign = "w.2025.06"
+        self.obstime = convertToIso8601Utc(datetime.datetime.now(datetime.timezone.utc).isoformat())
+        self.obstimeDesign = convertToIso8601Utc(datetime.datetime.now(datetime.timezone.utc).isoformat())
+        self.pfsUtilsVer = self.pfsUtilsVerDesign = "w.2025.06"
 
     def _makeInstance(self, Class, **kwargs):
         """Construct a PfsDesign or PfsConfig using default values

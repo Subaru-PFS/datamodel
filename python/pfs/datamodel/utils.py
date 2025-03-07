@@ -6,12 +6,13 @@ import inspect
 import functools
 from typing import Optional, Set, Type, TypeVar, Union
 from logging import Logger
+import datetime
 
 import numpy as np
 import astropy.io.fits
 
 __all__ = ("calculatePfsVisitHash", "createHash", "astropyHeaderToDict", "astropyHeaderFromDict",
-           "wraparoundNVisit", "inheritDocstrings", "checkHeaderKeyword")
+           "wraparoundNVisit", "inheritDocstrings", "checkHeaderKeyword", "convertToIso8601Utc")
 
 
 def calculatePfsVisitHash(visits):
@@ -331,3 +332,42 @@ def subclasses(cls: Type[T]) -> Set[Type[T]]:
     """Return a set of all subclasses of the provided class"""
     subs = cls.__subclasses__()
     return set(subs).union(*[subclasses(ss) for ss in subs])
+
+
+def convertToIso8601Utc(datestr):
+    """Convert an ISO 8601 date string to a standardized UTC format with a 'Z' suffix.
+
+    This function ensures that the input datetime string is correctly interpreted
+    as UTC and formatted in ISO 8601 format. It properly handles 'Z' notation
+    and timezone offsets, converting everything to UTC.
+
+    Parameters
+    ----------
+    datestr : `str`
+        Input date string in ISO 8601 format.
+
+    Returns
+    -------
+    formatted_date : `str`
+        The date string formatted as 'YYYY-MM-DDTHH:MM:SS.sssZ' in UTC.
+
+    Raises
+    ------
+    ValueError
+        If the input string is not a valid ISO 8601 date.
+    """
+    # Handle 'Z' case manually (Python 3.8-3.10 doesn't support it)
+    if datestr.endswith("Z"):
+        datestr = datestr[:-1] + "+00:00"
+
+    # Parse the datetime string
+    date = datetime.datetime.fromisoformat(datestr)
+
+    # Convert to UTC if it has a timezone
+    if date.tzinfo is not None:
+        date = date.astimezone(datetime.timezone.utc)
+    else:
+        date = date.replace(tzinfo=datetime.timezone.utc)
+
+    # Format with milliseconds and 'Z' suffix
+    return date.isoformat(timespec='milliseconds').replace("+00:00", "Z")
