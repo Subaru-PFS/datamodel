@@ -7,6 +7,7 @@ import enum
 from collections import Counter
 from logging import Logger
 from typing import Optional, TYPE_CHECKING
+from pfs.datamodel.utils import convertToIso8601Utc
 
 try:
     import astropy.io.fits as pyfits
@@ -412,7 +413,7 @@ class PfsDesign:
         self.designName = designName
         self.variant = variant
         self.designId0 = designId0
-        self.obstime = obstime
+        self.obstime = convertToIso8601Utc(obstime) if obstime else ""
         self.pfsUtilsVer = pfsUtilsVer
         self.isSubset = False
         self.validate()
@@ -1323,7 +1324,7 @@ class PfsConfig(PfsDesign):
         self.pfiCenter = np.array(pfiCenter)
         self.header = dict() if header is None else header
         self.camMask = camMask
-        self.obstimeDesign = obstimeDesign
+        self.obstimeDesign = convertToIso8601Utc(obstimeDesign) if obstimeDesign else ""
         self.pfsUtilsVerDesign = pfsUtilsVerDesign
         super().__init__(pfsDesignId, raBoresight, decBoresight,
                          posAng,
@@ -1547,7 +1548,7 @@ class PfsConfig(PfsDesign):
         self.ra = ra
         self.dec = dec
         self.pfiNominal = pfiNominal
-        self.obstime = obstime
+        self.obstime = convertToIso8601Utc(obstime)
         self.pfsUtilsVer = pfsUtilsVer
 
 
