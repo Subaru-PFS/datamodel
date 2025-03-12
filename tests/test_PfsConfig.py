@@ -10,7 +10,10 @@ import astropy.units as u
 import lsst.utils.tests
 import lsst.geom
 
-from pfs.datamodel.pfsConfig import PfsConfig, TargetType, FiberStatus, PfsDesign, GuideStars
+from pfs.datamodel.pfsConfig import (
+    PfsConfig, TargetType, FiberStatus, PfsDesign, GuideStars, InstrumentStatusFlag,
+    InstrumentStatusDescription)
+
 from pfs.datamodel.utils import convertToIso8601Utc
 display = None
 
@@ -124,6 +127,7 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
 
         self.header = dict()
         self.camMask = 0
+        self.instStatusFlag = 0
 
         self.obstime = convertToIso8601Utc(datetime.datetime.now(datetime.timezone.utc).isoformat())
         self.obstimeDesign = convertToIso8601Utc(datetime.datetime.now(datetime.timezone.utc).isoformat())
@@ -637,6 +641,39 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
         # Test with all cameras
         config.camMask = sum(1 << i for i in range(len(allCams)))
         self.assertEqual(config.getCameraList(), allCams)
+
+    def testSetInstrumentStatusFlag(self):
+        """Test setting instrument status mask with valid and invalid flags."""
+        config = self.makePfsConfig()
+
+        # Ensure initial bitmask value is zero
+        self.assertEqual(config.instStatusFlag, 0)
+
+        # Set a valid flag (INSROT_MISMATCH) and check that the bitmask updates correctly
+        config.setInstrumentStatusFlag(InstrumentStatusFlag.INSROT_MISMATCH)
+        self.assertEqual(config.instStatusFlag, InstrumentStatusFlag.INSROT_MISMATCH)
+
+        # Ensure setting the same flag again does not change the mask
+        config.setInstrumentStatusFlag(InstrumentStatusFlag.INSROT_MISMATCH)
+        self.assertEqual(config.instStatusFlag, InstrumentStatusFlag.INSROT_MISMATCH)
+
+        # Ensure decoding function works correctly
+        activeFlags = config.decodeInstrumentStatusFlag()
+        self.assertIn('INSROT_MISMATCH', activeFlags)
+        self.assertEqual(len(activeFlags), 1)  # Only this one should be set
+
+        # Ensure we get the correct flag description.
+        for flag in InstrumentStatusFlag:
+            description = config.getInstrumentStatusDescription(flag)
+            self.assertEqual(description, InstrumentStatusDescription[flag])
+
+        # Attempt to set an invalid flag (integer instead of a valid InstrumentStatusFlag)
+        # Expect a ValueError since only documented flags should be allowed
+        with self.assertRaises(ValueError):
+            config.setInstrumentStatusFlag(4)  # 4 is not a defined InstrumentStatusFlag
+
+        with self.assertRaises(ValueError):
+            config.setInstrumentStatusFlag("INVALID_FLAG")  # Non-integer input
 
 
 class TestMemory(lsst.utils.tests.MemoryTestCase):

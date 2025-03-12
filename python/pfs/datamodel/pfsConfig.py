@@ -27,6 +27,8 @@ __all__ = (
     "PFSCONFIG_FILENAME_REGEX",
     "parsePfsConfigFilename",
     "checkPfsConfigHeader",
+    "InstrumentStatusFlag",
+    "InstrumentStatusDescription",
 )
 
 
@@ -149,6 +151,18 @@ class FiberStatus(DocEnum):
     UNILLUMINATED = 5, "not illuminated; ignore any flux"
     BROKENCOBRA = 6, "Cobra does not move, but the fiber still carries flux."
     NOTCONVERGED = 7, "Cobra did not converge to the target."
+
+
+@enum.verify(enum.UNIQUE)
+class InstrumentStatusFlag(enum.IntFlag, boundary=enum.STRICT):
+    """Bit positions for instrument status flags."""
+    INSROT_MISMATCH = 1 << 0
+
+
+# Separate dictionary for descriptions (must be outside the class)
+InstrumentStatusDescription = {
+    InstrumentStatusFlag.INSROT_MISMATCH:
+        "INSROT at the time of convergence vs SPS exposure exceeded threshold", }
 
 
 class PfsDesign:
@@ -1254,13 +1268,15 @@ class PfsConfig(PfsDesign):
     designId0 : `int`, optional
         pfsDesignId of the pfsDesign we are a variant of. Requires `variant`.
     camMask : `int`, optional
-        bitMask describing which cameras were use for that visit.
+        bitMask describing which cameras were use for this visit.
+    instStatusFlag : `int`, optional
+        Bitmask indicating instrument-related status flags for this visit.
     """
     # Scalar values
     _scalars = ["pfsDesignId", "designName",
                 "visit", "raBoresight", "decBoresight", "posAng", "arms", "guideStars",
                 "variant", "designId0", "obstime", "pfsUtilsVer", "obstimeDesign", "pfsUtilsVerDesign",
-                "header", "camMask"]
+                "header", "camMask", "instStatusFlag"]
 
     # List of fields required, and their FITS type
     # Some elements of the code expect the following to be present:
@@ -1319,11 +1335,13 @@ class PfsConfig(PfsDesign):
                  obstimeDesign="",
                  pfsUtilsVerDesign="",
                  header=None,
-                 camMask=0):
+                 camMask=0,
+                 instStatusFlag=0):
         self.visit = visit
         self.pfiCenter = np.array(pfiCenter)
         self.header = dict() if header is None else header
         self.camMask = camMask
+        self.instStatusFlag = instStatusFlag
         self.obstimeDesign = convertToIso8601Utc(obstimeDesign) if obstimeDesign else ""
         self.pfsUtilsVerDesign = pfsUtilsVerDesign
         super().__init__(pfsDesignId, raBoresight, decBoresight,
@@ -1357,7 +1375,7 @@ class PfsConfig(PfsDesign):
         return self.fileNameFormat % (self.pfsDesignId, self.visit)
 
     @classmethod
-    def fromPfsDesign(cls, pfsDesign, visit, pfiCenter, header=None, camMask=0):
+    def fromPfsDesign(cls, pfsDesign, visit, pfiCenter, header=None, camMask=0, instStatusFlag=0):
         """Construct from a ``PfsDesign``
 
         Parameters
@@ -1368,6 +1386,10 @@ class PfsConfig(PfsDesign):
             Exposure identifier.
         pfiCenter : `numpy.ndarray` of `float`
             Actual position (2-vector) of each fiber on the PFI, microns.
+        camMask : `int`, optional
+            bitMask describing which cameras were use for this visit.
+        instStatusFlag : `int`, optional
+            Bitmask indicating instrument-related status flags for this visit.
 
         Returns
         -------
@@ -1381,6 +1403,7 @@ class PfsConfig(PfsDesign):
         kwargs["pfiCenter"] = pfiCenter
         kwargs["header"] = header
         kwargs["camMask"] = camMask
+        kwargs["instStatusFlag"] = instStatusFlag
         kwargs["obstimeDesign"] = pfsDesign.obstime
         kwargs["pfsUtilsVerDesign"] = pfsDesign.pfsUtilsVer
 
@@ -1409,6 +1432,7 @@ class PfsConfig(PfsDesign):
         # not present.
         visit = header.get("W_VISIT", None)
         kwargs["camMask"] = header.get("W_CAMMSK", 0)
+        kwargs["instStatusFlag"] = header.get("W_INSMSK", 0)
         kwargs["pfsUtilsVerDesign"] = header.get("W_DSVER0", "")
         kwargs["obstimeDesign"] = header.get("W_DSOBS0", "")
 
@@ -1431,7 +1455,9 @@ class PfsConfig(PfsDesign):
         """
         super()._writeHeader(header)
         header["W_VISIT"] = (self.visit, "Visit number")
-        header["W_CAMMSK"] = (self.camMask, "Camera Mask describing which camera was used for that visit.")
+        header["W_CAMMSK"] = (self.camMask, "Bitmask describing which camera was used for this visit.")
+        header["W_INSMSK"] = (self.instStatusFlag,
+                              "Bitmask indicating instrument-related status flags for this visit.")
         header["W_DSVER0"] = (self.pfsUtilsVerDesign, "pfs_utils version used to design original positions.")
         header["W_DSOBS0"] = (self.obstimeDesign, "Original designed observation time ISO format (UTC-time).")
 
@@ -1550,6 +1576,42 @@ class PfsConfig(PfsDesign):
         self.pfiNominal = pfiNominal
         self.obstime = convertToIso8601Utc(obstime)
         self.pfsUtilsVer = pfsUtilsVer
+
+    def setInstrumentStatusFlag(self, flag: InstrumentStatusFlag):
+        """Set a flag in the instrument status bitmask.
+
+        Parameters
+        ----------
+        flag : `InstrumentStatusFlag`
+            Bit flag to set.
+        """
+        if not isinstance(flag, InstrumentStatusFlag):
+            validFlags = ", ".join(flag.name for flag in InstrumentStatusFlag)
+            raise ValueError(
+                f"Invalid InstrumentStatusFlag: {flag}. Must be one of: {validFlags}.")
+
+        self.instStatusFlag |= flag  # Uses bitwise OR to set the flag
+
+    def decodeInstrumentStatusFlag(self):
+        """Decode the instrument status bitmask into a list of active flag names.
+
+        Returns
+        -------
+        list of `str`
+            List of names of the active flags in `instStatusFlag`, or an empty list if no flags are set.
+        """
+        flagNames = InstrumentStatusFlag(self.instStatusFlag).name
+        return flagNames.split("|") if flagNames else []
+
+    def getInstrumentStatusDescription(self, flag):
+        """Get human-readable description for the input flag.
+
+        Returns
+        -------
+        list of `str`
+            List of descriptions for active flags.
+        """
+        return InstrumentStatusDescription.get(flag)
 
 
 PFSCONFIG_FILENAME_REGEX: str = r"^pfsConfig-(0x[0-9a-f]+)-([0-9]+)\.fits.*"
