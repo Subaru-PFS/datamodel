@@ -153,8 +153,21 @@ class FiberStatus(DocEnum):
     NOTCONVERGED = 7, "Cobra did not converge to the target."
 
 
-@enum.verify(enum.UNIQUE)
-class InstrumentStatusFlag(enum.IntFlag, boundary=enum.STRICT):
+try:
+    def verify(*args, **kwargs):
+        return enum.verify(enum.UNIQUE)(*args, **kwargs)
+    metaclassParams = dict(boundary=enum.STRICT)
+except AttributeError:
+    # enum.verify etc was added in python 3.11; add a no-op version for earlier versions
+    metaclassParams = {}
+
+    def verify(cls):
+        """No-op version of enum.verify"""
+        return cls
+
+
+@verify
+class InstrumentStatusFlag(enum.IntFlag, **metaclassParams):
     """Bit positions for instrument status flags."""
     INSROT_MISMATCH = 1 << 0
 
