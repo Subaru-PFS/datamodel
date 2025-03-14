@@ -682,6 +682,9 @@ Combined spectra from a single exposure (wavelength calibrated but not flux cali
 The format will be identical to that of the pfsArm files, except that the fluxes
 (in the FLUX, SKY and NORM HDUs) will be in units of electrons per nm.
 
+One exception is the WAVELENGTH array, which may be a single array (instead of NFIBER arrays),
+in which case that array applies to all of the spectra.
+
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 Flux-calibrated arm-merged spectrum from a single exposure
