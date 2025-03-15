@@ -48,6 +48,8 @@ class GuideStars:
     guideStarCatId : `int`
         The identifier for the catalogue from which the guide stars
         were taken.
+    mask : `int`
+        The bitMask for the guidestar catalog flags.
     """
     _hduName = "GUIDESTARS"  # HDU name to use
 
@@ -57,10 +59,10 @@ class GuideStars:
                  magnitude, passband,
                  color,
                  agId, agX, agY,
-                 telElev, guideStarCatId):
+                 telElev, guideStarCatId, mask):
 
         attributes = np.array(['objId', 'epoch', 'ra', 'dec', 'pmRa', 'pmDec', 'parallax',
-                               'magnitude', 'passband', 'color', 'agId', 'agX', 'agY'])
+                               'magnitude', 'passband', 'color', 'agId', 'agX', 'agY', 'mask'])
 
         dims = np.array([len(objId.shape),
                          len(epoch.shape),
@@ -74,7 +76,8 @@ class GuideStars:
                          len(color.shape),
                          len(agId.shape),
                          len(agX.shape),
-                         len(agY.shape)])
+                         len(agY.shape),
+                         len(mask.shape),])
 
         if np.any(dims != 1):
             attributes[dims != 1]
@@ -88,7 +91,7 @@ class GuideStars:
                                     parallax.shape,
                                     magnitude.shape, passband.shape,
                                     color.shape,
-                                    agId.shape, agX.shape, agY.shape]):
+                                    agId.shape, agX.shape, agY.shape, mask.shape]):
             if (shape[0] != objId.shape[0]):
                 attributeErrorDict[attribute] = shape
 
@@ -113,6 +116,7 @@ class GuideStars:
         self.epoch = epoch
         self.telElev = telElev
         self.guideStarCatId = guideStarCatId
+        self.guideStarFlag = mask
 
     def __len__(self):
         """Return number of elements"""
@@ -155,6 +159,7 @@ class GuideStars:
             Column("agId", "J", array=self.agId),
             Column("agX", "E", array=self.agX, unit='pixels'),
             Column("agY", "E", array=self.agY, unit='pixels'),
+            Column("mask", "J", array=self.mask),
         ], header=header, name=self._hduName)
         fits.append(hdu)
 
@@ -188,7 +193,9 @@ class GuideStars:
                    hdu.data["agX"].astype(np.float32),
                    hdu.data["agY"].astype(np.float32),
                    hdu.header['TEL_ELEV'],
-                   hdu.header['GS_CATID'])
+                   hdu.header['GS_CATID'],
+                   hdu.data["mask"].astype(np.int32),
+                   )
 
     @classmethod
     def empty(cls):
@@ -213,4 +220,6 @@ class GuideStars:
                    np.array([], dtype=np.float32),
                    np.array([], dtype=np.float32),
                    0.0,
-                   0)
+                   0,
+                   np.array([], dtype='a7'),
+                   )
