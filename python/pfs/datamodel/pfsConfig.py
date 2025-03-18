@@ -1610,11 +1610,11 @@ class PfsConfig(PfsDesign):
 
         Returns
         -------
-        list of `str`
-            List of names of the active flags in `instStatusFlag`, or an empty list if no flags are set.
+        `str`
+            Names of the active flags in `instStatusFlag`, or OK if no flags are set.
         """
         flagNames = InstrumentStatusFlag(self.instStatusFlag).name
-        return flagNames.split("|") if flagNames else []
+        return flagNames if flagNames else 'OK'
 
     def getInstrumentStatusDescription(self, flag):
         """Get human-readable description for the input flag.

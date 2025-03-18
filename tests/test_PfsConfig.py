@@ -648,6 +648,8 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
 
         # Ensure initial bitmask value is zero
         self.assertEqual(config.instStatusFlag, 0)
+        # Ensure absence of flag is decoded correctly.
+        self.assertEqual('OK', config.decodeInstrumentStatusFlag())
 
         # Set a valid flag (INSROT_MISMATCH) and check that the bitmask updates correctly
         config.setInstrumentStatusFlag(InstrumentStatusFlag.INSROT_MISMATCH)
@@ -659,8 +661,7 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
 
         # Ensure decoding function works correctly
         activeFlags = config.decodeInstrumentStatusFlag()
-        self.assertIn('INSROT_MISMATCH', activeFlags)
-        self.assertEqual(len(activeFlags), 1)  # Only this one should be set
+        self.assertEqual('INSROT_MISMATCH', activeFlags)
 
         # Ensure we get the correct flag description.
         for flag in InstrumentStatusFlag:
