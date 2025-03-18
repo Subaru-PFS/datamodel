@@ -406,7 +406,7 @@ class PfsDesign:
                  designName="",
                  variant=0,
                  designId0=0,
-                 obstime="",
+                 obstime=None,
                  pfsUtilsVer=""):
         self.pfsDesignId = pfsDesignId
         self.raBoresight = raBoresight
@@ -440,7 +440,7 @@ class PfsDesign:
         self.designName = designName
         self.variant = variant
         self.designId0 = designId0
-        self.obstime = convertToIso8601Utc(obstime) if obstime else ""
+        self.obstime = convertToIso8601Utc(obstime) if obstime else None
         self.pfsUtilsVer = pfsUtilsVer
         self.isSubset = False
         self.validate()
@@ -674,7 +674,7 @@ class PfsDesign:
         # adding pfs_utils version
         kwargs["pfsUtilsVer"] = header.get('W_DSGVER', "")
         # setting default for retro-compatiblity.
-        kwargs["obstime"] = header.get("W_DSGOBS", "")
+        kwargs["obstime"] = header.get("W_DSGOBS", None)
 
         return kwargs
 
@@ -696,7 +696,9 @@ class PfsDesign:
         header["VARIANT"] = (self.variant, "Which variant of PFDSGN0 we are.")
         header["PFDSGN0"] = (self.designId0, "The base design of which we are a variant")
         header["W_DSGVER"] = (self.pfsUtilsVer, "pfs_utils version used to design positions.")
-        header["W_DSGOBS"] = (self.obstime, "Designed observation time ISO format (UTC-time).")
+
+        if self.obstime:
+            header["W_DSGOBS"] = (self.obstime, "Designed observation time ISO format (UTC-time).")
 
     @classmethod
     def _readImpl(cls, filename, **kwargs):
@@ -1343,9 +1345,9 @@ class PfsConfig(PfsDesign):
                  designName="",
                  variant=0,
                  designId0=0,
-                 obstime="",
+                 obstime=None,
                  pfsUtilsVer="",
-                 obstimeDesign="",
+                 obstimeDesign=None,
                  pfsUtilsVerDesign="",
                  header=None,
                  camMask=0,
@@ -1355,7 +1357,7 @@ class PfsConfig(PfsDesign):
         self.header = dict() if header is None else header
         self.camMask = camMask
         self.instStatusFlag = instStatusFlag
-        self.obstimeDesign = convertToIso8601Utc(obstimeDesign) if obstimeDesign else ""
+        self.obstimeDesign = convertToIso8601Utc(obstimeDesign) if obstimeDesign else None
         self.pfsUtilsVerDesign = pfsUtilsVerDesign
         super().__init__(pfsDesignId, raBoresight, decBoresight,
                          posAng,
@@ -1447,7 +1449,7 @@ class PfsConfig(PfsDesign):
         kwargs["camMask"] = header.get("W_CAMMSK", 0)
         kwargs["instStatusFlag"] = header.get("W_INSMSK", 0)
         kwargs["pfsUtilsVerDesign"] = header.get("W_DSVER0", "")
-        kwargs["obstimeDesign"] = header.get("W_DSOBS0", "")
+        kwargs["obstimeDesign"] = header.get("W_DSOBS0", None)
 
         if visit is not None:
             if "visit" in kwargs and kwargs["visit"] != visit:
@@ -1472,7 +1474,10 @@ class PfsConfig(PfsDesign):
         header["W_INSMSK"] = (self.instStatusFlag,
                               "Bitmask indicating instrument-related status flags for this visit.")
         header["W_DSVER0"] = (self.pfsUtilsVerDesign, "pfs_utils version used to design original positions.")
-        header["W_DSOBS0"] = (self.obstimeDesign, "Original designed observation time ISO format (UTC-time).")
+
+        if self.obstimeDesign:
+            header["W_DSOBS0"] = (self.obstimeDesign,
+                                  "Original designed observation time ISO format (UTC-time).")
 
         header.update(self.header)
 
