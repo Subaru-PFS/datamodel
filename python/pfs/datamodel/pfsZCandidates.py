@@ -2,6 +2,7 @@ import numpy as np
 from .utils import inheritDocstrings
 import astropy
 from enum import Flag, auto
+from astropy.table import Table
 
 objects = ["galaxy","qso","star"]
 
@@ -45,7 +46,7 @@ class ZObjectCandidates:
     parameters : `dict`
         parameter of the models for each candidate
     pdf : `np.array`
-        PDF marginalised over all models
+        PDF marginalised over all models, should be used with grids from pfsCoZCandidates
     lines : `np.array`
         Lines measurements (only for qso and galaxy)
     ZWarning: Flag
@@ -58,27 +59,24 @@ class ZObjectCandidates:
         dictionnary with two keys, code and message, both strings values, for line measurement solver error
     """
 
-    def __init__(self, object_type, hdul):
-        self.model = list()
-        self.parameters = list()
-        self.pdf = None
-
-        param_names = hdul[f"{object_type}_CANDIDATES"].data.dtype.names
-        for cand in hdul[f"{object_type}_CANDIDATES"].data:
-            self.model.append(cand["MODELFLUX"])
-            params = dict()
-            for p in param_names:
-                if p in  ["MODELFLUX","CRANK"]:
-                    continue
-                params[p]=cand[p]
-            self.parameters.append(params)
-
-        self.pdf = np.array(hdul[f"{object_type}_PDF"].data)
+    def __init__(self, object_type, errors, warnings, candidates, models, ln_pdf, lines):
+        self.model = models
+        self.parameters = candidates
+        self.pdf = ln_pdf
+        self.ZWarning = ZLWarning(int(warnings[f"{object_type}ZWarning"]))
+        self.ZError = {"code":errors[f"{object_type}ZError"],
+                       "message":errors[f"{object_type}ZErrorMessage"],
+                       }
+        
         if object_type != "star":
-            self.lines = np.array(hdul[f"{object_type}_LINES"].data)
+            self.lines = lines
+            self.LWarning = ZLWarning(int(warnings[f"{object_type}LWarning"]))
+            self.LError = {"code":errors[f"{object_type}LError"],
+                           "message":errors[f"{object_type}LErrorMessage"],
+                           }
         else:
             self.lines = None
-
+            self.LError = dict()
             
 class ZClassification:
     """Spectro classification
@@ -86,6 +84,7 @@ class ZClassification:
     Parameters
     ----------
     name : str
+    
        Spectro classification : GALAXY, QSO, STAR
     probabilites: dict
        probabilities to be star,galaxy or qso
@@ -95,11 +94,14 @@ class ZClassification:
         Warning flag
     """
     
-    def __init__(self,class_, probas, error, warning):
-        self.name = class_
-        self.probabilities = probas
-        self.error = error
-        self.warning = ZLWarning(warning)
+    def __init__(self, classification, errors, warnings):
+        self.name = classification["class"]
+        self.probabilities = dict()
+        for o in ["galaxy","star"]:
+            self.probabilities[o] = classification[f'proba{o.capitalize()}']
+        self.probabilities["QSO"] = classification[f'probaQSO']
+        self.error = errors["classificationError"]
+        self.warning = ZLWarning(int(warnings["classificationWarning"]))
 
 
 @inheritDocstrings
@@ -123,19 +125,36 @@ class PfsZCandidates:
     
     """
 
-    filenameFormat = ("pfsZCandidates-%(catId)05d-%(tract)05d-%(patch)s-%(objId)016x"
-                      "-%(nVisit)03d-0x%(pfsVisitHash)016x.fits")
-    filenameRegex = r"^pfsZCandidates-(\d{5})-(\d{5})-(.*)-([0-9a-f]{16})-(\d{3})-0x([0-9a-f]{16})\.fits.*$"
-    filenameKeys = [("catId", int), ("tract", int), ("patch", str), ("objId", int),
-                    ("nVisit", int), ("pfsVisitHash", int)]
+ 
+    def __init__(self, target, errors, warnings, classification, candidates, models, pdfs, lines):
+        self.target = target
+        self.init_error = {"code": errors["initError"],
+                           "message": errors["initErrorMessage"]}
+        self.init_warning  =ZLWarning(int(warnings["initWarning"]))
 
-    def __init__(self,errors, init_warning, galaxy, qso, star, classification):
-        self.init_error = errors["init"]
-        self.init_warning = init_warning
-        self.galaxy = galaxy
-        self.qso = qso
-        self.star = star
-        self.classification = classification
+        self.galaxy = ZObjectCandidates("galaxy",
+                                        errors,
+                                        warnings,
+                                        candidates["GALAXY"],
+                                        models["GALAXY"],
+                                        pdfs["GALAXY"],
+                                        lines["GALAXY"])
+        self.qso = ZObjectCandidates("QSO",
+                                     errors,
+                                     warnings,
+                                     candidates["QSO"],
+                                     models["QSO"],
+                                     pdfs["QSO"],
+                                     lines["QSO"])
+        self.star = ZObjectCandidates("star",
+                                      errors,
+                                      warnings,
+                                      candidates["STAR"],
+                                      models["STAR"],
+                                      pdfs["STAR"],
+                                      None)
+
+        self.classification = ZClassification(classification, errors, warnings)
 
     @classmethod
     def _readImpl(cls, fits):
@@ -175,7 +194,6 @@ class PfsZCandidates:
                 setattr(od,"LError",data["errors"][f"{o}_{stage}"])
                 setattr(od,"LWarning",ZLWarning(cls.get_warning(fits,o,stage)))            
             data[o]=od
-        
 
         probabilities = dict()
         for o in objects:
