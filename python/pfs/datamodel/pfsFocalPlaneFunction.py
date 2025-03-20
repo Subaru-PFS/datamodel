@@ -13,6 +13,7 @@ __all__ = (
     "PfsBlockedOversampledSpline",
     "PfsPolynomialPerFiber",
     "PfsFluxCalib",
+    "PfsSkyModel",
 )
 
 
@@ -526,3 +527,86 @@ class PfsFluxCalib(PfsFocalPlaneFunction):
                 astropy.io.fits.BinTableHDU(catalog, name="POLYNOMIAL"),
             ]
         )
+
+
+class PfsSkyModel(PfsFocalPlaneFunction):
+    """Model of the sky
+
+    Consists of a spectral reproduction of the sky using
+    `BlockedOversampledSpline`, with a polynomial correction to the
+    normalization for each fiber.
+
+    Parameters
+    ----------
+    spectra : `BlockedOversampledSpline`
+        Sky spectra model.
+    fiberId : `numpy.ndarray` of `int`
+        Fiber identifiers.
+    minWavelength : `float`
+        Minimum wavelength of the model (used to normalize the polynomial).
+    maxWavelength : `float`
+        Maximum wavelength of the model (used to normalize the polynomial).
+    polynomials : `list` of `numpy.ndarray`
+        Polynomial coefficients for the normalization for each fiber.
+    """
+
+    def __init__(
+        self,
+        spectra: PfsBlockedOversampledSpline,
+        fiberId: np.ndarray,
+        minWavelength: float,
+        maxWavelength: float,
+        polynomials: list[np.ndarray],
+    ):
+        self.spectra = spectra
+        self.fiberId = fiberId
+        self.minWavelength = minWavelength
+        self.maxWavelength = maxWavelength
+        self.polynomials = polynomials
+
+    @classmethod
+    def fromFits(cls, fits: astropy.io.fits.HDUList) -> "PfsSkyModel":
+        """Construct from FITS file
+
+        Parameters
+        ----------
+        fits : `astropy.io.fits.HDUList`
+            FITS file from which to read.
+
+        Returns
+        -------
+        self : cls
+            Constructed focal plane function.
+        """
+        spectra = PfsBlockedOversampledSpline.fromFits(fits)
+        hdu = fits["SKYMODEL"]
+        minWavelength = hdu.header["MIN_WL"]
+        maxWavelength = hdu.header["MAX_WL"]
+        fiberId = hdu.data["fiberId"].astype(np.int32)
+        polynomials = [np.array(poly, dtype=np.float64) for poly in hdu.data["polynomials"]]
+        return cls(spectra, fiberId, minWavelength, maxWavelength, polynomials)
+
+    def toFits(self) -> astropy.io.fits.HDUList:
+        """Write to FITS file
+
+        Returns
+        -------
+        fits : `astropy.io.fits.HDUList`
+            FITS file to write.
+        """
+        fits = self.spectra.toFits()
+
+        header = astropy.io.fits.Header()
+        header["MIN_WL"] = self.minWavelength
+        header["MAX_WL"] = self.maxWavelength
+        polynomials = [poly.astype(np.float64) for poly in self.polynomials]
+        table = astropy.io.fits.BinTableHDU.from_columns(
+            [
+                astropy.io.fits.Column("fiberId", format="F", array=self.fiberId.astype(np.int32)),
+                astropy.io.fits.Column("polynomials", format="PD()", array=polynomials),
+            ],
+            header=header,
+            name="SKYMODEL",
+        )
+        fits.append(table)
+        return fits
