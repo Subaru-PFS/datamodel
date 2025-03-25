@@ -133,6 +133,8 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
         self.obstimeDesign = convertToIso8601Utc(datetime.datetime.now(datetime.timezone.utc).isoformat())
         self.pfsUtilsVer = self.pfsUtilsVerDesign = "w.2025.06"
 
+        self.visit0 = 67889
+
     def _makeInstance(self, Class, **kwargs):
         """Construct a PfsDesign or PfsConfig using default values
 
