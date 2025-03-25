@@ -1286,12 +1286,14 @@ class PfsConfig(PfsDesign):
         bitMask describing which cameras were use for this visit.
     instStatusFlag : `int`, optional
         Bitmask indicating instrument-related status flags for this visit.
+    visit0 : `int`, optional
+        visitId used for the convergence.
     """
     # Scalar values
     _scalars = ["pfsDesignId", "designName",
                 "visit", "raBoresight", "decBoresight", "posAng", "arms", "guideStars",
                 "variant", "designId0", "obstime", "pfsUtilsVer", "obstimeDesign", "pfsUtilsVerDesign",
-                "header", "camMask", "instStatusFlag"]
+                "header", "camMask", "instStatusFlag", "visit0"]
 
     # List of fields required, and their FITS type
     # Some elements of the code expect the following to be present:
@@ -1351,7 +1353,8 @@ class PfsConfig(PfsDesign):
                  pfsUtilsVerDesign="",
                  header=None,
                  camMask=0,
-                 instStatusFlag=0):
+                 instStatusFlag=0,
+                 visit0=None):
         self.visit = visit
         self.pfiCenter = np.array(pfiCenter)
         self.header = dict() if header is None else header
@@ -1359,6 +1362,7 @@ class PfsConfig(PfsDesign):
         self.instStatusFlag = instStatusFlag
         self.obstimeDesign = convertToIso8601Utc(obstimeDesign) if obstimeDesign else None
         self.pfsUtilsVerDesign = pfsUtilsVerDesign
+        self.visit0 = visit0
         super().__init__(pfsDesignId, raBoresight, decBoresight,
                          posAng,
                          arms,
@@ -1390,7 +1394,8 @@ class PfsConfig(PfsDesign):
         return self.fileNameFormat % (self.pfsDesignId, self.visit)
 
     @classmethod
-    def fromPfsDesign(cls, pfsDesign, visit, pfiCenter, header=None, camMask=0, instStatusFlag=0):
+    def fromPfsDesign(cls, pfsDesign, visit, pfiCenter, header=None, camMask=0, instStatusFlag=0,
+                      visit0=None):
         """Construct from a ``PfsDesign``
 
         Parameters
@@ -1405,6 +1410,8 @@ class PfsConfig(PfsDesign):
             bitMask describing which cameras were use for this visit.
         instStatusFlag : `int`, optional
             Bitmask indicating instrument-related status flags for this visit.
+        visit0 : `int`, optional
+            visitId used for the convergence.
 
         Returns
         -------
@@ -1421,6 +1428,7 @@ class PfsConfig(PfsDesign):
         kwargs["instStatusFlag"] = instStatusFlag
         kwargs["obstimeDesign"] = pfsDesign.obstime
         kwargs["pfsUtilsVerDesign"] = pfsDesign.pfsUtilsVer
+        kwargs["visit0"] = visit0
 
         return PfsConfig(**kwargs)
 
@@ -1446,6 +1454,7 @@ class PfsConfig(PfsDesign):
         # Now we look for it in the W_VISIT header, but need to allow for the possibility that it's
         # not present.
         visit = header.get("W_VISIT", None)
+        kwargs['visit0'] = header.get("W_VISIT0", None)
         kwargs["camMask"] = header.get("W_CAMMSK", 0)
         kwargs["instStatusFlag"] = header.get("W_INSMSK", 0)
         kwargs["pfsUtilsVerDesign"] = header.get("W_DSVER0", "")
@@ -1478,6 +1487,8 @@ class PfsConfig(PfsDesign):
         if self.obstimeDesign:
             header["W_DSOBS0"] = (self.obstimeDesign,
                                   "Original designed observation time ISO format (UTC-time).")
+        if self.visit0:
+            header["W_VISIT0"] = (self.visit0, "Visit number used for the convergence.")
 
         header.update(self.header)
 
