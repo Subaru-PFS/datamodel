@@ -811,6 +811,24 @@ class PfsDesign:
                    guideStars=guideStars)
 
     @classmethod
+    def readFits(cls, filename, **kwargs):
+        """Read from FITS file
+
+        Parameters
+        ----------
+        filename : `str`
+            Filename to read.
+        **kwargs : `dict`
+            Additional arguments for Ctor (not read from FITS).
+
+        Returns
+        -------
+        self : cls
+            Constructed instance.
+        """
+        return cls._readImpl(filename, **kwargs)
+
+    @classmethod
     def read(cls, pfsDesignId, dirName="."):
         """Construct from file
 
@@ -913,6 +931,16 @@ class PfsDesign:
         # clobber=True in writeto prints a message, so use open instead
         with open(filename, "wb") as fd:
             fits.writeto(fd, checksum=True)
+
+    def writeFits(self, filename):
+        """Write to FITS file
+
+        Parameters
+        ----------
+        filename : `str`
+            Filename to write.
+        """
+        self._writeImpl(filename)
 
     def write(self, dirName=".", fileName=None, *, allowSubset=False):
         """Write to file
