@@ -421,14 +421,20 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
 
         try:
             config.write(dirName=dirName)
-            # re-open the file
+            # Check contents using pyfits
             with pyfits.open(filename) as fd:
                 phu = fd[0].header
                 for key, (value, comment) in header.items():
-                    assert key in phu
-
+                    self.assertIn(key, phu)
                     self.assertEqual(value, phu[key])
                     self.assertEqual(comment, phu.comments[key])
+
+            # Check contents in the PfsConfig instance
+            new = PfsConfig.readFits(filename)
+            for key, (value, comment) in header.items():
+                self.assertIn(key, new.header)
+                self.assertEqual(value, new.header[key])
+                self.assertEqual(comment, new.header.comments[key])
 
         except Exception:
             raise  # Leave file for manual inspection

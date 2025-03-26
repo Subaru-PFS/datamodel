@@ -11,8 +11,10 @@ from pfs.datamodel.utils import convertToIso8601Utc
 
 try:
     import astropy.io.fits as pyfits
+    Header = pyfits.Header
 except ImportError:
     pyfits = None
+    Header = dict
 
 from .guideStars import GuideStars
 from .utils import checkHeaderKeyword
@@ -260,11 +262,13 @@ class PfsDesign:
         Designed observation time ISO format (UTC-time).
     pfsUtilsVer : `str`, optional
         pfs_utils version used to create the design file.
+    header : `astropy.io.fits.Header` or `dict`, optional
+        Header to be written to the FITS file.
     """
     # Scalar values
     _scalars = ["pfsDesignId", "designName",
                 "raBoresight", "decBoresight", "posAng", "arms", "guideStars",
-                "variant", "designId0", "obstime", "pfsUtilsVer"]
+                "variant", "designId0", "obstime", "pfsUtilsVer", "header"]
     # List of fields required, and their FITS type
     # Some elements of the code expect the following to be present:
     #     fiberId, targetType
@@ -407,7 +411,9 @@ class PfsDesign:
                  variant=0,
                  designId0=0,
                  obstime=None,
-                 pfsUtilsVer=""):
+                 pfsUtilsVer="",
+                 header=None,
+                 ):
         self.pfsDesignId = pfsDesignId
         self.raBoresight = raBoresight
         self.decBoresight = decBoresight
@@ -443,6 +449,7 @@ class PfsDesign:
         self.obstime = convertToIso8601Utc(obstime) if obstime else None
         self.pfsUtilsVer = pfsUtilsVer
         self.isSubset = False
+        self.header = Header() if header is None else header
         self.validate()
 
     def __len__(self):
@@ -639,6 +646,8 @@ class PfsDesign:
         if kwargs is None:
             kwargs = {}
 
+        kwargs["header"] = header
+
         # If POSANG does not exist, use default.
         # This default should be removed when the
         # relevant test datasets have this keyword
@@ -686,6 +695,7 @@ class PfsDesign:
         header : `astropy.io.fits.Header`
             FITS header; modified.
         """
+        header.update(self.header)
         header["RA"] = (self.raBoresight, "[degree] pfsDesign field center RA")
         header["DEC"] = (self.decBoresight, "[degree] pfsDesign field center DEC")
         header["POSANG"] = (self.posAng, "[degree] PFI position angle")
@@ -1308,6 +1318,8 @@ class PfsConfig(PfsDesign):
         Designed observation time ISO format (UTC-time).
     pfsUtilsVerDesign : `str`, optional
          pfs_utils version used to create the design file.
+    header : `astropy.io.fits.Header` or `dict`, optional
+        Header to be written to the FITS file.
     designId0 : `int`, optional
         pfsDesignId of the pfsDesign we are a variant of. Requires `variant`.
     camMask : `int`, optional
@@ -1385,7 +1397,6 @@ class PfsConfig(PfsDesign):
                  visit0=None):
         self.visit = visit
         self.pfiCenter = np.array(pfiCenter)
-        self.header = dict() if header is None else header
         self.camMask = camMask
         self.instStatusFlag = instStatusFlag
         self.obstimeDesign = convertToIso8601Utc(obstimeDesign) if obstimeDesign else None
@@ -1410,7 +1421,8 @@ class PfsConfig(PfsDesign):
                          variant=variant,
                          designId0=designId0,
                          obstime=obstime,
-                         pfsUtilsVer=pfsUtilsVer)
+                         pfsUtilsVer=pfsUtilsVer,
+                         header=header)
 
     def __str__(self):
         """String representation"""
@@ -1434,6 +1446,8 @@ class PfsConfig(PfsDesign):
             Exposure identifier.
         pfiCenter : `numpy.ndarray` of `float`
             Actual position (2-vector) of each fiber on the PFI, microns.
+        header : `astropy.io.fits.Header` or `dict`, optional
+            Header to be written to the FITS file.
         camMask : `int`, optional
             bitMask describing which cameras were use for this visit.
         instStatusFlag : `int`, optional
@@ -1451,7 +1465,9 @@ class PfsConfig(PfsDesign):
         kwargs = {kk: getattr(pfsDesign, kk) for kk in keywords}
         kwargs["visit"] = visit
         kwargs["pfiCenter"] = pfiCenter
-        kwargs["header"] = header
+        if header:
+            kwargs["header"] = kwargs["header"].copy()
+            kwargs["header"].update(header)
         kwargs["camMask"] = camMask
         kwargs["instStatusFlag"] = instStatusFlag
         kwargs["obstimeDesign"] = pfsDesign.obstime
