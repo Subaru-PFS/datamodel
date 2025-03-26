@@ -10,8 +10,11 @@ import astropy.units as u
 import lsst.utils.tests
 import lsst.geom
 
-from pfs.datamodel.pfsConfig import PfsConfig, TargetType, FiberStatus, PfsDesign, GuideStars
+from pfs.datamodel.pfsConfig import (
+    PfsConfig, TargetType, FiberStatus, PfsDesign, GuideStars, InstrumentStatusFlag,
+    InstrumentStatusDescription)
 
+from pfs.datamodel.utils import convertToIso8601Utc
 display = None
 
 
@@ -123,6 +126,14 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
         self.designId0 = 0
 
         self.header = dict()
+        self.camMask = 0
+        self.instStatusFlag = 0
+
+        self.obstime = convertToIso8601Utc(datetime.datetime.now(datetime.timezone.utc).isoformat())
+        self.obstimeDesign = convertToIso8601Utc(datetime.datetime.now(datetime.timezone.utc).isoformat())
+        self.pfsUtilsVer = self.pfsUtilsVerDesign = "w.2025.06"
+
+        self.visit0 = 67889
 
     def _makeInstance(self, Class, **kwargs):
         """Construct a PfsDesign or PfsConfig using default values
@@ -266,6 +277,12 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
             array = np.concatenate((array, array), axis=1)
             with self.assertRaises(RuntimeError):
                 self.makePfsConfig(**{name: array})
+
+        # Duplicate fiberIds
+        fiberId = self.fiberId.copy()
+        fiberId[123] = fiberId[456]
+        with self.assertRaises(ValueError):
+            self.makePfsDesign(fiberId=fiberId)
 
         # Duplicate (catId, objId) combos
         catId = list(self.catId)
@@ -584,6 +601,82 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
             indices = pfsConfig.selectByFiberStatus(fiberStatus, fiberId)
             self.assertEqual(len(indices), select.sum())
             self.assertFloatsEqual(pfsConfig.fiberId[indices], pfsConfig.fiberId[select[::-1]])
+
+    def testGetCameraMask(self):
+        """Test getCameraMask method."""
+        allCams = PfsConfig._allCams  # Retrieve the full list of cameras
+
+        # Test with an empty list
+        self.assertEqual(PfsConfig.getCameraMask([]), 0)
+
+        # Test with a single camera
+        self.assertEqual(PfsConfig.getCameraMask([allCams[0]]), 1 << 0)
+
+        # Test with multiple cameras
+        self.assertEqual(PfsConfig.getCameraMask([allCams[0], allCams[1]]), (1 << 0) | (1 << 1))
+
+        # Test with all cameras
+        expectedMask = sum(1 << i for i in range(len(allCams)))
+        self.assertEqual(PfsConfig.getCameraMask(allCams), expectedMask)
+
+        # Test with an invalid camera
+        with self.assertRaises(ValueError):
+            PfsConfig.getCameraMask(["invalidCam"])
+
+    def testGetCameraList(self):
+        """Test getCameraList method."""
+        allCams = PfsConfig._allCams  # Retrieve the full list of cameras
+        config = self.makePfsConfig()
+
+        # Test with an empty mask
+        config.camMask = 0
+        self.assertEqual(config.getCameraList(), [])
+
+        # Test with a single camera
+        config.camMask = 1 << 0
+        self.assertEqual(config.getCameraList(), [allCams[0]])
+
+        # Test with multiple cameras
+        config.camMask = (1 << 0) | (1 << 1)
+        self.assertEqual(config.getCameraList(), [allCams[0], allCams[1]])
+
+        # Test with all cameras
+        config.camMask = sum(1 << i for i in range(len(allCams)))
+        self.assertEqual(config.getCameraList(), allCams)
+
+    def testSetInstrumentStatusFlag(self):
+        """Test setting instrument status mask with valid and invalid flags."""
+        config = self.makePfsConfig()
+
+        # Ensure initial bitmask value is zero
+        self.assertEqual(config.instStatusFlag, 0)
+        # Ensure absence of flag is decoded correctly.
+        self.assertEqual('OK', config.decodeInstrumentStatusFlag())
+
+        # Set a valid flag (INSROT_MISMATCH) and check that the bitmask updates correctly
+        config.setInstrumentStatusFlag(InstrumentStatusFlag.INSROT_MISMATCH)
+        self.assertEqual(config.instStatusFlag, InstrumentStatusFlag.INSROT_MISMATCH)
+
+        # Ensure setting the same flag again does not change the mask
+        config.setInstrumentStatusFlag(InstrumentStatusFlag.INSROT_MISMATCH)
+        self.assertEqual(config.instStatusFlag, InstrumentStatusFlag.INSROT_MISMATCH)
+
+        # Ensure decoding function works correctly
+        activeFlags = config.decodeInstrumentStatusFlag()
+        self.assertEqual('INSROT_MISMATCH', activeFlags)
+
+        # Ensure we get the correct flag description.
+        for flag in InstrumentStatusFlag:
+            description = config.getInstrumentStatusDescription(flag)
+            self.assertEqual(description, InstrumentStatusDescription[flag])
+
+        # Attempt to set an invalid flag (integer instead of a valid InstrumentStatusFlag)
+        # Expect a ValueError since only documented flags should be allowed
+        with self.assertRaises(ValueError):
+            config.setInstrumentStatusFlag(4)  # 4 is not a defined InstrumentStatusFlag
+
+        with self.assertRaises(ValueError):
+            config.setInstrumentStatusFlag("INVALID_FLAG")  # Non-integer input
 
 
 class TestMemory(lsst.utils.tests.MemoryTestCase):

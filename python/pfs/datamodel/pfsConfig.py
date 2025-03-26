@@ -6,7 +6,8 @@ import re
 import enum
 from collections import Counter
 from logging import Logger
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
+from pfs.datamodel.utils import convertToIso8601Utc
 
 try:
     import astropy.io.fits as pyfits
@@ -26,6 +27,8 @@ __all__ = (
     "PFSCONFIG_FILENAME_REGEX",
     "parsePfsConfigFilename",
     "checkPfsConfigHeader",
+    "InstrumentStatusFlag",
+    "InstrumentStatusDescription",
 )
 
 
@@ -39,6 +42,10 @@ class DocEnum(enum.IntEnum):
         self._value_ = value
         self.__doc__ = doc
         return self
+
+    if TYPE_CHECKING:
+        def __init__(self, value: int):
+            ...
 
     @classmethod
     def getFitsHeaders(cls):
@@ -146,6 +153,31 @@ class FiberStatus(DocEnum):
     NOTCONVERGED = 7, "Cobra did not converge to the target."
 
 
+try:
+    def verify(*args, **kwargs):
+        return enum.verify(enum.UNIQUE)(*args, **kwargs)
+    metaclassParams = dict(boundary=enum.STRICT)
+except AttributeError:
+    # enum.verify etc was added in python 3.11; add a no-op version for earlier versions
+    metaclassParams = {}
+
+    def verify(cls):
+        """No-op version of enum.verify"""
+        return cls
+
+
+@verify
+class InstrumentStatusFlag(enum.IntFlag, **metaclassParams):
+    """Bit positions for instrument status flags."""
+    INSROT_MISMATCH = 1 << 0
+
+
+# Separate dictionary for descriptions (must be outside the class)
+InstrumentStatusDescription = {
+    InstrumentStatusFlag.INSROT_MISMATCH:
+        "INSROT at the time of convergence vs SPS exposure exceeded threshold", }
+
+
 class PfsDesign:
     """The design of the PFS top-end configuration for one or more observations
 
@@ -224,11 +256,15 @@ class PfsDesign:
         Counter of which variant of `designId0` we are. Requires `designId0`.
     designId0 : `int`, optional
         pfsDesignId of the pfsDesign we are a variant of. Requires `variant`.
+    obstime : `str`, optional
+        Designed observation time ISO format (UTC-time).
+    pfsUtilsVer : `str`, optional
+        pfs_utils version used to create the design file.
     """
     # Scalar values
     _scalars = ["pfsDesignId", "designName",
                 "raBoresight", "decBoresight", "posAng", "arms", "guideStars",
-                "variant", "designId0"]
+                "variant", "designId0", "obstime", "pfsUtilsVer"]
     # List of fields required, and their FITS type
     # Some elements of the code expect the following to be present:
     #     fiberId, targetType
@@ -268,6 +304,8 @@ class PfsDesign:
     _keywords = list(_fields) + _photometry
     _hduName = "DESIGN"
     _POSANG_DEFAULT = 0.0
+
+    _allCams = [f'{arm}{specNum}' for specNum in list(range(1, 5)) for arm in 'brnm']
 
     fileNameFormat = "pfsDesign-0x%016x.fits"
 
@@ -335,6 +373,12 @@ class PfsDesign:
             if matrix.shape != (len(self.fiberId), 2):
                 raise RuntimeError("Wrong shape for %s: %s vs (%d,2)" % (nn, matrix.shape, len(self.fiberId)))
 
+        # Check for duplicates of fiberId
+        counts = Counter(self.fiberId)
+        if counts and counts.most_common(1)[0][1] > 1:
+            duplicates = [ff for ff, num in counts.items() if num > 1]
+            raise ValueError(f"Design {self.pfsDesignId:#016x} contains duplicate fiberIds: {duplicates}")
+
         # Check for duplicates of catId, objId combinations.
         counts = Counter(zip(self.catId, self.objId))
         counts.pop((-1, -1), None)  # ignore untargetted fibers
@@ -361,7 +405,9 @@ class PfsDesign:
                  guideStars,
                  designName="",
                  variant=0,
-                 designId0=0):
+                 designId0=0,
+                 obstime=None,
+                 pfsUtilsVer=""):
         self.pfsDesignId = pfsDesignId
         self.raBoresight = raBoresight
         self.decBoresight = decBoresight
@@ -394,6 +440,8 @@ class PfsDesign:
         self.designName = designName
         self.variant = variant
         self.designId0 = designId0
+        self.obstime = convertToIso8601Utc(obstime) if obstime else None
+        self.pfsUtilsVer = pfsUtilsVer
         self.isSubset = False
         self.validate()
 
@@ -407,8 +455,8 @@ class PfsDesign:
 
     def __iter__(self):
         """Iteration returns the target for each fiber"""
-        for ii in range(len(self)):
-            yield self.getTarget(ii)
+        for ff in self.fiberId:
+            yield self.getTarget(ff)
 
     def __getitem__(self, logical):
         """Sub-selection
@@ -450,13 +498,13 @@ class PfsDesign:
         from pfs.utils.fibers import spectrographFromFiberId
         return spectrographFromFiberId(self.fiberId)
 
-    def getTarget(self, index):
-        """Return target by index
+    def getTarget(self, fiberId):
+        """Return target by fiberId
 
         Parameters
         ----------
-        index : `int`
-            Index of fiber of interest.
+        fiberId : `int`
+            Identifier of fiber of interest.
 
         Returns
         -------
@@ -464,7 +512,7 @@ class PfsDesign:
             Target for fiber.
         """
         from pfs.datamodel.target import Target  # noqa: prevent circular import dependency
-        return Target.fromPfsConfig(self, index)
+        return Target.fromPfsConfig(self, fiberId)
 
     @property
     def filename(self):
@@ -475,16 +523,19 @@ class PfsDesign:
         """Return the (variantNum, basePfsDesign) pair, or (0, 0) if we are not a variant """
         return self.variant, self.designId0
 
-    def getPhotometry(self, filterName, psfFlux=False, fiberFlux=False, totalFlux=False, getError=False,
+    def getPhotometry(self, filterName=None, psfFlux=False, fiberFlux=False, totalFlux=False, getError=False,
                       asABMag=False):
         """Return the flux, and optionally errors, for a requested filter.
 
-        If the filtername is invalid, the valid names printer and an exception raised
+        If the filtername is `None`, a list of valid filter names is returned;
+        if it's invalid, the valid names are printed and an exception raised.
+
+        Note that `pfsConfig.select(fiberId=666).getPhotometry()` returns an object's filters
 
         Parameters
         ----------
             filterName : `str`
-                Name of desired filter (e.g. g_hsc)
+                Name of desired filter (e.g. g_hsc) or `None` to list available filters
             psfFlux: `bool`
                 Return the PSF flux (default)
             fiberFlux: `bool`
@@ -505,34 +556,39 @@ class PfsDesign:
         if not (psfFlux or fiberFlux or totalFlux):
             psfFlux = True
 
+        _self = self.select(targetType=~TargetType.ENGINEERING)
+
         fluxRequested = []
         if psfFlux:
             fluxRequested.append("psf")
-            flux, fluxErr = self.psfFlux, self.psfFluxErr
+            flux, fluxErr = _self.psfFlux, _self.psfFluxErr
         elif fiberFlux:
             fluxRequested.append("fiber")
-            flux, fluxErr = self.fiberFlux, self.fiberFluxErr
+            flux, fluxErr = _self.fiberFlux, _self.fiberFluxErr
         else:
             fluxRequested.append("total")
-            flux, fluxErr = self.totalFlux, self.totalFluxErr
+            flux, fluxErr = _self.totalFlux, _self.totalFluxErr
 
         if len(fluxRequested) > 1:
             raise RuntimeError(f"Please only specify one type of flux at a time: saw "
                                f"{', '.join(fluxRequested)}")
 
-        myFilterData = np.array(self.filterNames) == filterName
+        myFilterData = np.array(_self.filterNames) == filterName
         if np.sum(myFilterData) == 0:
-            filterNames = sorted(set([fn for fn in sum(self.filterNames, []) if fn != "none"]))
+            filterNames = sorted(set([fn for fn in sum(_self.filterNames, []) if fn != "none"]))
 
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore", category=RuntimeWarning)  # All-NaN slice encountered
 
                 goodFilterNames = []
                 for possibleFilterName in filterNames:
-                    myFilterData = np.array(self.filterNames) == possibleFilterName
+                    myFilterData = np.array(_self.filterNames) == possibleFilterName
 
-                    if np.isfinite(np.nanmean(np.where(myFilterData, flux, np.NaN), axis=1)):
+                    if np.isfinite(np.nanmean(np.where(myFilterData, flux, np.NaN), axis=1)).any():
                         goodFilterNames.append(possibleFilterName)
+
+            if filterName is None:
+                return goodFilterNames
 
             raise RuntimeError(f"No flux data for filter \"{filterName}\" are available. " +
                                (f"Options are: {', '.join(goodFilterNames)}" if len(goodFilterNames) > 0
@@ -615,6 +671,11 @@ class PfsDesign:
         kwargs["variant"] = header.get("VARIANT", 0)
         kwargs["designId0"] = header.get("PFDSGN0", 0)
 
+        # adding pfs_utils version
+        kwargs["pfsUtilsVer"] = header.get('W_DSGVER', "")
+        # setting default for retro-compatiblity.
+        kwargs["obstime"] = header.get("W_DSGOBS", None)
+
         return kwargs
 
     def _writeHeader(self, header):
@@ -634,6 +695,10 @@ class PfsDesign:
         header["W_PFDSGN"] = (self.pfsDesignId, "Identifier for fiber configuration")
         header["VARIANT"] = (self.variant, "Which variant of PFDSGN0 we are.")
         header["PFDSGN0"] = (self.designId0, "The base design of which we are a variant")
+        header["W_DSGVER"] = (self.pfsUtilsVer, "pfs_utils version used to design positions.")
+
+        if self.obstime:
+            header["W_DSGOBS"] = (self.obstime, "Designed observation time ISO format (UTC-time).")
 
     @classmethod
     def _readImpl(cls, filename, **kwargs):
@@ -715,7 +780,7 @@ class PfsDesign:
             filterNames = {ii: [] for ii in fiberId}
 
             # Get all the data at once to save of data type conversions
-            columns = { k: photometry[k] for k in photometry.columns.names }
+            columns = {k: photometry[k] for k in photometry.columns.names}
             for ii in fiberId:
                 mask = columns["fiberId"] == ii
                 fiberFlux[ii] = columns["fiberFlux"][mask]
@@ -1207,13 +1272,28 @@ class PfsConfig(PfsDesign):
         Human-readable name for the design.
     variant : `int`, optional
         Counter of which variant of `designId0` we are. Requires `designId0`.
+    obstime : `str`, optional
+        Observation time ISO format (UTC-time).
+    pfsUtilsVer : `str`, optional
+         pfs_utils version used to create the config file
+    obstimeDesign : `str`, optional
+        Designed observation time ISO format (UTC-time).
+    pfsUtilsVerDesign : `str`, optional
+         pfs_utils version used to create the design file.
     designId0 : `int`, optional
         pfsDesignId of the pfsDesign we are a variant of. Requires `variant`.
+    camMask : `int`, optional
+        bitMask describing which cameras were use for this visit.
+    instStatusFlag : `int`, optional
+        Bitmask indicating instrument-related status flags for this visit.
+    visit0 : `int`, optional
+        visitId used for the convergence.
     """
     # Scalar values
     _scalars = ["pfsDesignId", "designName",
                 "visit", "raBoresight", "decBoresight", "posAng", "arms", "guideStars",
-                "variant", "designId0", "header"]
+                "variant", "designId0", "obstime", "pfsUtilsVer", "obstimeDesign", "pfsUtilsVerDesign",
+                "header", "camMask", "instStatusFlag", "visit0"]
 
     # List of fields required, and their FITS type
     # Some elements of the code expect the following to be present:
@@ -1267,10 +1347,22 @@ class PfsConfig(PfsDesign):
                  designName="",
                  variant=0,
                  designId0=0,
-                 header=None):
+                 obstime=None,
+                 pfsUtilsVer="",
+                 obstimeDesign=None,
+                 pfsUtilsVerDesign="",
+                 header=None,
+                 camMask=0,
+                 instStatusFlag=0,
+                 visit0=None):
         self.visit = visit
         self.pfiCenter = np.array(pfiCenter)
         self.header = dict() if header is None else header
+        self.camMask = camMask
+        self.instStatusFlag = instStatusFlag
+        self.obstimeDesign = convertToIso8601Utc(obstimeDesign) if obstimeDesign else None
+        self.pfsUtilsVerDesign = pfsUtilsVerDesign
+        self.visit0 = visit0
         super().__init__(pfsDesignId, raBoresight, decBoresight,
                          posAng,
                          arms,
@@ -1288,7 +1380,9 @@ class PfsConfig(PfsDesign):
                          guideStars,
                          designName,
                          variant=variant,
-                         designId0=designId0)
+                         designId0=designId0,
+                         obstime=obstime,
+                         pfsUtilsVer=pfsUtilsVer)
 
     def __str__(self):
         """String representation"""
@@ -1300,7 +1394,8 @@ class PfsConfig(PfsDesign):
         return self.fileNameFormat % (self.pfsDesignId, self.visit)
 
     @classmethod
-    def fromPfsDesign(cls, pfsDesign, visit, pfiCenter, header=None):
+    def fromPfsDesign(cls, pfsDesign, visit, pfiCenter, header=None, camMask=0, instStatusFlag=0,
+                      visit0=None):
         """Construct from a ``PfsDesign``
 
         Parameters
@@ -1311,6 +1406,12 @@ class PfsConfig(PfsDesign):
             Exposure identifier.
         pfiCenter : `numpy.ndarray` of `float`
             Actual position (2-vector) of each fiber on the PFI, microns.
+        camMask : `int`, optional
+            bitMask describing which cameras were use for this visit.
+        instStatusFlag : `int`, optional
+            Bitmask indicating instrument-related status flags for this visit.
+        visit0 : `int`, optional
+            visitId used for the convergence.
 
         Returns
         -------
@@ -1323,6 +1424,11 @@ class PfsConfig(PfsDesign):
         kwargs["visit"] = visit
         kwargs["pfiCenter"] = pfiCenter
         kwargs["header"] = header
+        kwargs["camMask"] = camMask
+        kwargs["instStatusFlag"] = instStatusFlag
+        kwargs["obstimeDesign"] = pfsDesign.obstime
+        kwargs["pfsUtilsVerDesign"] = pfsDesign.pfsUtilsVer
+        kwargs["visit0"] = visit0
 
         return PfsConfig(**kwargs)
 
@@ -1348,6 +1454,12 @@ class PfsConfig(PfsDesign):
         # Now we look for it in the W_VISIT header, but need to allow for the possibility that it's
         # not present.
         visit = header.get("W_VISIT", None)
+        kwargs['visit0'] = header.get("W_VISIT0", None)
+        kwargs["camMask"] = header.get("W_CAMMSK", 0)
+        kwargs["instStatusFlag"] = header.get("W_INSMSK", 0)
+        kwargs["pfsUtilsVerDesign"] = header.get("W_DSVER0", "")
+        kwargs["obstimeDesign"] = header.get("W_DSOBS0", None)
+
         if visit is not None:
             if "visit" in kwargs and kwargs["visit"] != visit:
                 raise RuntimeError(f"visit mismatch: {kwargs['visit']} vs visit")
@@ -1367,6 +1479,17 @@ class PfsConfig(PfsDesign):
         """
         super()._writeHeader(header)
         header["W_VISIT"] = (self.visit, "Visit number")
+        header["W_CAMMSK"] = (self.camMask, "Bitmask describing which camera was used for this visit.")
+        header["W_INSMSK"] = (self.instStatusFlag,
+                              "Bitmask indicating instrument-related status flags for this visit.")
+        header["W_DSVER0"] = (self.pfsUtilsVerDesign, "pfs_utils version used to design original positions.")
+
+        if self.obstimeDesign:
+            header["W_DSOBS0"] = (self.obstimeDesign,
+                                  "Original designed observation time ISO format (UTC-time).")
+        if self.visit0:
+            header["W_VISIT0"] = (self.visit0, "Visit number used for the convergence.")
+
         header.update(self.header)
 
     @classmethod
@@ -1424,6 +1547,100 @@ class PfsConfig(PfsDesign):
         """
         index = np.nonzero(np.isin(self.fiberId, fiberId))[0]
         return self.pfiCenter[index]
+
+    @staticmethod
+    def getCameraMask(cameraList):
+        """Return bit mask for selected cameras.
+
+        Parameters
+        ----------
+        cameraList : `list` of `str`
+            List of selected camera names.
+
+        Returns
+        -------
+        mask : `int`
+            Bitmask representing the selected cameras.
+        """
+        mask = 0
+        for cam in cameraList:
+            if cam in PfsConfig._allCams:
+                mask |= (1 << PfsConfig._allCams.index(cam))
+            else:
+                raise ValueError(f'{cam} is not a valid camera : {",".join(PfsConfig._allCams)}')
+        return mask
+
+    def getCameraList(self):
+        """Return a list of cameras from camMask.
+
+        Returns
+        -------
+        cameraList : `list` of `str`
+            List of selected camera names.
+        """
+        cameraList = []
+        for i, cam in enumerate(PfsConfig._allCams):
+            if self.camMask & (1 << i):
+                cameraList.append(cam)
+        return cameraList
+
+    def updateTargetPosition(self, ra, dec, pfiNominal, obstime, pfsUtilsVer):
+        """Update the target position with tweaked values.
+
+        Parameters
+        ----------
+        ra : `numpy.ndarray` of `float64`
+            Updated Right Ascension for each fiber, degrees.
+        dec : `numpy.ndarray` of `float64`
+            Updated Declination for each fiber, degrees.
+        pfiNominal : `numpy.ndarray` of `float`
+            Updated intended target position (2-vector) of each fiber on the PFI, millimeters.
+        obstime : `str`
+            Observation time in ISO format (UTC-time).
+        pfsUtilsVer : `str`, optional
+         pfs_utils version used to update the positions.
+        """
+        self.ra = ra
+        self.dec = dec
+        self.pfiNominal = pfiNominal
+        self.obstime = convertToIso8601Utc(obstime)
+        self.pfsUtilsVer = pfsUtilsVer
+
+    def setInstrumentStatusFlag(self, flag: InstrumentStatusFlag):
+        """Set a flag in the instrument status bitmask.
+
+        Parameters
+        ----------
+        flag : `InstrumentStatusFlag`
+            Bit flag to set.
+        """
+        if not isinstance(flag, InstrumentStatusFlag):
+            validFlags = ", ".join(flag.name for flag in InstrumentStatusFlag)
+            raise ValueError(
+                f"Invalid InstrumentStatusFlag: {flag}. Must be one of: {validFlags}.")
+
+        self.instStatusFlag |= flag  # Uses bitwise OR to set the flag
+
+    def decodeInstrumentStatusFlag(self):
+        """Decode the instrument status bitmask into a list of active flag names.
+
+        Returns
+        -------
+        `str`
+            Names of the active flags in `instStatusFlag`, or OK if no flags are set.
+        """
+        flagNames = InstrumentStatusFlag(self.instStatusFlag).name
+        return flagNames if flagNames else 'OK'
+
+    def getInstrumentStatusDescription(self, flag):
+        """Get human-readable description for the input flag.
+
+        Returns
+        -------
+        list of `str`
+            List of descriptions for active flags.
+        """
+        return InstrumentStatusDescription.get(flag)
 
 
 PFSCONFIG_FILENAME_REGEX: str = r"^pfsConfig-(0x[0-9a-f]+)-([0-9]+)\.fits.*"

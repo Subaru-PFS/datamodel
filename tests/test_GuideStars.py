@@ -30,6 +30,7 @@ class GuideStarsTestCase(lsst.utils.tests.TestCase):
         self.agY = rng.uniform(size=self.length).astype(np.float32)
         self.telElev = 60.0
         self.guideStarCatId = 1
+        self.flag = np.zeros(self.length).astype('int32')
 
         self.guideStars = GuideStars(self.objId, self.epoch, self.ra, self.dec,
                                      self.pmRa, self.pmDec,
@@ -37,7 +38,8 @@ class GuideStarsTestCase(lsst.utils.tests.TestCase):
                                      self.magnitude, self.passband,
                                      self.color,
                                      self.agId, self.agX, self.agY,
-                                     self.telElev, self.guideStarCatId)
+                                     self.telElev, self.guideStarCatId,
+                                     self.flag)
 
     def assertGuideStars(self, gs):
         self.assertEqual(len(gs), self.length)
@@ -75,7 +77,8 @@ class GuideStarsTestCase(lsst.utils.tests.TestCase):
                              np.array([1.0, 100.0], dtype=np.float32),
                              np.array([1.0, 5.0], dtype=np.float32),
                              0.0,
-                             0.0)
+                             0.0,
+                             np.array([0, 0], dtype=np.int32),)
 
         gsLocal.toFits(fits)
         gsIn = GuideStars.fromFits(fits)
@@ -101,7 +104,8 @@ class GuideStarsTestCase(lsst.utils.tests.TestCase):
                        np.array([1.0], dtype=np.float32),
                        np.array([1.0], dtype=np.float32),
                        0.0,
-                       0.0)
+                       0.0,
+                       np.array([0], dtype=np.int32))
 
         with self.assertRaises(RuntimeError):
             GuideStars(np.array([123, 234], dtype=np.int64),
@@ -118,7 +122,8 @@ class GuideStarsTestCase(lsst.utils.tests.TestCase):
                        np.array([1.0, 10.0], dtype=np.float32),
                        np.array([1.0, 51.1], dtype=np.float32),
                        0.0,
-                       0.0)
+                       0.0,
+                       np.array([0, 0], dtype=np.int32))
 
     def testGoodLengths(self):
         GuideStars(np.array([123, 234], dtype=np.int64),
@@ -135,7 +140,8 @@ class GuideStarsTestCase(lsst.utils.tests.TestCase):
                    np.array([1.0, 100.0], dtype=np.float32),
                    np.array([1.0, 5.0], dtype=np.float32),
                    0.0,
-                   0.0)
+                   0.0,
+                   np.array([0, 0], dtype=np.int32))
 
         GuideStars(np.array([123, 234, 345], dtype=np.int64),
                    np.array(['J2015.5', 'B1950.0', 'J2000.0'], dtype='a7'),
@@ -151,7 +157,8 @@ class GuideStarsTestCase(lsst.utils.tests.TestCase):
                    np.array([1.0, 10.0, 2], dtype=np.float32),
                    np.array([1.0, 51.1, 39.0], dtype=np.float32),
                    0.0,
-                   0.0)
+                   0.0,
+                   np.array([0, 0, 0], dtype=np.int32))
 
     def testFits(self):
         """Test I/O with FITS"""

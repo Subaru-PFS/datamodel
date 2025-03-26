@@ -1,5 +1,6 @@
 import numpy as np
 import astropy.io.fits
+from enum import IntFlag
 
 __all__ = ["GuideStars"]
 
@@ -48,6 +49,8 @@ class GuideStars:
     guideStarCatId : `int`
         The identifier for the catalogue from which the guide stars
         were taken.
+    flag : `numpy.ndarray' of `int`
+        The flag information for the guidestar catalog.
     """
     _hduName = "GUIDESTARS"  # HDU name to use
 
@@ -57,10 +60,12 @@ class GuideStars:
                  magnitude, passband,
                  color,
                  agId, agX, agY,
-                 telElev, guideStarCatId):
+                 telElev, guideStarCatId, flag=None):
+
+        flag = np.zeros_like(objId, dtype='int32') if flag is None else flag
 
         attributes = np.array(['objId', 'epoch', 'ra', 'dec', 'pmRa', 'pmDec', 'parallax',
-                               'magnitude', 'passband', 'color', 'agId', 'agX', 'agY'])
+                               'magnitude', 'passband', 'color', 'agId', 'agX', 'agY', 'flag'])
 
         dims = np.array([len(objId.shape),
                          len(epoch.shape),
@@ -74,7 +79,8 @@ class GuideStars:
                          len(color.shape),
                          len(agId.shape),
                          len(agX.shape),
-                         len(agY.shape)])
+                         len(agY.shape),
+                         len(flag.shape),])
 
         if np.any(dims != 1):
             attributes[dims != 1]
@@ -88,7 +94,7 @@ class GuideStars:
                                     parallax.shape,
                                     magnitude.shape, passband.shape,
                                     color.shape,
-                                    agId.shape, agX.shape, agY.shape]):
+                                    agId.shape, agX.shape, agY.shape, flag.shape]):
             if (shape[0] != objId.shape[0]):
                 attributeErrorDict[attribute] = shape
 
@@ -113,6 +119,7 @@ class GuideStars:
         self.epoch = epoch
         self.telElev = telElev
         self.guideStarCatId = guideStarCatId
+        self.flag = flag
 
     def __len__(self):
         """Return number of elements"""
@@ -155,6 +162,7 @@ class GuideStars:
             Column("agId", "J", array=self.agId),
             Column("agX", "E", array=self.agX, unit='pixels'),
             Column("agY", "E", array=self.agY, unit='pixels'),
+            Column("flag", "J", array=self.flag),
         ], header=header, name=self._hduName)
         fits.append(hdu)
 
@@ -173,6 +181,7 @@ class GuideStars:
             Constructed `GuideStars`.
         """
         hdu = fits[cls._hduName]
+        flag = hdu.data["flag"] if "flag" in hdu.data.dtype.names else np.zeros_like(hdu.data["objId"])
 
         return cls(hdu.data["objId"].astype(np.int64),
                    hdu.data["epoch"],
@@ -188,7 +197,9 @@ class GuideStars:
                    hdu.data["agX"].astype(np.float32),
                    hdu.data["agY"].astype(np.float32),
                    hdu.header['TEL_ELEV'],
-                   hdu.header['GS_CATID'])
+                   hdu.header['GS_CATID'],
+                   flag.astype(np.int32),
+                   )
 
     @classmethod
     def empty(cls):
@@ -213,4 +224,59 @@ class GuideStars:
                    np.array([], dtype=np.float32),
                    np.array([], dtype=np.float32),
                    0.0,
-                   0)
+                   0,
+                   np.array([], dtype=np.int32),
+                   )
+
+
+class AutoGuiderStarMask(IntFlag):
+    """
+    Represents a bitmask for guide star properties.
+
+    Attributes:
+        GAIA: Gaia DR3 catalog.
+        HSC: HSC PDR3 catalog.
+        PMRA: Proper motion RA is measured.
+        PMRA_SIG: Proper motion RA measurement is significant (SNR>5).
+        PMDEC: Proper motion Dec is measured.
+        PMDEC_SIG: Proper motion Dec measurement is significant (SNR>5).
+        PARA: Parallax is measured.
+        PARA_SIG: Parallax measurement is significant (SNR>5).
+        ASTROMETRIC: Astrometric excess noise is small (astrometric_excess_noise<1.0).
+        ASTROMETRIC_SIG: Astrometric excess noise is significant (astrometric_excess_noise_sig>2.0).
+        NON_BINARY: Not a binary system (RUWE<1.4).
+        PHOTO_SIG: Photometric measurement is significant (SNR>5).
+        GALAXY: Is a galaxy candidate.
+    """
+    GAIA = 0x00001
+    HSC = 0x00002
+    PMRA = 0x00004
+    PMRA_SIG = 0x00008
+    PMDEC = 0x00010
+    PMDEC_SIG = 0x00020
+    PARA = 0x00040
+    PARA_SIG = 0x00080
+    ASTROMETRIC = 0x00100
+    ASTROMETRIC_SIG = 0x00200
+    NON_BINARY = 0x00400
+    PHOTO_SIG = 0x00800
+    GALAXY = 0x01000
+
+
+def decode_gs_bitmask(flags):
+    """
+    Decode the bitmask for guide stars.
+
+    Parameters
+    ----------
+    flags : `numpy.ndarray` of `int16`
+        The flag value to be decoded.
+
+    Returns
+    -------
+    decoded_info: `dict`
+        A dictionary containing the decoded info for each flag key.
+    """
+    decoded_info = {k.name: np.array([bool(flag & getattr(AutoGuiderStarMask, k.name)) for flag in flags])
+                    for k in AutoGuiderStarMask}
+    return decoded_info

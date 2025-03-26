@@ -92,9 +92,12 @@ class Target(types.SimpleNamespace):
         # the versions.txt file.
         from astropy.io.fits import BinTableHDU, Column
         maxLength = max(len(ff) for ff in self.fiberFlux.keys()) if self.fiberFlux else 1
-        header = astropyHeaderFromDict(
-            {attr.upper(): getattr(self, attr) for attr in self._attributes if attr != "targetType"}
-        )
+        metadata = {attr.upper(): getattr(self, attr) for attr in self._attributes if attr != "targetType"}
+        if not np.isfinite(metadata["RA"]):
+            del metadata["RA"]
+        if not np.isfinite(metadata["DEC"]):
+            del metadata["DEC"]
+        header = astropyHeaderFromDict(metadata)
         header["HIERARCH TARGETTYPE"] = int(self.targetType)
         header.update(TargetType.getFitsHeaders())
         header['DAMD_VER'] = (1, "Target datamodel version")
@@ -108,37 +111,38 @@ class Target(types.SimpleNamespace):
         """Comparison
 
         We do not compare the full set of contents. We care only about the
-        parts that should uniquely identify the `Target`, viz., the ``catId``,
-        ``tract``, ``patch``, and ``objId``. The other attributes are
-        considered helpful additions, but are not used in determining whether
-        one `Target` is "equal" to another `Target`.
+        parts that should uniquely identify the `Target`, viz., the ``catId``
+        and ``objId``. The other attributes are considered helpful additions,
+        but are not used in determining whether one `Target` is "equal" to
+        another `Target`.
         """
         if not isinstance(other, self.__class__):
             return False
-        for attr in ("catId", "tract", "patch", "objId"):
+        for attr in ("catId", "objId"):
             if getattr(self, attr) != getattr(other, attr):
                 return False
         return True
 
     def __hash__(self):
-        return hash((self.catId, self.tract, self.patch, self.objId))
+        return hash((self.catId, self.objId))
 
     @classmethod
-    def fromPfsConfig(cls, pfsConfig, index):
+    def fromPfsConfig(cls, pfsConfig, fiberId):
         """Construct from a PfsConfig
 
         Parameters
         ----------
         pfsConfig : `pfs.datamodel.PfsConfig`
             Top-end configuration.
-        index : `int`
-            Index into the ``pfsConfig`` arrays for the target of interest.
+        fiberId : `int`
+            Fiber identifier.
 
         Returns
         -------
         self : cls
             Constructed `Target`.
         """
+        index = pfsConfig.selectFiber(fiberId)
         catId = pfsConfig.catId[index]
         tract = pfsConfig.tract[index]
         patch = pfsConfig.patch[index]
