@@ -28,6 +28,11 @@ class ZLWarning(Flag):
     SPECTRUM_WAVELENGTH_TIGHTER_THAN_PARAM = auto()
     MULTI_OBS_ARBITRARY_LSF = auto()
 
+    FORCED_POWERLAW_TO_ZERO = auto()
+    NULL_LINES_PROFILE = auto()
+    STD_ESTIMATION_FAILED = auto()
+    VELOCITY_FIT_RANGE = auto()
+
 
 @inheritDocstrings
 class ZObjectCandidates:
