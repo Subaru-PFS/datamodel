@@ -6,6 +6,8 @@ from astropy.table import Table
 
 objects = ["galaxy","qso","star"]
 
+
+
 stage_to_pfs_sym = {"redshiftSolver":"Z",
                     "lineMeasSolver":"L"}
 
@@ -61,7 +63,10 @@ class ZObjectCandidates:
 
     def __init__(self, object_type, errors, warnings, candidates, models, ln_pdf, lines):
         self.model = models
-        self.parameters = candidates
+        if type(candidates) == astropy.table.row.Row:
+            self.parameters = [dict(candidates)]
+        else:
+            self.parameters = [dict(c) for c in candidates] 
         self.pdf = ln_pdf
         self.ZWarning = ZLWarning(int(warnings[f"{object_type}ZWarning"]))
         self.ZError = {"code":errors[f"{object_type}ZError"],
@@ -155,6 +160,8 @@ class PfsZCandidates:
                                       None)
 
         self.classification = ZClassification(classification, errors, warnings)
+
+        
 
     @classmethod
     def _readImpl(cls, fits):
@@ -259,3 +266,14 @@ class PfsZCandidates:
             return fits[0].header["INIT_WARNING"]
         return fits[0].header[f'{object_type.upper()}_{stage_to_pfs_sym[stage]}WARNING']
 
+    def get_classified_model(self):
+        if self.init_error["code"] == 0:
+            class_ = self.classification.name.lower()
+            return getattr(self,class_).model[0]
+        return None
+    
+    def get_classified_parameters(self):
+        if self.init_error["code"] == 0:
+            class_ = self.classification.name.lower()
+            return getattr(self,class_).parameters[0]
+        return None
