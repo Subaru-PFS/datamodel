@@ -170,8 +170,8 @@ class PfsCoZCandidates(Mapping[Target, PfsZCandidates]):
             lines_co = dict()
             grid_name = {"GALAXY":"REDSHIFT",
                          "QSO":"REDSHIFT",
-#                         "STAR":"VELOCITY"}
-                          "STAR":"REDSHIFT"}
+                         "STAR":"VELOCITY"}
+
             for o in ["GALAXY","QSO","STAR"]:
                 zcands_co[o] = Table(hdul[f"{o}_CANDIDATES"].data)
                 models_co[o] = hdul[f"{o}_MODELS"].data
