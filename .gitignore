@@ -3,6 +3,7 @@
 .sconf_temp
 .sconsign.dblite
 python/pfs/datamodel/version.py
+python/datamodel.dist-info
 tests/.tests
 .coverage
 .pytest_cache
