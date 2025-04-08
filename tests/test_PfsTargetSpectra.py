@@ -1,5 +1,6 @@
 import sys
 from typing import Any, Callable, Dict, Iterable, Optional, TYPE_CHECKING
+from types import SimpleNamespace
 import unittest
 import itertools
 
@@ -8,7 +9,6 @@ import astropy.io.fits
 import lsst.afw.image.testUtils
 import lsst.utils.tests
 import numpy as np
-from lsst.pipe.base import Struct
 from pfs.datamodel import FluxTable, MaskHelper, Observations, Target, TargetType
 from pfs.datamodel import PfsFiberArray, PfsObject
 from pfs.datamodel.pfsTargetSpectra import PfsTargetSpectra
@@ -76,7 +76,7 @@ class PfsTargetSpectraTestCase(lsst.utils.tests.TestCase):
 
     def makeSpectrum(
         self, length: int = 1000, minWavelength: float = 500, maxWavelength: float = 1000
-    ) -> Struct:
+    ) -> SimpleNamespace:
         """Create a spectrum with random values
 
         Parameters
@@ -88,7 +88,7 @@ class PfsTargetSpectraTestCase(lsst.utils.tests.TestCase):
 
         Returns
         -------
-        spectrum : `Struct`
+        spectrum : `types.SimpleNamespace`
             Spectrum arrays in a struct with the following attributes:
             - ``wavelength`` (`numpy.ndarray` of `float`)
             - ``flux`` (`numpy.ndarray` of `float`)
@@ -97,7 +97,7 @@ class PfsTargetSpectraTestCase(lsst.utils.tests.TestCase):
             - ``covar`` (`numpy.ndarray` of `float`, shape ``3,length``)
             - ``covar2`` (`numpy.ndarray` of `float`, shape ``5,5``)
         """
-        return Struct(
+        return SimpleNamespace(
             wavelength=np.linspace(minWavelength, maxWavelength, length, dtype=float),
             flux=self.rng.uniform(size=length).astype(np.float32),
             mask=self.rng.randint(0xFFFF, size=length).astype(np.int32),
