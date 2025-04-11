@@ -131,7 +131,10 @@ def makeFullCovariance(covar):
 def astropyHeaderToDict(header):
     """Convert an astropy FITS header to a dict
 
-    Comments are not preserved, nor are ``COMMENT`` or ``HISTORY`` cards.
+    Except that we don't, really. The astropy Header acts like a dict for most
+    purposes, and it preserves order and comments, so we use that.
+
+    This function exists only for backwards compatibility.
 
     Parameters
     ----------
@@ -143,7 +146,7 @@ def astropyHeaderToDict(header):
     metadata : `dict`
         FITS header keywords and values.
     """
-    return {key: value for key, value in header.items() if key not in set(("HISTORY", "COMMENT"))}
+    return header  # Preserves order and comments, and acts like a dict for most purposes
 
 
 def astropyHeaderFromDict(metadata):
@@ -161,7 +164,10 @@ def astropyHeaderFromDict(metadata):
     header : `astropy.io.fits.Header`
         FITS header.
     """
-    import astropy.io.fits
+    if isinstance(metadata, astropy.io.fits.Header):
+        # Already an astropy header
+        return metadata
+
     header = astropy.io.fits.Header()
     for key, value in metadata.items():
         if key in ("HISTORY", "COMMENT"):
