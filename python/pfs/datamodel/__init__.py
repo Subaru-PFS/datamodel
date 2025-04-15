@@ -1,3 +1,8 @@
+try:
+    from .version import *
+except ImportError:
+    __version__ = "unknown"
+
 from .masks import *
 from .pfsConfig import *
 from .pfsSimpleSpectrum import *
