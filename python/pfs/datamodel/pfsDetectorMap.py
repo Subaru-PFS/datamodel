@@ -564,13 +564,13 @@ class GlobalDetectorModelScaling(SimpleNamespace):
             return header[keyword] if keyword in header else header[keyword.upper()]
 
         return cls(
-            fiberPitch=lookup(header, "SCALING.fiberPitch"),
-            dispersion=lookup(header, "SCALING.dispersion"),
-            wavelengthCenter=lookup(header, "SCALING.wavelengthCenter"),
-            minFiberId=int(lookup(header, "SCALING.minFiberId")),
-            maxFiberId=int(lookup(header, "SCALING.maxFiberId")),
-            height=int(lookup(header, "SCALING.height")),
-            buffer=lookup(header, "SCALING.buffer"),
+            fiberPitch=lookup(header, "SCALING fiberPitch"),
+            dispersion=lookup(header, "SCALING dispersion"),
+            wavelengthCenter=lookup(header, "SCALING wavelengthCenter"),
+            minFiberId=int(lookup(header, "SCALING minFiberId")),
+            maxFiberId=int(lookup(header, "SCALING maxFiberId")),
+            height=int(lookup(header, "SCALING height")),
+            buffer=lookup(header, "SCALING buffer"),
         )
 
     def toFitsHeader(self):
@@ -582,13 +582,13 @@ class GlobalDetectorModelScaling(SimpleNamespace):
             FITS header.
         """
         return {
-            "SCALING.fiberPitch": self.fiberPitch,
-            "SCALING.dispersion": self.dispersion,
-            "SCALING.wavelengthCenter": self.wavelengthCenter,
-            "SCALING.minFiberId": self.minFiberId,
-            "SCALING.maxFiberId": self.maxFiberId,
-            "SCALING.height": self.height,
-            "SCALING.buffer": self.buffer,
+            "SCALING fiberPitch": self.fiberPitch,
+            "SCALING dispersion": self.dispersion,
+            "SCALING wavelengthCenter": self.wavelengthCenter,
+            "SCALING minFiberId": self.minFiberId,
+            "SCALING maxFiberId": self.maxFiberId,
+            "SCALING height": self.height,
+            "SCALING buffer": self.buffer,
         }
 
 
