@@ -107,7 +107,12 @@ class MaskHelper:
         # NOTE: When making any changes to this method that modify the output
         # format, increment the DAMD_VER header value and record the change in
         # the versions.txt file FOR ALL CLASSES THAT USE THIS.
-        return {self.maskPlanePrefix + key: value for key, value in self.flags.items()}
+        def getFitsKey(key):
+            """Convert a key to a FITS keyword"""
+            if len(key) > 8:
+                key = "HIERARCH " + key
+            return key
+        return {getFitsKey(self.maskPlanePrefix + key): value for key, value in self.flags.items()}
 
     @classmethod
     def fromMerge(cls, helpers):
