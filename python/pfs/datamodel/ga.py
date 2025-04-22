@@ -325,6 +325,7 @@ class PfsGAObject(PfsFiberArray):
 
         return header
 
+
 class GACatalogTable(PfsTable):
     """Catalog of GA objects with associated parameters."""
 
@@ -370,10 +371,12 @@ class GACatalogTable(PfsTable):
     ]
     fitsExtName = 'GACATALOG'
 
+
 PfsGACatalogNotes = makeNotesClass(
     "PfsGACatalogNotes",
     []
 )
+
 
 class PfsGACatalog():
     filenameFormat = ("pfsGACatalog-%(catId)05d-%(nVisit)03d-0x%(pfsVisitHash)016x.fits")
@@ -389,7 +392,7 @@ class PfsGACatalog():
             catalog: GACatalogTable,
             metadata=None,
             notes: Notes = None):
-        
+
         self.catId = catId
         self.observations = observations
         self.nVisit = wraparoundNVisit(len(observations.visit))
@@ -418,7 +421,7 @@ class PfsGACatalog():
         return identity
 
     def validate(self):
-        
+
         # TODO: Make sure catId is the same for each object
 
         pass
@@ -516,12 +519,12 @@ class PfsGACatalog():
             which may be supplemented with additional keywords.
         """
 
-        from astropy.io.fits import ImageHDU, Header
-        
+        from astropy.io.fits import Header
+
         header = Header()
 
         header['DAMD_VER'] = GA_DAMD_VER
-        
+
         if self.observations is not None:
             # Override catId from class
             self.observations.catId = np.array(self.observations.num * [self.catId])
@@ -546,11 +549,11 @@ class PfsGACatalog():
         filename : `str`
             Filename of FITS file.
         """
-        from astropy.io.fits import HDUList, PrimaryHDU
+        from astropy.io.fits import HDUList
         fits = HDUList()
         header = self._writeImpl(fits)
         fits[0].header.update(header)
-            
+
         with open(filename, "wb") as fd:
             fits.writeto(fd)
 
