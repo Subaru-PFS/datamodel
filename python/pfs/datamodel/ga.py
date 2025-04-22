@@ -1,3 +1,4 @@
+import os
 import numpy as np
 
 from .notes import makeNotesClass, Notes
@@ -6,7 +7,11 @@ from .fluxTable import FluxTable
 from .pfsTable import PfsTable, Column
 from .utils import inheritDocstrings
 from .utils import astropyHeaderToDict, astropyHeaderFromDict
+from .utils import calculatePfsVisitHash, wraparoundNVisit
 from .masks import MaskHelper
+from .observations import Observations
+
+GA_DAMD_VER = 2
 
 __all__ = [
     "VelocityCorrections",
@@ -21,7 +26,7 @@ __all__ = [
 class VelocityCorrections(PfsTable):
     """A table of velocity corrections applied to the individual visits."""
 
-    damdVer = 2
+    damdVer = GA_DAMD_VER
     schema = [
         Column("visit", np.int32, "ID of the visit these corrections apply for", -1),
         Column("JD", np.float32, "Julian date of the visit", -1),
@@ -34,7 +39,7 @@ class VelocityCorrections(PfsTable):
 class StellarParams(PfsTable):
     """List of measured stellar parameters for a target."""
 
-    damdVer = 2
+    damdVer = GA_DAMD_VER
     schema = [
         Column("method", str, "Line-of-sight velocity measurement method", ""),
         Column("frame", str, "Reference frame of velocity: helio, bary", ""),
@@ -53,7 +58,7 @@ class StellarParams(PfsTable):
 class Abundances(PfsTable):
     """List of measured abundance parameters for stellar targets."""
 
-    damdVer = 2
+    damdVer = GA_DAMD_VER
     schema = [
         Column("method", str, "Abundance measurement method", ""),
         Column("element", str, "Chemical element the abundance is measured for", ""),
@@ -143,7 +148,7 @@ class GAFluxTable(FluxTable):
         # the versions.txt file.
         from astropy.io.fits import BinTableHDU, Column
         header = astropyHeaderFromDict(self.flags.toFitsHeader())
-        header['DAMD_VER'] = (1, "GAFluxTable datamodel version")
+        header['DAMD_VER'] = (GA_DAMD_VER, "GAFluxTable datamodel version")
         hdu = BinTableHDU.from_columns([
             Column("wavelength", "D", array=self.wavelength),
             Column("flux", "E", array=self.flux),
@@ -319,3 +324,248 @@ class PfsGAObject(PfsFiberArray):
                         name=self.AbundancesFitsExtName))
 
         return header
+
+class GACatalogTable(PfsTable):
+    """Catalog of GA objects with associated parameters."""
+
+    damdVer = GA_DAMD_VER
+    schema = [
+        Column("catId", np.int32, "PFS catalog identifier", -1),
+        Column("objId", np.int32, "Object identifier.", -1),
+        Column("gaiaId", np.int64, "GAIA identifier", -1),
+        Column("ps1Id", np.int64, "PS1 identifier", -1),
+        Column("hscId", np.int64, "HSC identifier", -1),
+        Column("miscId", np.int64, "Miscellaneous identifier", -1),
+        Column("ra", np.float32, "Right ascension ICRS [deg]", np.nan),
+        Column("dec", np.float32, "Declination ICRS [deg]", np.nan),
+        Column("epoch", np.float32, "Coordinate epoch [Jyr]", 2016.0),
+        Column("pmRa", np.float32, "Proper motion pmracosdec [mas/yr]", np.nan),
+        Column("pmDec", np.float32, "Proper motion dec [mas/yr]", np.nan),
+        Column("parallax", np.float32, "Parallax [mas]", np.nan),
+        Column("targetType", np.int16, "Target type.", -1),
+        Column("proposalId", str, "Proposal ID", ""),
+        Column("obCode", str, "Observing Block", ""),
+
+        Column("nVisit_b", np.int16, "Number of visits in B", -1),
+        Column("nVisit_m", np.int16, "Number of visits in M", -1),
+        Column("nVisit_r", np.int16, "Number of visits in R", -1),
+        Column("nVisit_n", np.int16, "Number of visits in N", -1),
+
+        Column("expTimeEff_b", np.float32, "Effective exposure time in B [s]", np.nan),
+        Column("expTimeEff_m", np.float32, "Effective exposure time in M [s]", np.nan),
+        Column("expTimeEff_r", np.float32, "Effective exposure time in R [s]", np.nan),
+        Column("expTimeEff_n", np.float32, "Effective exposure time in N [s]", np.nan),
+
+        Column("rv", np.float32, "Radial velocity [km/s]", np.nan),
+        Column("rvErr", np.float32, "Radial velocity error [km/s]", np.nan),
+        Column("tEff", np.float32, "Effective temperature [K]", np.nan),
+        Column("tEffErr", np.float32, "Effective temperature error [K]", np.nan),
+        Column("m_h", np.float32, "Metallicity [dex]", np.nan),
+        Column("m_hErr", np.float32, "Metallicity error [dex]", np.nan),
+        Column("logg", np.float32, "log g", np.nan),
+        Column("loggErr", np.float32, "log g error", np.nan),
+
+        Column("flag", bool, "Measurement flag (true means bad)", False),
+        Column("status", str, "Measurement flags", ""),
+    ]
+    fitsExtName = 'GACATALOG'
+
+PfsGACatalogNotes = makeNotesClass(
+    "PfsGACatalogNotes",
+    []
+)
+
+class PfsGACatalog():
+    filenameFormat = ("pfsGACatalog-%(catId)05d-%(nVisit)03d-0x%(pfsVisitHash)016x.fits")
+    filenameRegex = r"^pfsGACatalog-(\d{5})-([0-9]{3})-0x([0-9a-f]{16})\.fits.*$"
+    filenameKeys = [("catId", int), ("nVisit", int), ("pfsVisitHash", int)]
+
+    NotesClass = PfsGACatalogNotes
+
+    def __init__(
+            self,
+            catId,
+            observations: Observations,
+            catalog: GACatalogTable,
+            metadata=None,
+            notes: Notes = None):
+        
+        self.catId = catId
+        self.observations = observations
+        self.nVisit = wraparoundNVisit(len(observations.visit))
+        self.pfsVisitHash = calculatePfsVisitHash(observations.visit)
+        self.catalog = catalog
+        self.metadata = metadata if metadata is not None else {}
+        self.notes = notes if notes is not None else self.NotesClass()
+        self.length = len(catalog)
+
+        self.validate()
+
+    def getIdentity(self):
+        """Return the identity of the catalog
+
+        Returns
+        -------
+        identity : `dict`
+            Key-value pairs that identify this catalog
+        """
+        identity = dict(
+            catId=self.catId,
+            visit=self.observations.visit,
+            nVisit=self.nVisit,
+            pfsVisitHash=self.pfsVisitHash
+        )
+        return identity
+
+    def validate(self):
+        
+        # TODO: Make sure catId is the same for each object
+
+        pass
+
+    def __len__(self):
+        """Return the length of the arrays"""
+        return self.length
+
+    @classmethod
+    def _readImpl(cls, fits):
+        data = {}
+
+        version = fits[0].header["DAMD_VER"]
+
+        if version >= GA_DAMD_VER:
+            data["notes"] = cls.NotesClass.readFits(fits)
+
+        try:
+            observations = Observations.fromFits(fits)
+            data['observations'] = observations
+        except KeyError as exc:
+            # Only want to catch "Extension XXX not found."
+            if not exc.args[0].startswith("Extension"):
+                raise
+            data['observations'] = None
+
+        try:
+            catalog = GACatalogTable.readHdu(fits)
+            data['catalog'] = catalog
+            data['catId'] = catalog.catId[0]
+        except KeyError as exc:
+            # Only want to catch "Extension XXX not found."
+            if not exc.args[0].startswith("Extension"):
+                raise
+            data['catalog'] = None
+
+        return data
+
+    @classmethod
+    def readFits(cls, filename):
+        """
+        Read from FITS file
+
+        This API is intended for use by the LSST data butler, which handles
+        translating the desired identity into a filename.
+
+        Parameters
+        ----------
+        filename : `str`
+            Filename of FITS file.
+
+        Returns
+        -------
+        self : ``cls``
+            Constructed instance, from FITS file.
+        """
+
+        import astropy.io.fits
+        with astropy.io.fits.open(filename) as fd:
+            data = cls._readImpl(fd)
+        return cls(**data)
+
+    @classmethod
+    def read(cls, catId, pfsVisitHash, dirName="."):
+        """Read from file
+
+        This API is intended for use by science users, as it allows selection
+        of the correct file from parameters that make sense, such as which
+        catId, objId, etc.
+
+        Parameters
+        ----------
+        identity : `dict`
+            Keyword-value pairs identifying the data of interest. Common keywords
+            include ``catId``, ``tract``, ``patch``, ``objId``.
+        dirName : `str`, optional
+            Directory from which to read.
+
+        Returns
+        -------
+        self : ``cls``
+            Spectrum read from file.
+        """
+        filename = os.path.join(dirName, cls.filenameFormat % (catId, pfsVisitHash))
+        return cls.readFits(filename)
+
+    def _writeImpl(self, fits):
+        """
+        Implementation for writing to FITS file
+
+        Parameters
+        ----------
+        fits : `astropy.io.fits.HDUList`
+            List of FITS HDUs. This has a Primary HDU already, the header of
+            which may be supplemented with additional keywords.
+        """
+
+        from astropy.io.fits import ImageHDU, Header
+        
+        header = Header()
+
+        header['DAMD_VER'] = GA_DAMD_VER
+        
+        if self.observations is not None:
+            # Override catId from class
+            self.observations.catId = np.array(self.observations.num * [self.catId])
+            self.observations.toFits(fits)
+        if self.catalog is not None:
+            self.catalog.writeHdu(fits)
+        if self.metadata is not None:
+            header.extend(astropyHeaderFromDict(self.metadata))
+        if self.notes is not None:
+            self.notes.writeFits(fits)
+
+        return header
+
+    def writeFits(self, filename):
+        """Write to FITS file
+
+        This API is intended for use by the LSST data butler, which handles
+        translating the desired identity into a filename.
+
+        Parameters
+        ----------
+        filename : `str`
+            Filename of FITS file.
+        """
+        from astropy.io.fits import HDUList, PrimaryHDU
+        fits = HDUList()
+        header = self._writeImpl(fits)
+        fits[0].header.update(header)
+            
+        with open(filename, "wb") as fd:
+            fits.writeto(fd)
+
+    def write(self, dirName="."):
+        """Write to file
+
+        This API is intended for use by science users, as it allows setting the
+        correct filename from parameters that make sense, such as which
+        catId, objId, etc.
+
+        Parameters
+        ----------
+        dirName : `str`, optional
+            Directory to which to write.
+        """
+        identity = self.getIdentity()
+        filename = os.path.join(dirName, self.filenameFormat % identity)
+        return self.writeFits(filename)
