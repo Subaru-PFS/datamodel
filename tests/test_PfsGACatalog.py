@@ -4,7 +4,7 @@ import numpy as np
 from unittest import TestCase
 
 from pfs.datamodel import TargetType, Observations
-from pfs.datamodel.ga import PfsGACatalog, PfsGACatalogNotes, GACatalogTable
+from pfs.datamodel.ga import PfsGACatalog, GACatalogTable
 
 
 class PfsGACatalogTestCase(TestCase):
@@ -26,7 +26,8 @@ class PfsGACatalogTestCase(TestCase):
             fiberId=np.array(4 * [-1]),
             pfiNominal=np.array(4 * [2 * [np.nan]]),
             pfiCenter=np.array(4 * [2 * [np.nan]]),
-            obsTime=np.array(['2025-01-10 12:00:00', '2025-01-10 12:15:00', '2025-01-10 12:30:00', '2025-01-10 13:00:00']),
+            obsTime=np.array(['2025-01-10 12:00:00', '2025-01-10 12:15:00',
+                              '2025-01-10 12:30:00', '2025-01-10 13:00:00']),
             expTime=np.array([1800.0, 1800.0, 1800.0, 1800.0]),
         )
 
@@ -46,7 +47,7 @@ class PfsGACatalogTestCase(TestCase):
             targetType=np.array([TargetType.SCIENCE, TargetType.SCIENCE, TargetType.SCIENCE]),
             proposalId=np.array(['A', 'A', 'A']),
             obCode=np.array(['A', 'B', 'C']),
-            
+
             nVisit_b=np.array([3, 3, 3]),
             nVisit_m=np.array([3, 3, 3]),
             nVisit_r=np.array([3, 3, 3]),
