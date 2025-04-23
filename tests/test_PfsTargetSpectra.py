@@ -225,12 +225,18 @@ class PfsTargetSpectraTestCase(lsst.utils.tests.TestCase):
             catId = itertools.repeat(12345)
         if length is None:
             length = itertools.repeat(1000)
-        return PfsCoadd([
-            self.makePfsFiberArray(ii, jj, ll, numObservations) for ii, jj, ll in zip(catId, objId, length)
-        ])
+        metadata = self.makeMetadata()
+        return PfsCoadd(
+            [self.makePfsFiberArray(ii, jj, ll, numObservations) for ii, jj, ll in zip(catId, objId, length)],
+            metadata,
+        )
 
     def assertPfsTargetSpectraEqual(self, left: PfsTargetSpectra, right: PfsTargetSpectra):
         """Assert that two `PfsTargetSpectra` are equal"""
+        for key in right.metadata:
+            self.assertIn(key, right.metadata)
+            self.assertEqual(left.metadata[key], right.metadata[key], key)
+
         self.assertEqual(len(left), len(right))
         for leftTarget, rightTarget in zip(left, right):
             self.assertTargetEqual(leftTarget, rightTarget)
