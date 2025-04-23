@@ -153,6 +153,7 @@ class FiberStatus(DocEnum):
     UNILLUMINATED = 5, "not illuminated; ignore any flux"
     BROKENCOBRA = 6, "Cobra does not move, but the fiber still carries flux."
     NOTCONVERGED = 7, "Cobra did not converge to the target."
+    BAD_PSF = 8, "Known bad PSF"
 
 
 try:
