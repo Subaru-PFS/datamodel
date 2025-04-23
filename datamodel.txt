@@ -507,6 +507,7 @@ The 'fiberStatus' in the DESIGN table is an enumerated type, with values:
     UNILLUMINATED = 5: The fiber is not being illuminated.
     BROKENCOBRA = 6: The cobra cannot move, but the fiber still carries flux.
     NOTCONVERGED = 7: The Cobra did not converge to the target.
+    BAD_PSF = 8: The fiber is known to have a bad PSF.
 
 The PHOTOMETRY table lists:
       fiberId            32-bit int
