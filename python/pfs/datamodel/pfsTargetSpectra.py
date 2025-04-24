@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from typing import Dict, Iterator, List, Optional, Sequence, Tuple, Type, Union, cast, overload
+from typing import Any, Dict, Iterator, List, Optional, Sequence, Tuple, Type, Union, cast, overload
 
 import astropy.io.fits
 import numpy as np
@@ -29,11 +29,14 @@ class PfsTargetSpectra(Mapping[Target, PfsFiberArray]):
     PfsFiberArrayClass: Type[PfsFiberArray]  # Subclasses must override
     NotesClass: Type[PfsTable]  # Subclasses must override
 
-    def __init__(self, spectra: Sequence[PfsFiberArray]):
+    def __init__(self, spectra: Sequence[PfsFiberArray], metadata: Optional[Mapping[str, Any]] = None):
         super().__init__()
+        if metadata is None:
+            metadata = astropy.io.fits.Header()
         self.spectra: Dict[Target, PfsFiberArray] = {spectrum.target: spectrum for spectrum in spectra}
         if len(self.spectra) != len(spectra):
             raise RuntimeError("Spectra targets not unique")
+        self.metadata = metadata
 
         # Lookup by catId,objId
         self._byCatIdObjId: Dict[Tuple[int, int], PfsFiberArray]
@@ -155,6 +158,7 @@ class PfsTargetSpectra(Mapping[Target, PfsFiberArray]):
 
         spectra = []
         with astropy.io.fits.open(filename) as fits:
+            header = fits[0].header
             targetHdu = fits["TARGET"].data
             targetFluxHdu = fits["TARGETFLUX"].data
             observationsHdu = fits["OBSERVATIONS"].data
@@ -246,7 +250,7 @@ class PfsTargetSpectra(Mapping[Target, PfsFiberArray]):
                 )
                 spectra.append(spectrum)
 
-        return cls(spectra)
+        return cls(spectra, header)
 
     def writeFits(self, filename: str):
         """Write to FITS file
@@ -263,7 +267,7 @@ class PfsTargetSpectra(Mapping[Target, PfsFiberArray]):
         # format, increment the DAMD_VER header value and record the change in
         # the versions.txt file.
         fits = HDUList()
-        header = Header()
+        header = Header(self.metadata)
         header['DAMD_VER'] = (1, "PfsTargetSpectra datamodel version")
         fits.append(PrimaryHDU(header=header))
 
