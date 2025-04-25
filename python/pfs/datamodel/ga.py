@@ -20,6 +20,9 @@ __all__ = [
     "GAFluxTable",
     "PfsGAObjectNotes",
     "PfsGAObject",
+    "GACatalogTable",
+    "PfsGACatalogNotes",
+    "PfsGACatalog",
 ]
 
 
@@ -339,7 +342,7 @@ class GACatalogTable(PfsTable):
         Column("miscId", np.int64, "Miscellaneous identifier", -1),
         Column("ra", np.float32, "Right ascension ICRS [deg]", np.nan),
         Column("dec", np.float32, "Declination ICRS [deg]", np.nan),
-        Column("epoch", np.float32, "Coordinate epoch [Jyr]", 2016.0),
+        Column("epoch", str, "Coordinate epoch [Jyr]", ''),
         Column("pmRa", np.float32, "Proper motion pmracosdec [mas/yr]", np.nan),
         Column("pmDec", np.float32, "Proper motion dec [mas/yr]", np.nan),
         Column("parallax", np.float32, "Parallax [mas]", np.nan),
@@ -357,14 +360,16 @@ class GACatalogTable(PfsTable):
         Column("expTimeEff_r", np.float32, "Effective exposure time in R [s]", np.nan),
         Column("expTimeEff_n", np.float32, "Effective exposure time in N [s]", np.nan),
 
-        Column("rv", np.float32, "Radial velocity [km/s]", np.nan),
-        Column("rvErr", np.float32, "Radial velocity error [km/s]", np.nan),
-        Column("tEff", np.float32, "Effective temperature [K]", np.nan),
-        Column("tEffErr", np.float32, "Effective temperature error [K]", np.nan),
-        Column("m_h", np.float32, "Metallicity [dex]", np.nan),
-        Column("m_hErr", np.float32, "Metallicity error [dex]", np.nan),
-        Column("logg", np.float32, "log g", np.nan),
-        Column("loggErr", np.float32, "log g error", np.nan),
+        # TODO: add SNR
+
+        Column("v_los", np.float32, "Radial velocity [km/s]", np.nan),
+        Column("v_losErr", np.float32, "Radial velocity error [km/s]", np.nan),
+        Column("T_eff", np.float32, "Effective temperature [K]", np.nan),
+        Column("T_effErr", np.float32, "Effective temperature error [K]", np.nan),
+        Column("M_H", np.float32, "Metallicity [dex]", np.nan),
+        Column("M_HErr", np.float32, "Metallicity error [dex]", np.nan),
+        Column("log_g", np.float32, "log g", np.nan),
+        Column("log_gErr", np.float32, "log g error", np.nan),
 
         Column("flag", bool, "Measurement flag (true means bad)", False),
         Column("status", str, "Measurement flags", ""),
