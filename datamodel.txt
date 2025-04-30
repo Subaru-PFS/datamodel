@@ -808,6 +808,10 @@ The particular representation used is written in the PHDU as the value of the
   normalization is from (-1, -1, -1) to (1, 1, 1). This nomalization happens
   before the arguments are substituted for the variables of the polynomial.
 
+* PfsFocalPlanePolynomial: a polynomial on the focal plane. The FITS file
+  includes an HDU called "POLYNOMIAL", which is an image with the polynomial
+  coefficients.
+
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 The PSF for a single exposure

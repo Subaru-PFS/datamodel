@@ -13,6 +13,7 @@ __all__ = (
     "PfsBlockedOversampledSpline",
     "PfsPolynomialPerFiber",
     "PfsFluxCalib",
+    "PfsFocalPlanePolynomial",
 )
 
 
@@ -535,3 +536,61 @@ class PfsFluxCalib(PfsFocalPlaneFunction):
                 astropy.io.fits.BinTableHDU(catalog, name="POLYNOMIAL", header=header),
             ]
         )
+
+
+class PfsFocalPlanePolynomial(PfsFocalPlaneFunction):
+    """A 2D polynomial on the focal plane
+
+    Parameters
+    ----------
+    coeffs : `numpy.ndarray` of `float`
+        Polynomial coefficients.
+    halfWidth : `float`
+        Half-width of the focal plane, in mm.
+    rms : `float`
+        RMS of residuals from fit.
+    """
+
+    HDU_NAME = "POLYNOMIAL"
+
+    def __init__(self, coeffs: np.ndarray, halfWidth: float, rms: float):
+        self.coeffs = coeffs
+        self.halfWidth = halfWidth
+        self.rms = rms
+
+    @classmethod
+    def fromFits(cls, fits: astropy.io.fits.HDUList) -> "PfsFocalPlanePolynomial":
+        """Construct from FITS file
+
+        Parameters
+        ----------
+        fits : `astropy.io.fits.HDUList`
+            FITS file from which to read.
+
+        Returns
+        -------
+        self : cls
+            Constructed focal plane function.
+        """
+        coeffs = fits[cls.HDU_NAME].data.astype(np.float64)
+        halfWidth = fits[cls.HDU_NAME].header["HALF_WIDTH"]
+        rms = fits[cls.HDU_NAME].header["RMS"]
+        return cls(coeffs, halfWidth, rms)
+
+    def toFits(self) -> astropy.io.fits.HDUList:
+        """Write to FITS file
+
+        Returns
+        -------
+        fits : `astropy.io.fits.HDUList`
+            FITS file to write.
+        """
+        header = astropy.io.fits.Header()
+        header["HIERARCH HALF_WIDTH"] = (self.halfWidth, "Half-width of the focal plane in mm")
+        header["RMS"] = (self.rms, "RMS of residuals from fit")
+        hdu = astropy.io.fits.ImageHDU(
+            data=self.coeffs.astype(np.float64),
+            header=header,
+            name=self.HDU_NAME,
+        )
+        return astropy.io.fits.HDUList(hdus=[hdu])
