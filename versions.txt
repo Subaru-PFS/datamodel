@@ -163,3 +163,11 @@ This class is used for the fiber normalisations calib product.
 
 * 1: Initial version in datamodel package.
 * 2: Major format changes.
+
+
+ObjectGroupMap
+--------------
+
+This class is used for determining the objGroup from catId,objId.
+
+* 1: Initial version.

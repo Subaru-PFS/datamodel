@@ -970,8 +970,7 @@ handle, and inefficient when we have thousands of objects per exposure. Since
 the transition to the LSST Gen3 middleware in the latter half of 2024, we have
 been putting multiple coadded spectra in a single file, essentially bundling
 pfsObject spectra. This file is currently constructed per object catalog
-(catId), but it will be necessary in the future to use a different division,
-TBD, possibly incorporating some form of spatial indexing by RA,Dec.
+(catId) and group of objects (objGroup).
 
 Some elements of this scheme are inefficient. This might be remedied by
 introducing compression.
@@ -1035,6 +1034,23 @@ will be called "value". For quantities with multiple arrays per spectrum
 If the lengths of the spectra are identical (the usual case, since we have use
 the same wavelength sampling), these HDUs will be written as images, which is
 simpler and provides opportunities to use FITS tile compression.
+
+
+-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+Object group map
+
+Since storing the coadded spectra of all objects with the same catId in a
+single file would be impractical, we subdivide the observed objects within a
+catalog into groups. The object group map specifies the grouping of objects
+within a catalog. An object group map is produced for each catalog (catId),
+containing all observed objects within that catalog.
+
+HDU #0 PDU
+HDU #1 OBJECT_GROUP_MAP                              [FITS BINARY TABLE] NOBJECT
+    Columns:
+        objId [64-bit INT]: Object identifier
+        objGroup [32-bit INT]: Group number
 
 
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
