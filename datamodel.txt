@@ -696,6 +696,64 @@ The format will be identical to that of the pfsObject files.
 
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
+Physical parameter measurements for Galactic Archeology targets including flux-calibrated
+combined spectra and synthetic stellar template fits.
+
+    "pfsGAObject-%05d-%05d-%s-%016x-%03d-0x%016x.fits"
+         % (catId, tract, patch, objId, nVisit % 1000, pfsVisitHash)
+
+The format is similar to pfsObject files, but with additional HDUs and a different fluxTable format.
+
+HDU #j VELCORR         Velocity corrections used at each visit         [BINARY FITS TABLE]
+HDU #i STELLARPARAMS   Fundamental stellar parameter measurements      [BINARY FITS TABLE]
+HDU #l STELLARCOVAR    Covariance matrix of stellar parameters         [BINARY FITS TABLE] n*n
+HDU #k ABUND           Single element abundances                       [BINARY FITS TABLE]
+HDU #m ABUNDCOVAR      Covarinace matrix of single element abundances  [32-bit FLOAT]      n*n
+
+In the data tables outlined below, we allow for the possibility of multiple measurements of the same
+physical parameters indicated by the `method` field but we provide the full covariance matrix for
+the primary method only. The column `covarId` indicates the position of the parameter within the
+corresponding covariance matrix.
+
+The VELCORR table lists the velocity corrections used at each visit:
+  
+    visit              visit identifier                                   32-bit int
+    JD                 Julian Date of the visit                           32-bit float
+    helio              Heliocentric correction at the visit [km s-1]      32-bit float
+    bary               Barycentric correction at the visit [km s-2]       32-bit float
+
+The STELLARPARAMS table lists the measured fundamental parameters
+
+    method             Method of measuring the parameters                 string
+    frame              Reference frame for measuring the velocity         string
+    param              Stellar parameter                                  string
+    covarId            Index of parameter within the covariance matrix    8-bit uint
+    unit               Physical unit of the parameter                     string
+    value              Measured value of the parameter                    32-bit float
+    valueErr           Uncertainty of the measured value                  32-bit float
+    flag               Measurement flag (true means bad)                  bool
+    status             Flags describing the quality of the measurement    string
+
+The ABUND table lists the measured single element abundances
+
+    method             Method of measuring the parameters                 string
+    element            Element name                                       string
+    covarId            Index of parameter within the covariance matrix    8-bit uint
+    value              Measured abundance                                 32-bit float
+    valueErr           Uncertainty of the measured abundance               32-bit float
+    flag               Measurement flag (true means bad)                  bool
+    status             Flags describing the quality of the measurement    string
+
+The FLUXTABLE of pfsGAObject files is extended and includes the following additional columns:
+
+    model              Best fit fluxed template model                     32-bit float
+    cont               Continuum model                                    32-bit float
+    norm_flux          Continuum-normalized flux                          32-bit float
+    norm_error         Error of continuum-normalized flux                 32-bit float
+    norm_model         Best fit continuum-normalized model                32-bit float
+
+-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
 2D spectral line measurements
 
 The 2D pipeline measures the position and flux of sky and arc lines as part of the reduction process.
