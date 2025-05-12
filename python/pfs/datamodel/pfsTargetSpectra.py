@@ -438,7 +438,7 @@ class PfsTargetSpectra(Mapping[Target, PfsFiberArray]):
                     Column("targetId", "I", array=targetId),
                     Column(
                         "wavelength",
-                        "PD()",
+                        "QD()",
                         array=[
                             spectrum.fluxTable.wavelength if spectrum.fluxTable else []
                             for spectrum in self.values()
@@ -446,7 +446,7 @@ class PfsTargetSpectra(Mapping[Target, PfsFiberArray]):
                     ),
                     Column(
                         "flux",
-                        "PE()",
+                        "QE()",
                         array=[
                             spectrum.fluxTable.flux if spectrum.fluxTable else []
                             for spectrum in self.values()
@@ -454,7 +454,7 @@ class PfsTargetSpectra(Mapping[Target, PfsFiberArray]):
                     ),
                     Column(
                         "error",
-                        "PE()",
+                        "QE()",
                         array=[
                             spectrum.fluxTable.error if spectrum.fluxTable else []
                             for spectrum in self.values()
@@ -462,7 +462,7 @@ class PfsTargetSpectra(Mapping[Target, PfsFiberArray]):
                     ),
                     Column(
                         "mask",
-                        "PJ()",
+                        "QJ()",
                         array=[
                             spectrum.fluxTable.mask if spectrum.fluxTable else []
                             for spectrum in self.values()
