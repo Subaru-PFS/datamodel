@@ -81,6 +81,20 @@ class Identity(types.SimpleNamespace):
             _expTime=expTime,
         )
 
+    def __reduce__(self):
+        """Support pickling"""
+        return (
+            self.__class__,
+            (
+                self.visit,
+                self._arm,
+                self._spectrograph,
+                self._pfsDesignId,
+                self._obsTime,
+                self._expTime,
+            ),
+        )
+
     def __eq__(self, other):
         for attr in ("visit", "arm", "spectrograph", "pfsDesignId"):
             if getattr(self, attr) != getattr(other, attr):
