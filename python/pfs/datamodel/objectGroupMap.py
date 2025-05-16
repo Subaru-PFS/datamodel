@@ -161,7 +161,7 @@ class ObjectGroupMap:
         map : `ObjectGroupMap`
             The object group map.
         """
-        with astropy.io.fits.open(filename) as fits:
+        with astropy.io.fits.open(filename, memmap=False) as fits:
             table = fits[cls.FITS_EXTNAME].data
             objId = table["objId"].astype(cls.TYPE_OBJID)
             objGroup = table["objGroup"].astype(cls.TYPE_OBJGROUP)

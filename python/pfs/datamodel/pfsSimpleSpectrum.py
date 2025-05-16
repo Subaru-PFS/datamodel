@@ -112,7 +112,7 @@ class PfsSimpleSpectrum:
             Constructed instance, from FITS file.
         """
         import astropy.io.fits
-        with astropy.io.fits.open(filename) as fd:
+        with astropy.io.fits.open(filename, memmap=False) as fd:
             data = cls._readImpl(fd)
         return cls(**data)
 

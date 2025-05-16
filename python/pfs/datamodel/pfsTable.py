@@ -245,7 +245,7 @@ class PfsTable:
         self : cls
             Constructed object from reading file.
         """
-        with astropy.io.fits.open(filename) as fits:
+        with astropy.io.fits.open(filename, memmap=False) as fits:
             return cls.readHdu(fits)
 
     def writeHdu(self, fits: astropy.io.fits.HDUList):

@@ -730,7 +730,7 @@ class PfsDesign:
         if not pyfits:
             raise RuntimeError("I failed to import astropy.io.fits, so cannot read from disk")
 
-        with pyfits.open(filename) as fd:
+        with pyfits.open(filename, memmap=False) as fd:
             phu = fd[0].header
             raBoresight = phu['RA']
             decBoresight = phu['DEC']

@@ -56,7 +56,7 @@ class PfsFocalPlaneFunction(ABC):
             Constructed instance, from FITS file.
         """
         subs = {ss.__name__: ss for ss in subclasses(cls)}
-        with astropy.io.fits.open(filename) as fits:
+        with astropy.io.fits.open(filename, memmap=False) as fits:
             if cls._classIdentifier not in fits[0].header:
                 raise RuntimeError(f"Header keyword {cls._classIdentifier} not found")
             name = fits[0].header.get(cls._classIdentifier)
