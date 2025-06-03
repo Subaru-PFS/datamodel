@@ -463,6 +463,9 @@ class PfsFluxCalib(PfsFocalPlaneFunction):
         at which ``(x, y, \lambda)`` are maximal.
     constantFocalPlaneFunction : `PfsConstantFocalPlaneFunction`
         ``h(\lambda)`` as explaned above.
+    polyNewNorm : `bool`, optional
+        Use the new normalization scheme? This allows compatibility with
+        files written before the normalization scheme was changed (2025 June).
     """
 
     def __init__(
@@ -471,10 +474,12 @@ class PfsFluxCalib(PfsFocalPlaneFunction):
         polyMin: np.ndarray,
         polyMax: np.ndarray,
         constantFocalPlaneFunction: PfsConstantFocalPlaneFunction,
+        polyNewNorm: bool = True,
     ) -> None:
         self.polyParams = polyParams
         self.polyMin = polyMin
         self.polyMax = polyMax
+        self.polyNewNorm = polyNewNorm
         self.constantFocalPlaneFunction = constantFocalPlaneFunction
 
     @classmethod
@@ -497,8 +502,9 @@ class PfsFluxCalib(PfsFocalPlaneFunction):
         polyParams = catalog["params"][0]
         polyMin = catalog["min"][0]
         polyMax = catalog["max"][0]
+        polyNewNorm = fits["POLYNOMIAL"].header.get("NEWNORM", False)  # If NEWNORM isn't there, it's old
 
-        return cls(polyParams, polyMin, polyMax, constantFocalPlaneFunction)
+        return cls(polyParams, polyMin, polyMax, constantFocalPlaneFunction, polyNewNorm)
 
     def toFits(self) -> astropy.io.fits.HDUList:
         """Write to FITS file
@@ -520,9 +526,12 @@ class PfsFluxCalib(PfsFocalPlaneFunction):
         catalog["min"][0, :] = self.polyMin
         catalog["max"][0, :] = self.polyMax
 
+        header = astropy.io.fits.Header()
+        header["NEWNORM"] = (self.polyNewNorm, "Use new normalization scheme?")
+
         return astropy.io.fits.HDUList(
             hdus=[
                 *self.constantFocalPlaneFunction.toFits(),
-                astropy.io.fits.BinTableHDU(catalog, name="POLYNOMIAL"),
+                astropy.io.fits.BinTableHDU(catalog, name="POLYNOMIAL", header=header),
             ]
         )
