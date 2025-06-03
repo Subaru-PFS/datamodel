@@ -499,9 +499,9 @@ class PfsFluxCalib(PfsFocalPlaneFunction):
         constantFocalPlaneFunction = PfsConstantFocalPlaneFunction.fromFits(fits)
 
         catalog = fits["POLYNOMIAL"].data
-        polyParams = catalog["params"][0]
-        polyMin = catalog["min"][0]
-        polyMax = catalog["max"][0]
+        polyParams = catalog["params"][0].astype(np.float64)
+        polyMin = catalog["min"][0].astype(np.float64)
+        polyMax = catalog["max"][0].astype(np.float64)
         polyNewNorm = fits["POLYNOMIAL"].header.get("NEWNORM", False)  # If NEWNORM isn't there, it's old
 
         return cls(polyParams, polyMin, polyMax, constantFocalPlaneFunction, polyNewNorm)
