@@ -244,7 +244,7 @@ class PfsFiberArraySet:
         """
         data = {}
         import astropy.io.fits
-        with astropy.io.fits.open(filename) as fd:
+        with astropy.io.fits.open(filename, memmap=False) as fd:
             data["metadata"] = astropyHeaderToDict(fd[0].header)
             data["fiberId"] = fd["FIBERID"].data.astype(np.int32)
 

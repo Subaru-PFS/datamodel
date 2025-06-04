@@ -246,7 +246,7 @@ class PfsDetectorMap(ABC):
         """
         identity = cls.parseFilename(filename)
         import astropy.io.fits
-        with astropy.io.fits.open(filename) as fits:
+        with astropy.io.fits.open(filename, memmap=False) as fits:
             return cls._readImpl(fits, identity)
 
     @classmethod
@@ -271,7 +271,7 @@ class PfsDetectorMap(ABC):
         """
         import astropy.io.fits
         filename = os.path.join(dirName, cls.getFilename(identity))
-        with astropy.io.fits.open(filename) as fits:
+        with astropy.io.fits.open(filename, memmap=False) as fits:
             return cls._readImpl(fits, identity)
 
     @classmethod
