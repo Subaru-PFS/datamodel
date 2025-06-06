@@ -175,7 +175,7 @@ class PfsCoZCandidates(Mapping[Target, PfsZCandidates]):
             for o in ["GALAXY","QSO","STAR"]:
                 zcands_co[o] = Table(hdul[f"{o}_CANDIDATES"].data)
                 models_co[o] = hdul[f"{o}_MODELS"].data
-                z_grid[o] = hdul[f"{o}_{grid_name[o]}_GRID"].data
+                z_grid[o] = hdul[f"{o}_{grid_name[o]}_GRID"].data[grid_name[o].lower()]
                 ln_pdf_co[o] = hdul[f"{o}_LN_PDF"].data
                 if o != "STAR":
                     lines_co[o] = Table(hdul[f"{o}_LINES"].data)
