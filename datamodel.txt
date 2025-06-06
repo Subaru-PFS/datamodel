@@ -1420,6 +1420,8 @@ HDU#0 PHDU
      D1D_VER                   KEYWORD     Version of the DRP_1D library
      D1DP_VER                  KEYWORD     Version of the DRP_1DPIPE pipeline
      DAMD_VER                  KEYWORD     Version of the data model
+     D2D_VER                   KEYWORD     Version of stella
+     OBS_VER                   KEYWORD     Version of obs pfs
      U_PARAM                   KEYWORD     User parameters contents, json
 
 HDU #1 TARGET           Target information                          [FITS BINARY TABLE] NOBJECT
@@ -1481,7 +1483,6 @@ HDU #5 GALAXY_CANDIDATES               [FITS BINARY TABLE]     NGALAXY_CANDIDATE
         subClass [STRING]: Subclassifications
         continuumFile [STRING]: Continuum template file name
         lineCatalogRatioFile [STRING]: Linecatalog ratio template file name
-	continuumLeastSquare [32-bit FLOAT]
 	modelId [32-bit INT]: index of galaxy model in HDU#6
 	
 HDU #6 GALAXY_MODELS    Spectrum model fluxes (nJy), as an image or table [32-bit FLOAT]     NWAVELENGTH*(NGALAXY_CANDIDATES?*NOBJECT)
@@ -1522,7 +1523,7 @@ HDU #10 QSO_CANDIDATES            Binary table            [FITS BINARY TABLE]   
         SubClass [STRING]: Subclassifications
         ContinuumFile [STRING]: Continuum template file name
         lineCatalogRatioFile [STRING]: Linecatalog ratio template file name
-	modelId [32-bit INT]: index of galaxy model in HDU#6
+	modelId [32-bit INT]: index of QSO model in HDU#11
 
 HDU #11 QSO_MODELS    Spectrum model fluxes (nJy), as an image or table [32-bit FLOAT]     NWAVELENGTH*(QSO_CANDIDATES?*NOBJECT)
         
@@ -1558,7 +1559,8 @@ HDU #15 STAR_CANDIDATES            Binary table            [FITS BINARY TABLE]  
         velocityError [32-bit FLOAT]: Velocity error
         templateProba [32-bit FLOAT: Area of the PDF peak (dv=+/-3.e-3 km/s)
         subClass [STRING]: Subclassifications
-        continuumFile [STRING]: Continuum template file name
+        templateFile [STRING]: Continuum template file name
+	modelId [32-bit INT]: index of star model in HDU#16
 
 HDU #16 STAR_MODELS    Spectrum model fluxes (nJy), as an image or table [32-bit FLOAT]     NWAVELENGTH*(N_STAR_CANDIDATES?*NOBJECT)
         

@@ -81,7 +81,7 @@ class ZObjectCandidates:
                            }
         else:
             self.lines = None
-            self.LError = dict()
+            self.LError = None
             
 class ZClassification:
     """Spectro classification
@@ -105,7 +105,7 @@ class ZClassification:
         for o in ["galaxy","star"]:
             self.probabilities[o] = classification[f'proba{o.capitalize()}']
         self.probabilities["QSO"] = classification[f'probaQSO']
-        self.error = errors["classificationError"]
+        self.error = {"code":errors["classificationError"]}
         self.warning = ZLWarning(int(warnings["classificationWarning"]))
 
 
@@ -177,39 +177,7 @@ class PfsZCandidates:
         kwargs : ``dict``
             Keyword arguments for constructing spectrum.
         """
-        data = {}
-        data["errors"] = dict()
-        data["errors"]["init"]=dict()
-        data["errors"]["init"]["code"]=fits[0].header["INIT_ERROR"]
-        data["errors"]["init"]["message"]=fits[0].header["INIT_ERR"]
-        
-#        self.init_error=data["errors"]["init"]
-        data["init_warning"]=ZLWarning(cls.get_warning(fits,None,"init"))
-        for o in objects:
-            od = ZObjectCandidates(o,fits)
-            stage = "redshiftSolver"
-            data["errors"][f"{o}_{stage}"]=dict()
-            data["errors"][f"{o}_{stage}"]["code"]=fits[0].header[f"{o.upper()}_ZERROR"]
-            data["errors"][f"{o}_{stage}"]["message"]=fits[0].header[f"{o.upper()[0]}_ZERR"]
-            setattr(od,"ZError",data["errors"][f"{o}_{stage}"])
-            setattr(od,"ZWarning",ZLWarning(cls.get_warning(fits,o,stage)))
-            if o != "star":
-                stage = "lineMeasSolver"
-                data["errors"][f"{o}_{stage}"] = dict()
-                data["errors"][f"{o}_{stage}"]["code"]=fits[0].header[f"{o.upper()}_LERROR"]
-                data["errors"][f"{o}_{stage}"]["message"]=fits[0].header[f"{o.upper()[0]}_LERR"]
-                setattr(od,"LError",data["errors"][f"{o}_{stage}"])
-                setattr(od,"LWarning",ZLWarning(cls.get_warning(fits,o,stage)))            
-            data[o]=od
-
-        probabilities = dict()
-        for o in objects:
-            probabilities[f"{o}_proba"]=fits["CLASSIFICATION"].header[f"P_{o.upper()}"]
-        data["classification"]=ZClassification(fits["CLASSIFICATION"].header["CLASS"],
-                                               probabilities,
-                                               fits[0].header["CLASSIFICATION_ERROR"],
-                                               fits[0].header["CLASSIFICATION_WARNING"])
-        return data
+        raise NotImplementedError("file format not used")
         
     @classmethod
     def readFits(cls, filename):
@@ -266,14 +234,50 @@ class PfsZCandidates:
             return fits[0].header["INIT_WARNING"]
         return fits[0].header[f'{object_type.upper()}_{stage_to_pfs_sym[stage]}WARNING']
 
+    def has_solution(self):
+        return self.init_error["code"] == 0 and self.classification.error["code"] == 0
+    
     def get_classified_model(self):
-        if self.init_error["code"] == 0:
+        if self.has_solution():
             class_ = self.classification.name.lower()
             return getattr(self,class_).model[0]
         return None
     
     def get_classified_parameters(self):
-        if self.init_error["code"] == 0:
+        if self.has_solution():
             class_ = self.classification.name.lower()
             return getattr(self,class_).parameters[0]
         return None
+
+    def get_classified_ZWarning(self):
+        if self.has_solution():
+            class_ = self.classification.name.lower()
+            return getattr(self,class_).ZWarning
+        return None
+
+    def get_classified_LWarning(self):
+        if self.has_solution():
+            class_ = self.classification.name.lower()
+            if class_ != "star":
+                return getattr(self,class_).LWarning
+        return None
+
+    def get_classified_PDF(self):
+        if self.has_solution():
+            class_ = self.classification.name.lower()
+            return getattr(self,class_).pdf
+        return None    
+
+    def get_classified_lines(self):
+        if self.has_solution():
+            class_ = self.classification.name.lower()
+            if class_ != "star":
+                return getattr(self,class_).lines
+        return None    
+
+    def get_classified_LError(self):
+        if self.has_solution():
+            class_ = self.classification.name.lower()
+            if class_ != "star":
+                return getattr(self,class_).LError
+        return None    
