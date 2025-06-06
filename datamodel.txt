@@ -801,10 +801,11 @@ The particular representation used is written in the PHDU as the value of the
   (0,2,0),(0,1,1),(0,0,2),(1,0,0),(0,1,0),(0,0,1),(0,0,0)] if order=2.
 
   min (max) is the vertex of the rectangular-parallelepipedal domain of the
-  polynomial at which (x, y, lam) are minimal (maximal). Arguments of the
-  polynomial are normalized so that min will be mapped to (0, 0, 0) and max
-  to (1, 1, 1). This nomalization happens before the arguments are
-  substituted for the variables of the polynomial.
+  polynomial at which (x, y, lam) are minimal (maximal). If the NEWNORM header
+  keyword is False or missing, the arguments of the polynomial are normalized so
+  that min will be mapped to (0, 0, 0) and max to (1, 1, 1); otherwise the
+  normalization is from (-1, -1, -1) to (1, 1, 1). This nomalization happens
+  before the arguments are substituted for the variables of the polynomial.
 
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
