@@ -142,6 +142,7 @@ class TargetType(DocEnum):
     HOME = 9, "cobra is going to home position"
     BLACKSPOT = 10, "cobra is going to black spot position"
     AFL = 11, "fiber goes to all fiber lamp"
+    SCIENCE_MASKED = 12, "science target redacted for privacy"
 
 
 class FiberStatus(DocEnum):
