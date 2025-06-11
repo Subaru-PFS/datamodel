@@ -5,7 +5,7 @@ import astropy.io.fits
 import numpy as np
 import yaml
 from astropy.io.fits import BinTableHDU, Column, CompImageHDU, HDUList, Header, ImageHDU, PrimaryHDU
-from astropy.table import Table
+
 from .masks import MaskHelper
 from .observations import Observations
 from .pfsConfig import TargetType
