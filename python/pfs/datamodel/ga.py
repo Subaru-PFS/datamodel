@@ -1,6 +1,8 @@
 import os
 import numpy as np
+from enum import IntFlag
 
+from .pfsConfig import DocEnum
 from .notes import makeNotesClass, Notes
 from .pfsFiberArray import PfsFiberArray
 from .fluxTable import FluxTable
@@ -14,6 +16,7 @@ from .observations import Observations
 GA_DAMD_VER = 2
 
 __all__ = [
+    "TempFitFlag",
     "VelocityCorrections",
     "StellarParams",
     "Abundances",
@@ -24,6 +27,21 @@ __all__ = [
     "PfsGACatalogNotes",
     "PfsGACatalog",
 ]
+
+class TempFitFlag(IntFlag):
+    """Flags for template and RV fitting."""
+
+    # NOTE: Keep this consistent with the flags in pfs.ga.pfsspec.tempfit.TempFitFlag
+    
+    OK = 0                  # No flags
+    BADINIT = 1 << 0        # "Bad initial values"
+    NOCONVERGE = 1 << 1     # "Optimization did not convergence"
+    BADCONVERGE = 1 << 2    # "Bad convergence"
+    MAXITER = 1 << 3        # "Maximum iterations reached"
+    PARAMEDGE = 1 << 4      # "Template parameters at the bounds"
+    BADERROR = 1 << 5       # "Errors could not be calculated"
+    BADCOV = 1 << 6         # "Covariance matrix could not be calculated"
+    UNLIKELYPRIOR = 1 << 7  # "Unlikely prior"
 
 
 class VelocityCorrections(PfsTable):
