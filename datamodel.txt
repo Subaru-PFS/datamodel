@@ -498,6 +498,7 @@ The 'targetType' in the DESIGN table is an enumerated type, with values:
     HOME = 9: Cobra is going to its home position.
     BLACKSPOT = 10: Cobra is going behind the black spot.
     AFL = 11: The fiber is fed by all fiber lamp cable.
+    SCIENCE_MASKED = 12: The fiber is on a science target redacted for privacy.
 
 The 'fiberStatus' in the DESIGN table is an enumerated type, with values:
     GOOD = 1: The fiber is working normally.
