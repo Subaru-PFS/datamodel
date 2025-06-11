@@ -1,15 +1,13 @@
 from collections.abc import Mapping
-from typing import Dict, Iterator, List, Optional, Sequence, Tuple, Type, Union, cast, overload
+from typing import Dict, Iterator, Optional, Sequence, Tuple, Type, Union, cast, overload
 
 import numpy as np
-from astropy.io.fits import BinTableHDU, Column, CompImageHDU, HDUList, Header, ImageHDU, PrimaryHDU
-from .utils import inheritDocstrings
+
 import astropy
 from astropy.table import Table
 from .pfsZCandidates import PfsZCandidates
 from .target import Target
 from .pfsConfig import TargetType
-
 
 
 __all__ = ["PfsCoZCandidates",]
@@ -23,9 +21,9 @@ class PfsCoZCandidates(Mapping[Target, PfsZCandidates]):
     spectra : list of `PfsZCandidates`
         Redshift Candidates to be indexed by target.
     """
-    
+
     PfsZCandidatesClass: Type[PfsZCandidates]  # Subclasses must override
-    
+
     def __init__(self, spectra: Sequence[PfsZCandidates], zgrids: dict):
         super().__init__()
         self.zCandidates: Dict[Target, PfsZCandidates] = {spectrum.target: spectrum for spectrum in spectra}
@@ -112,7 +110,7 @@ class PfsCoZCandidates(Mapping[Target, PfsZCandidates]):
         return target in self.zCandidates
 
     @classmethod
-    def readFits(cls, filename: str) -> "PfsTargetSpectra":
+    def readFits(cls, filename: str) -> "PfsCoZCandidates":
         """Read from FITS file
 
         Parameters
@@ -126,7 +124,7 @@ class PfsCoZCandidates(Mapping[Target, PfsZCandidates]):
             Constructed instance, from FITS file.
         """
 
-        def get_at_targetId(data : Table, targetId: np.int16): 
+        def get_at_targetId(data: Table, targetId: np.int16):
             """Extract data from FITS table at a certain targetId
 
             Parameters
@@ -147,16 +145,15 @@ class PfsCoZCandidates(Mapping[Target, PfsZCandidates]):
                 return ret[0]
             else:
                 return ret
-            
 
-        def get_models_at_targetId(modelsCo : Table, zCands: Table):
+        def get_models_at_targetId(modelsCo: Table, zCands: Table):
             if len(zCands) > 0:
                 imin = zCands["modelId"].min()
                 imax = zCands["modelId"].max()
                 return modelsCo[imin:imax+1]
             else:
                 return []
-            
+
         zCandidates = []
         with astropy.io.fits.open(filename) as hdul:
             targetHdu = hdul["TARGET"].data
@@ -168,14 +165,15 @@ class PfsCoZCandidates(Mapping[Target, PfsZCandidates]):
             ln_pdf_co = dict()
             z_grid = dict()
             lines_co = dict()
-            grid_name = {"GALAXY":"REDSHIFT",
-                         "QSO":"REDSHIFT",
-                         "STAR":"VELOCITY"}
+            grid_name = {"GALAXY": "REDSHIFT",
+                         "QSO": "REDSHIFT",
+                         "STAR": "VELOCITY"}
 
-            for o in ["GALAXY","QSO","STAR"]:
+            for o in ["GALAXY", "QSO", "STAR"]:
                 zcands_co[o] = Table(hdul[f"{o}_CANDIDATES"].data)
                 models_co[o] = hdul[f"{o}_MODELS"].data
-                z_grid[o] = hdul[f"{o}_{grid_name[o]}_GRID"].data[grid_name[o].lower()]
+                hdu_grid = f"{o}_{grid_name[o]}_GRID"
+                z_grid[o] = hdul[hdu_grid].data[grid_name[o].lower()]
                 ln_pdf_co[o] = hdul[f"{o}_LN_PDF"].data
                 if o != "STAR":
                     lines_co[o] = Table(hdul[f"{o}_LINES"].data)
@@ -198,15 +196,13 @@ class PfsCoZCandidates(Mapping[Target, PfsZCandidates]):
                 models = dict()
                 ln_pdf = dict()
                 lines = dict()
-                for o in ["GALAXY","QSO","STAR"]:
+                for o in ["GALAXY", "QSO", "STAR"]:
                     zcands[o] = get_at_targetId(zcands_co[o], targetId)
                     models[o] = get_models_at_targetId(models_co[o],
                                                        zcands[o])
-                    
                     ln_pdf[o] = ln_pdf_co[o][targetId]
                     if o != "STAR":
                         lines[o] = get_at_targetId(lines_co[o], targetId)
-                
                 zCandidates.append(PfsZCandidates(target,
                                                   errors,
                                                   warnings,
@@ -215,4 +211,4 @@ class PfsCoZCandidates(Mapping[Target, PfsZCandidates]):
                                                   models,
                                                   ln_pdf,
                                                   lines))
-            return cls(zCandidates,z_grid)
+            return cls(zCandidates, z_grid)
