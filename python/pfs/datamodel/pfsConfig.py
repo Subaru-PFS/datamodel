@@ -593,7 +593,7 @@ class PfsDesign:
                 for possibleFilterName in filterNames:
                     myFilterData = np.array(_self.filterNames) == possibleFilterName
 
-                    if np.isfinite(np.nanmean(np.where(myFilterData, flux, np.NaN), axis=1)).any():
+                    if np.isfinite(np.nanmean(np.where(myFilterData, flux, np.nan), axis=1)).any():
                         goodFilterNames.append(possibleFilterName)
 
             if filterName is None:
@@ -609,13 +609,13 @@ class PfsDesign:
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", category=RuntimeWarning)  # All-NaN slice encountered
 
-            flux = np.nanmean(np.where(myFilterData, flux, np.NaN), axis=1)
+            flux = np.nanmean(np.where(myFilterData, flux, np.nan), axis=1)
 
             if asABMag:
                 abMag = nJyToAB(flux)
 
             if getError:
-                fluxErr = np.nanmean(np.where(myFilterData, fluxErr, np.NaN), axis=1)
+                fluxErr = np.nanmean(np.where(myFilterData, fluxErr, np.nan), axis=1)
 
                 if asABMag:
                     if fluxErr < flux:
