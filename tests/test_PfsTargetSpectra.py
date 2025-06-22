@@ -349,6 +349,7 @@ class PfsTargetSpectraTestCase(lsst.utils.tests.TestCase):
 
     def testIO(self):
         """Test I/O functionality"""
+
         spectra = self.makePfsTargetSpectra(list(range(123)))
         with lsst.utils.tests.getTempFilePath(".fits") as filename:
             spectra.writeFits(filename)
@@ -358,6 +359,16 @@ class PfsTargetSpectraTestCase(lsst.utils.tests.TestCase):
             # Check that the DAMD_VER is present
             with astropy.io.fits.open(filename) as hdus:
                 self.assertIn("DAMD_VER", hdus[0].header)
+
+    def testIOWithFilters(self):
+        """Test I/O functionality with filters"""
+
+        spectra = self.makePfsTargetSpectra(list(range(123)))
+        with lsst.utils.tests.getTempFilePath(".fits") as filename:
+            spectra.writeFits(filename)
+
+            copy = PfsCoadd.readFits(filename, objId=22)
+            self.assertPfsTargetSpectraEqual(copy, PfsCoadd([spectra[22]]))
 
     def testDifferentLengths(self):
         """Test I/O when the spectra have different lengths"""
