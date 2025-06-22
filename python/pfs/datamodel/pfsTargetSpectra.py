@@ -119,13 +119,18 @@ class PfsTargetSpectra(Mapping[Target, PfsFiberArray]):
         return target in self.spectra
 
     @classmethod
-    def readFits(cls, filename: str) -> "PfsTargetSpectra":
-        """Read from FITS file
+    def readFits(cls, filename: str, **kwargs) -> "PfsTargetSpectra":
+        """Read a collection of spectra from a FITS file, optionally
+        filtered by keyword arguments.
 
         Parameters
         ----------
         filename : `str`
             Filename of FITS file.
+        **kwargs : `dict`
+            Keyword arguments to filter the spectra. The keys supported depend on the
+            subclass of `PfsTargetSpectra`. For example, the `PfsFiberArray` class supports
+            filtering by `targetType`, `catId`, and `objId`.
 
         Returns
         -------
@@ -133,7 +138,7 @@ class PfsTargetSpectra(Mapping[Target, PfsFiberArray]):
             Constructed instance, from FITS file.
         """
 
-        def readData(hduName: str, dtype: type) -> Union[np.ndarray, List[np.ndarray]]:
+        def readData(hduName: str, dtype: type, mask=None) -> Union[np.ndarray, List[np.ndarray]]:
             """Read data from FITS file
 
             Parameters
@@ -142,6 +147,8 @@ class PfsTargetSpectra(Mapping[Target, PfsFiberArray]):
                 Name of the HDU.
             dtype : `type`
                 Data type.
+            mask : `np.ndarray`, optional
+                Mask to apply to the data. If provided, the data will be read as a masked array.
 
             Returns
             -------
@@ -150,33 +157,72 @@ class PfsTargetSpectra(Mapping[Target, PfsFiberArray]):
             """
             hdu = fits[hduName]
             if isinstance(hdu, (ImageHDU, CompImageHDU)):
-                return hdu.data.astype(dtype)
-            numRows = len(hdu.data.dtype)
-            if numRows == 1:
-                return [row["value"].astype(dtype) for row in hdu.data]
-            data: List[np.ndarray] = []
-            for ii in range(len(hdu.data)):
-                data.append(np.array([hdu.data[f"row_{jj}"][ii] for jj in range(numRows)], dtype=dtype))
-            return data
+                if mask is None:
+                    return hdu.data.astype(dtype)
+                else:
+                    if hdu.data.ndim == 1:
+                        # Same for all spectra, such as wavelength, do not filter
+                        return hdu.data.astype(dtype)
+                    else:
+                        # Different for each spectrum, such as flux, do filter
+                        return hdu.data[mask].astype(dtype)
+            elif isinstance(hdu, BinTableHDU):
+                # This is a special case of storing arrays in a table.
+                # Rows of the arrays are stored as columns of a table.
+                numRows = len(hdu.data.dtype)
+                if numRows == 1:
+                    # Single row, such as wavelength fixed wavelength
+                    return [row["value"].astype(dtype) for row in hdu.data]
+                else:
+                    # One row per spectrum, such as flux
+                    data: List[np.ndarray] = []
+                    if mask is not None:
+                        index = np.where(mask)[0]
+                    else:
+                        index = range(len(hdu.data))
+
+                    for ii in index:
+                        data.append(np.array(
+                            [hdu.data[f"row_{jj}"][ii] for jj in range(numRows)],
+                            dtype=dtype))
+
+                    return data
+            else:
+                raise TypeError(f"HDU '{hduName}' is not an ImageHDU, CompImageHDU or BinTableHDU.")
 
         spectra = []
         with astropy.io.fits.open(filename) as fits:
-            header = astropyHeaderToDict(fits[0].header)
+            # Read the main headers and the list of targets.
+            header = fits[0].header
             targetHdu = fits["TARGET"].data
+
+            # If any keyword arguments are provided, filter the spectra
+            mask = None
+            for key, value in kwargs.items():
+                if key not in targetHdu.columns.names:
+                    raise KeyError(f"Keyword argument '{key}' not found in TARGET HDU.")
+                m = targetHdu[key] == value
+                mask = m if mask is None else mask & m
+
             targetFluxHdu = fits["TARGETFLUX"].data
             observationsHdu = fits["OBSERVATIONS"].data
-            wavelengthData = readData("WAVELENGTH", np.float64)
-            fluxData = readData("FLUX", np.float32)
-            maskData = readData("MASK", np.int32)
-            skyData = readData("SKY", np.float32)
-            covarData = readData("COVAR", np.float32)
-            covar2Hdu = fits["COVAR2"].data if "COVAR2" in fits else None
+            wavelengthData = readData("WAVELENGTH", np.float64, mask=mask)
+            fluxData = readData("FLUX", np.float32, mask=mask)
+            maskData = readData("MASK", np.int32, mask=mask)
+            skyData = readData("SKY", np.float32, mask=mask)
+            covarData = readData("COVAR", np.float32, mask=mask)
+            covar2Data = readData("COVAR2", np.float32, mask=mask) if "COVAR2" in fits else None
             metadataHdu = fits["METADATA"].data
             fluxTableHdu = fits["FLUXTABLE"].data
             notesTable = cls.NotesClass.readHdu(fits)
 
-            for ii, row in enumerate(targetHdu):
-                targetId = row["targetId"]
+            if mask is None:
+                targets = enumerate(targetHdu.targetId)
+            else:
+                targets = zip(np.where(mask)[0], targetHdu.targetId[mask])
+
+            for ii, (index, targetId) in enumerate(targets):
+                row = targetHdu[index]
                 select = targetFluxHdu.targetId == targetId
                 fiberFlux = dict(
                     zip(
@@ -214,7 +260,7 @@ class PfsTargetSpectra(Mapping[Target, PfsFiberArray]):
                     expTime,
                 )
 
-                metadataRow = metadataHdu[ii]
+                metadataRow = metadataHdu[index]
                 assert metadataRow["targetId"] == targetId
 
                 metadata = yaml.load(
@@ -224,7 +270,7 @@ class PfsTargetSpectra(Mapping[Target, PfsFiberArray]):
                 )
                 flags = MaskHelper.fromFitsHeader(metadata, strip=True)
 
-                fluxTableRow = fluxTableHdu[ii]
+                fluxTableRow = fluxTableHdu[index]
                 assert fluxTableRow["targetId"] == targetId
                 fluxTable = FluxTable(
                     fluxTableRow["wavelength"],
@@ -235,7 +281,7 @@ class PfsTargetSpectra(Mapping[Target, PfsFiberArray]):
                 )
 
                 notes = cls.PfsFiberArrayClass.NotesClass(
-                    **{col.name: getattr(notesTable, col.name)[ii] for col in notesTable.schema}
+                    **{col.name: getattr(notesTable, col.name)[index] for col in notesTable.schema}
                 )
 
                 # Wavelength: we might write a single array if everything has the same length and value
@@ -253,7 +299,7 @@ class PfsTargetSpectra(Mapping[Target, PfsFiberArray]):
                     maskData[ii],
                     skyData[ii],
                     covarData[ii],
-                    covar2Hdu[ii] if covar2Hdu is not None else [],
+                    covar2Data[ii] if covar2Data is not None else [],
                     flags,
                     metadata,
                     fluxTable,
