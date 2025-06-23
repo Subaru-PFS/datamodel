@@ -164,14 +164,17 @@ class PfsTargetSpectra(Mapping[Target, PfsFiberArray]):
                         # Different for each spectrum, such as flux, do filter
                         return hdu.data[mask].astype(dtype)
             elif isinstance(hdu, BinTableHDU):
-                # This is a special case of storing arrays in a table.
-                # Rows of the arrays are stored as columns of a table.
+                # This is a special case of storing variable length arrays in a table.
+                # Rows of 2D arrays are stored as columns of a table (e.g. covariance)
                 numRows = len(hdu.data.dtype)
                 if numRows == 1:
-                    # Single row, such as wavelength fixed wavelength
-                    return [row["value"].astype(dtype) for row in hdu.data]
+                    # 1D array stored as a single column
+                    if mask is None:
+                        return [row["value"].astype(dtype) for row in hdu.data]
+                    else:
+                        return [row.astype(dtype) for row in hdu.data["value"][mask]]
                 else:
-                    # One row per spectrum, such as flux
+                    # 2D array stored as multiple columns
                     data: List[np.ndarray] = []
                     if mask is not None:
                         index = np.where(mask)[0]
