@@ -1,4 +1,3 @@
-from .utils import inheritDocstrings
 import astropy
 from enum import Flag, auto
 
@@ -10,6 +9,13 @@ stage_to_pfs_sym = {"redshiftSolver": "Z",
 
 
 class ZLWarning(Flag):
+    """
+    Enumeration of warning flags used in redshift and line measurement solvers.
+
+    These flags indicate various non-fatal issues or assumptions made during
+    redshift estimation or line fitting procedures.
+    """
+    
     AIR_VACUUM_CONVERSION_IGNORED = auto()
     PDF_PEAK_NOT_FOUND = auto()
     ESTIMATED_STD_FAR_FROM_INPUT = auto()
@@ -35,30 +41,47 @@ class ZLWarning(Flag):
     VELOCITY_FIT_RANGE = auto()
 
 
-@inheritDocstrings
 class ZObjectCandidates:
-    """Redshift Candidates for a single object and a spectro classification
+    """
+    Container for redshift or line measurement candidates for a given object type.
 
     Parameters
     ----------
-    model : `list[np.array]`
-        spectrum models for each candidate on full wavelength range
-    parameters : `dict`
-        parameter of the models for each candidate
-    pdf : `np.array`
-        PDF marginalised over all models, should be used with grids from pfsCoZCandidates
-    lines : `np.array`
-        Lines measurements (only for qso and galaxy)
-    ZWarning: Flag
-        warning flags for redshift solver
-    ZError: `dict` of string
-        dictionnary with two keys, code and message, for redshift solver error
-    LWarning: `Flag`
-        warning flags for redshift solver
-    LError: `dict` of strings
-        dictionnary with two keys, code and message, both strings values, for line measurement solver error
-    """
+    object_type : str
+        Object type. Must be one of ["galaxy", "star", "qso"].
+    errors : dict
+        Dictionary containing error codes and messages for Z and L solvers.
+    warnings : dict
+        Dictionary containing warning flags for Z and L solvers.
+    candidates : list or astropy.table.row.Row
+        List of parameter dictionaries or an astropy row for a single candidate.
+    models : list of np.ndarray
+        Spectrum models for each candidate over the full wavelength range.
+    ln_pdf : np.ndarray
+        PDF marginalized over all models.
+    lines : np.ndarray or None
+        Line measurements (used only for "galaxy" and "qso").
 
+    Attributes
+    ----------
+    model : list of np.ndarray
+        List of model spectra over full wavelength range.
+    parameters : list of dict
+        List of parameter dictionaries for each candidate.
+    pdf : np.ndarray
+        PDF marginalized over all models.
+    ZWarning : ZLWarning
+        Warning flags from the redshift solver.
+    ZError : dict
+        Dictionary with keys "code" and "message" for redshift solver error.
+    lines : np.ndarray or None
+        Line measurement results (if applicable).
+    LWarning : ZLWarning or None
+        Warning flags from the line measurement solver (None for stars).
+    LError : dict or None
+        Dictionary with "code" and "message" for line solver error (None for stars).
+    """
+    
     def __init__(self, object_type, errors, warnings, candidates, models, ln_pdf, lines):
         self.model = models
         if isinstance(candidates, astropy.table.row.Row):
@@ -83,20 +106,31 @@ class ZObjectCandidates:
 
 
 class ZClassification:
-    """Spectro classification
+    """
+    Spectroscopic classification result with probabilities and associated flags.
 
     Parameters
     ----------
-    name : str
+    classification : dict
+        Dictionary containing classification name and class probabilities.
+    errors : dict
+        Dictionary with error code for classification step.
+    warnings : dict
+        Dictionary with warning flags for classification.
 
-       Spectro classification : GALAXY, QSO, STAR
-    probabilites: dict
-       probabilities to be star,galaxy or qso
-    error: str
-        Error code
-    warning:
-        Warning flag
+    Attributes
+    ----------
+    name : str
+        Assigned spectroscopic class: "GALAXY", "QSO", or "STAR".
+    probabilities : dict
+        Class membership probabilities, with keys "galaxy", "star", and "QSO".
+    error : dict
+        Dictionary with a single key "code" for error code during classification.
+    warning : ZLWarning
+        Warning flags raised during classification.
+    
     """
+
 
     def __init__(self, classification, errors, warnings):
         self.name = classification["class"]
@@ -108,25 +142,45 @@ class ZClassification:
         self.warning = ZLWarning(int(warnings["classificationWarning"]))
 
 
-@inheritDocstrings
 class PfsZCandidates:
     """Redshift Candidates for a single object
 
 
     Parameters
     ----------
-    galaxy : `pfs.datamodel.ZObjectCandidates`
-        galaxy candidates
-    qso : `pfs.datamodel.ZObjectCandidates`
-        qso candidates
-    star : `pfs.datamodel.ZObjectCandidates`
-        star candidates
-    classification: `pfs.datamodel.ZClassification`
-    init_flags: `Flag`
-        warning flags for spectrum initialization
-    init_errors: `dict`
-        dictionnary with two keys, code and message, both strings values,
-        for initialization error
+    target : object
+        Target information
+    errors : dict
+        Dictionary containing error codes and messages for various stages.
+    warnings : dict
+        Dictionary containing warning flags for various stages.
+    classification : dict
+        Classification result with probabilities and class name.
+    candidates : dict
+        Dictionary of candidate lists for each object type (GALAXY, QSO, STAR).
+    models : dict
+        Dictionary of models for each object type.
+    pdfs : dict
+        Dictionary of PDFs for each object type.
+    lines : dict
+        Dictionary of line measurements for each object type.
+
+    Attributes
+    ----------
+    target : object
+        Target information
+    init_error : dict
+        Initialization error with "code" and "message".
+    init_warning : ZLWarning
+        Warning flags from spectrum initialization.
+    galaxy : ZObjectCandidates
+        Candidates and metadata for the galaxy solver.
+    qso : ZObjectCandidates
+        Candidates and metadata for the QSO solver.
+    star : ZObjectCandidates
+        Candidates and metadata for the star solver.
+    classification : ZClassification
+        Result of spectro classification combining all object types.
     """
 
     def __init__(self, target, errors, warnings, classification,
