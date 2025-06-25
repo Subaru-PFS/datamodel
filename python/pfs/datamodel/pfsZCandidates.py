@@ -1,15 +1,21 @@
-from .utils import inheritDocstrings
 import astropy
-from enum import Flag, auto
+from enum import Flag, auto, Enum
+
 
 objects = ["galaxy", "qso", "star"]
-
 
 stage_to_pfs_sym = {"redshiftSolver": "Z",
                     "lineMeasSolver": "L"}
 
 
 class ZLWarning(Flag):
+    """Enumeration of warning flags used in redshift
+    and line measurement solvers.
+
+    These flags indicate various non-fatal issues or assumptions made during
+    redshift estimation or line fitting procedures.
+    """
+
     AIR_VACUUM_CONVERSION_IGNORED = auto()
     PDF_PEAK_NOT_FOUND = auto()
     ESTIMATED_STD_FAR_FROM_INPUT = auto()
@@ -35,31 +41,130 @@ class ZLWarning(Flag):
     VELOCITY_FIT_RANGE = auto()
 
 
-@inheritDocstrings
+class ZLError(Enum):
+    """Enumeration of error codes used in redshift and line measurement solvers.
+
+    These codes indicate various fatal issues that can occur during
+    redshift estimation or line fitting procedures.
+    """
+    NO_ERROR = 0
+    INTERNAL_ERROR = 1
+    EXTERNAL_LIB_ERROR = 2
+    INVALID_SPECTRUM_WAVELENGTH = 3
+    INVALID_SPECTRUM_FLUX = 4
+    INVALID_NOISE = 5
+    INVALID_WAVELENGTH_RANGE = 6
+    NEGATIVE_CONTINUUMFIT = 7
+    BAD_CONTINUUMFIT = 8
+    NULL_AMPLITUDES = 9
+    PDF_PEAK_NOT_FOUND = 10
+    MAX_AT_BORDER_PDF = 11
+    MISSING_PARAMETER = 12
+    BAD_PARAMETER_VALUE = 13
+    UNKNOWN_ATTRIBUTE = 14
+    BAD_LINECATALOG = 15
+    BAD_LOGSAMPLEDSPECTRUM = 16
+    BAD_COUNTMATCH = 17
+    BAD_TEMPLATECATALOG = 18
+    INVALID_SPECTRUM = 19
+    OVERLAPFRACTION_NOTACCEPTABLE = 20
+    DZ_NOT_COMPUTABLE = 21
+    INCOHERENT_INPUTPARAMETERS = 22
+    BAD_CALZETTICORR = 23
+    CRANGE_VALUE_OUTSIDERANGE = 24
+    CRANGE_VECTBORDERS_OUTSIDERANGE = 25
+    CRANGE_NO_INTERSECTION = 26
+    INVALID_MERIT_VALUES = 27
+    TPL_NAME_EMPTY = 28
+    EMPTY_LIST = 29
+    LESS_OBSERVED_SAMPLES_THAN_AMPLITUDES_TO_FIT = 30
+    SPECTRUM_CORRECTION_ERROR = 31
+    SCOPESTACK_ERROR = 32
+    FLAT_ZPDF = 33
+    NULL_MODEL = 34
+    INVALID_SPECTRUM_INDEX = 35
+    UNKNOWN_AIR_VACUUM_CONVERSION = 36
+    BAD_LINE_TYPE = 37
+    BAD_LINE_FORCE = 38
+    FFT_WITH_PHOTOMETRY_NOTIMPLEMENTED = 39
+    MULTIOBS_WITH_PHOTOMETRY_NOTIMPLEMENTED = 40
+    MISSING_PHOTOMETRIC_DATA = 41
+    MISSING_PHOTOMETRIC_TRANSMISSION = 42
+    PDF_NORMALIZATION_FAILED = 43
+    INSUFFICIENT_TEMPLATE_COVERAGE = 44
+    INSUFFICIENT_LSF_COVERAGE = 45
+    INVALID_LSF = 46
+    SPECTRUM_NOT_LOADED = 47
+    LSF_NOT_LOADED = 48
+    UNALLOWED_DUPLICATES = 49
+    UNSORTED_ARRAY = 50
+    INVALID_DIRECTORY = 51
+    INVALID_FILEPATH = 52
+    INVALID_PARAMETER = 53
+    MISSING_CONFIG_OPTION = 54
+    BAD_FILEFORMAT = 55
+    INCOHERENT_CONFIG_OPTIONS = 56
+    ATTRIBUTE_NOT_SUPPORTED = 57
+    INCOMPATIBLE_PDF_MODELSHAPES = 58
+    UNKNOWN_RESULT_TYPE = 59
+    RELIABILITY_NEEDS_TENSORFLOW = 60
+    OUTPUT_READER_ERROR = 61
+    PYTHON_API_ERROR = 62
+    INVALID_NAME = 63
+    INVALID_FILTER_INSTRUCTION = 64
+    INVALID_FILTER_KEY = 65
+    NO_CLASSIFICATION = 66
+    INVALID_PARAMETER_FILE = 67
+    DUPLICATED_LINES = 68
+    STAGE_NOT_RUN_BECAUSE_OF_PREVIOUS_FAILURE = 69
+    LINE_RATIO_UNKNOWN_LINE = 70
+
+
 class ZObjectCandidates:
-    """Redshift Candidates for a single object and a spectro classification
+    """Container for redshift or line measurement candidates
+    for a given object type.
 
     Parameters
     ----------
-    model : `list[np.array]`
-        spectrum models for each candidate on full wavelength range
-    parameters : `dict`
-        parameter of the models for each candidate
-    pdf : `np.array`
-        PDF marginalised over all models, should be used with grids from pfsCoZCandidates
-    lines : `np.array`
-        Lines measurements (only for qso and galaxy)
-    ZWarning: Flag
-        warning flags for redshift solver
-    ZError: `dict` of string
-        dictionnary with two keys, code and message, for redshift solver error
-    LWarning: `Flag`
-        warning flags for redshift solver
-    LError: `dict` of strings
-        dictionnary with two keys, code and message, both strings values, for line measurement solver error
+    object_type : `str`
+        Object type. Must be one of ["galaxy", "star", "qso"].
+    errors : `dict`
+        Dictionary containing error codes and messages for Z and L solvers.
+    warnings : `dict`
+        Dictionary containing warning flags for Z and L solvers.
+    candidates : `list` [ `astropy.table.row.Row` ]
+        List of parameter dictionaries or an astropy row for a single candidate.
+    models : `list` [`np.ndarray`]
+        Spectrum models for each candidate over the full wavelength range.
+    ln_pdf : `np.ndarray`
+        PDF marginalized over all models.
+    lines : `np.ndarray` or None
+        Line measurements (used only for "galaxy" and "qso").
+
+    Attributes
+    ----------
+    model : `list` [ `np.ndarray ]
+        List of model spectra over full wavelength range.
+    parameters : `list` [ `dict` [`str` , `object`] ]
+        List of parameter dictionaries for each candidate.
+    pdf : `np.ndarray`
+        PDF marginalized over all models.
+    ZWarning : `ZLWarning`
+        Warning flags from the redshift solver.
+    ZError : `dict` [`str` , `object` ]
+        Dictionary with keys "code" of type ZLError and "message" of type str
+    for redshift solver error.
+    lines : `np.ndarray`
+        Line measurement results (if applicable).
+    LWarning : `ZLWarning`
+        Warning flags from the line measurement solver (None for stars).
+    LError : `dict`
+        Dictionary with "code" of type ZLError and "message" of type str
+    for line solver error (None for stars).
     """
 
-    def __init__(self, object_type, errors, warnings, candidates, models, ln_pdf, lines):
+    def __init__(self, object_type, errors, warnings, candidates,
+                 models, ln_pdf, lines):
         self.model = models
         if isinstance(candidates, astropy.table.row.Row):
             self.parameters = [dict(candidates)]
@@ -67,14 +172,14 @@ class ZObjectCandidates:
             self.parameters = [dict(c) for c in candidates]
         self.pdf = ln_pdf
         self.ZWarning = ZLWarning(int(warnings[f"{object_type}ZWarning"]))
-        self.ZError = {"code": errors[f"{object_type}ZError"],
+        self.ZError = {"code": ZLError(errors[f"{object_type}ZError"]),
                        "message": errors[f"{object_type}ZErrorMessage"],
                        }
 
         if object_type != "star":
             self.lines = lines
             self.LWarning = ZLWarning(int(warnings[f"{object_type}LWarning"]))
-            self.LError = {"code": errors[f"{object_type}LError"],
+            self.LError = {"code": ZLError(errors[f"{object_type}LError"]),
                            "message": errors[f"{object_type}LErrorMessage"],
                            }
         else:
@@ -83,19 +188,29 @@ class ZObjectCandidates:
 
 
 class ZClassification:
-    """Spectro classification
+    """Spectroscopic classification result with probabilities and associated flags.
 
     Parameters
     ----------
-    name : str
+    classification : dict
+        Dictionary containing classification name and class probabilities.
+    errors : dict
+        Dictionary with error code for classification step.
+    warnings : dict
+        Dictionary with warning flags for classification.
 
-       Spectro classification : GALAXY, QSO, STAR
-    probabilites: dict
-       probabilities to be star,galaxy or qso
-    error: str
-        Error code
-    warning:
-        Warning flag
+    Attributes
+    ----------
+    name : `str`
+        Assigned spectroscopic class: "GALAXY", "QSO", or "STAR".
+    probabilities : `dict [ `str` , `float` ]
+        Class membership probabilities, with keys "galaxy", "star", and "QSO".
+    error : `dict` [ `str` , `ZLError` ]
+        Dictionary with a single key "code" for error code
+    during classification.
+    warning : `ZLWarning`
+        Warning flags raised during classification.
+
     """
 
     def __init__(self, classification, errors, warnings):
@@ -104,35 +219,36 @@ class ZClassification:
         for o in ["galaxy", "star"]:
             self.probabilities[o] = classification[f'proba{o.capitalize()}']
         self.probabilities["QSO"] = classification['probaQSO']
-        self.error = {"code": errors["classificationError"]}
+        self.error = {"code": ZLError(errors["classificationError"])}
         self.warning = ZLWarning(int(warnings["classificationWarning"]))
 
 
-@inheritDocstrings
 class PfsZCandidates:
     """Redshift Candidates for a single object
 
 
-    Parameters
+    Attributes
     ----------
-    galaxy : `pfs.datamodel.ZObjectCandidates`
-        galaxy candidates
-    qso : `pfs.datamodel.ZObjectCandidates`
-        qso candidates
-    star : `pfs.datamodel.ZObjectCandidates`
-        star candidates
-    classification: `pfs.datamodel.ZClassification`
-    init_flags: `Flag`
-        warning flags for spectrum initialization
-    init_errors: `dict`
-        dictionnary with two keys, code and message, both strings values,
-        for initialization error
+    target : `target.Target`
+        Target information
+    init_error : `dict` [ `str`, `object` ]
+        Initialization error with "code" and "message".
+    init_warning : `ZLWarning`
+        Warning flags from spectrum initialization.
+    galaxy : `ZObjectCandidates`
+        Candidates and metadata for the galaxy solver.
+    qso : `ZObjectCandidates`
+        Candidates and metadata for the QSO solver.
+    star : `ZObjectCandidates`
+        Candidates and metadata for the star solver.
+    classification : `ZClassification`
+        Result of spectro classification combining all object types.
     """
 
     def __init__(self, target, errors, warnings, classification,
                  candidates, models, pdfs, lines):
         self.target = target
-        self.init_error = {"code": errors["initError"],
+        self.init_error = {"code": ZLError(errors["initError"]),
                            "message": errors["initErrorMessage"]}
         self.init_warning = ZLWarning(int(warnings["initWarning"]))
 
@@ -222,34 +338,82 @@ class PfsZCandidates:
 
     @classmethod
     def get_warning(cls, fits, object_type, stage):
+        """"Retrieve warning from fits
+        Parameters
+        ----------
+        fits : `astropy.io.fits.HDUList`
+            Opened FITS file.
+        object_type : `str`
+            in value in ['galaxy','star','qso']
+        stage : `str`
+           solving stage
+
+        Returns:
+        warning : `ZLWarning`
+           warning flag
+        """
+
         if object_type is None:
             return fits[0].header["INIT_WARNING"]
         w_name = f'{object_type.upper()}_{stage_to_pfs_sym[stage]}WARNING'
-        return fits[0].header[w_name]
+        warning = fits[0].header[w_name]
+        return warning
 
     def has_solution(self):
-        return (self.init_error["code"] == 0 and
-                self.classification.error["code"] == 0)
+        """Has at least one solver succeeded ?
+
+        Returns
+        -------
+        has_solution : `bool`
+        """
+        return (self.init_error["code"].value == 0 and
+                self.classification.error["code"].value == 0)
 
     def get_classified_model(self):
+        """Return the model of classified object type top candidate
+
+        Returns
+        -------
+        classified_model : `np.ndarray`
+        """
+
         if self.has_solution():
             class_ = self.classification.name.lower()
             return getattr(self, class_).model[0]
         return None
 
     def get_classified_parameters(self):
+        """Return the model parameters of classified object type top candidate
+
+        Returns
+        -------
+        classified_model_parameters : `dict` [`str` , `object`]
+        """
+
         if self.has_solution():
             class_ = self.classification.name.lower()
             return getattr(self, class_).parameters[0]
         return None
 
     def get_classified_ZWarning(self):
+        """Return the redshift solver warning of classified object
+
+        Returns
+        -------
+        zwarning : `ZLWarning`
+        """
         if self.has_solution():
             class_ = self.classification.name.lower()
             return getattr(self, class_).ZWarning
         return None
 
     def get_classified_LWarning(self):
+        """Return the line measurement solver warning of classified object
+
+        Returns
+        -------
+        lwarning : `ZLWarning`
+        """
         if self.has_solution():
             class_ = self.classification.name.lower()
             if class_ != "star":
@@ -257,12 +421,25 @@ class PfsZCandidates:
         return None
 
     def get_classified_PDF(self):
+        """Return the classified PDF marginalized over all models
+
+        Returns
+        -------
+        ln_pdf : `np.ndarray`
+        """
         if self.has_solution():
             class_ = self.classification.name.lower()
             return getattr(self, class_).pdf
         return None
 
     def get_classified_lines(self):
+        """Return the classified lines measurements
+
+        Returns
+        -------
+        lines : `np.ndarray`
+        """
+
         if self.has_solution():
             class_ = self.classification.name.lower()
             if class_ != "star":
@@ -270,6 +447,13 @@ class PfsZCandidates:
         return None
 
     def get_classified_LError(self):
+        """Return the classified line measurement solver error
+
+        Returns
+        -------
+        l_error : `dict` [`str` , `object`]
+        """
+
         if self.has_solution():
             class_ = self.classification.name.lower()
             if class_ != "star":

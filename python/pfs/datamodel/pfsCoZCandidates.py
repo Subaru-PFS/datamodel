@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from typing import Dict, Iterator, Optional, Sequence, Tuple, Type, Union, cast, overload
+from typing import Dict, Iterator, Optional, Sequence, Tuple, Type, Union, cast, overload, ClassVar
 
 import numpy as np
 
@@ -18,11 +18,12 @@ class PfsCoZCandidates(Mapping[Target, PfsZCandidates]):
 
     Parameters
     ----------
-    spectra : list of `PfsZCandidates`
+    spectra : `list` [ `PfsZCandidates` ]
         Redshift Candidates to be indexed by target.
+    zgrids: `dict` [`str` , `np.ndarray`]
     """
 
-    PfsZCandidatesClass: Type[PfsZCandidates]  # Subclasses must override
+    PfsZCandidatesClass: ClassVar[Type[PfsZCandidates]]
 
     def __init__(self, spectra: Sequence[PfsZCandidates], zgrids: dict):
         super().__init__()
@@ -147,6 +148,20 @@ class PfsCoZCandidates(Mapping[Target, PfsZCandidates]):
                 return ret
 
         def get_models_at_targetId(modelsCo: Table, zCands: Table):
+            """Extract models from FITS table at a certain targetId
+
+            Parameters
+            ----------
+            modelsCo : `Table`
+                fits table
+            zCands : `Table`
+                Table containing the z candidates for a certain targetId
+
+            Returns
+            -------
+            data : `list` [`np.ndarray`]
+                Data read from FITS file.
+            """
             if len(zCands) > 0:
                 imin = zCands["modelId"].min()
                 imax = zCands["modelId"].max()
