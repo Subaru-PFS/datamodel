@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from typing import Dict, Iterator, Optional, Sequence, Tuple, Type, Union, cast, overload
+from typing import Dict, Iterator, Optional, Sequence, Tuple, Type, Union, cast, overload, ClassVar
 
 import numpy as np
 
@@ -22,7 +22,7 @@ class PfsCoZCandidates(Mapping[Target, PfsZCandidates]):
         Redshift Candidates to be indexed by target.
     """
 
-    PfsZCandidatesClass: Type[PfsZCandidates]  # Subclasses must override
+    PfsZCandidatesClass: ClassVar[Type[PfsZCandidates]]
 
     def __init__(self, spectra: Sequence[PfsZCandidates], zgrids: dict):
         super().__init__()
