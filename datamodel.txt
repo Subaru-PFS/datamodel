@@ -1164,122 +1164,281 @@ Note that the wavelength need not be uniformly sampled.
 
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
+
 Redshift candidates
 
 
-According to the "combined spectra" data model we include both the number of
-visits (nVisit) and a SHA-1 hash of the visits, pfsVisitHash.
+According to the "combined spectrum" data model, I propose :
+		"pfsCoZcandidates-%05d.fits" % (catId)
 
-I propose :
-		"pfsZcandidates-%05d-%05d-%s-%016x-%03d-0x%016x.fits"
-        % (catId, tract, patch, objId, nVisit % 1000, pfsVisitHash)
+
+Warning mask values
+
+We use bit masks to describe the warnings codes that can occur in each solver. The meanings of the symbolic names, from drp1d 1.6, are:
+
+**AIR_VACUUM_CONVERSION_IGNORED = 0**
+   An air to vacuum conversion has been defined in the parameters. 
+   However, it is specified in the input spectrum that the data are in vacuum.
+   The air to vacuum conversion is therefore ignored.
+
+**PDF_PEAK_NOT_FOUND = 1**
+   For a given redshift candidate, in the second pass window, no pdf peak has
+   been found.
+
+**ESTIMATED_STD_FAR_FROM_INPUT = 2**
+   Residual std (obtained from rms) (spectrum - model) very different
+   (ratio > 1.5 & 1/ 15 <-> 50 + or 50%-) from input spectrum std
+
+**LINEMATCHING_REACHED_ENDLOOP = 3**
+   In linematching, when trying to match lines on the spectrum, the maximum
+   number of iterations has been reached without converging.
+
+**FORCED_IGNORELINESUPPORT_TO_FALSE = 4**
+   In line model, for continuum fitting, in the parameters fft processing is
+   active and ignore line support too (lineModel.continuumFit.ignoreLineSupport).
+   However masking lines to fit continuum is in this case impossible.
+   To fix this, ignorelinesupport is forced to False i.e.full spectrum with lines
+   is used for template fitting.
+
+**FORCED_CONTINUUM_COMPONENT_TO_FROMSPECTRUM = 5**
+   In line model, while fitting the continuum, a negative continuum amplitude
+   has been found.
+   To fix this, continuumComponent is forced to fromSpectrum.
+
+**AIR_VACUUM_REACHED_MAX_ITERATIONS = 6**
+  Wavelengths convertion from air to vacuum is made by iterating an inverse
+  translation, until a minimal precision is reached or until the max number
+  of iterations is reached.
+  The marning means that max precision was not reached at the end ot the iterations.
+
+**ASYMFIT_NAN_PARAMS = 7**
+   At least one asymetric fitting param is NaN. All parameters of asymetric line
+   profile are therefore set to NaN.
+
+**DELTAZ_COMPUTATION_FAILED = 8**
+   Some error appeared when trying to calculate Deltaz on a redshift candidate
+   probability.
+
+**INVALID_FOLDER_PATH = 9**
+   Absolute path to piors calibration file does not exist. No priors used
+
+**FORCED_CONTINUUM_TO_NOCONTINUUM = 10**
+   The calculated continuum amplitude is weaker than the min continuum amplitude
+   defined in parameters (`continuumFit.nullThreshold`).
+   Therefore, continuum is set to noContinuum.
+
+**FORCED_CONTINUUM_REESTIMATION_TO_NO = 11**
+  Continuum reestimation was set to "onlyextrema" but it is not possible since
+  second pass is skipped. It is automatically set to no continuum reestimation.
+
+**LESS_OBSERVED_SAMPLES_THAN_AMPLITUDES_TO_FIT = 12**
+  Deficient rank for lines fitting: when trying to fit lines with line model,
+  the number of parameters to find is greater than the number of observed samples.
+
+**LBFGSPP_ERROR = 13**
+   There was an error while fitting whith lbfgspp. We then fix line position and
+   width and use the initial svd guess for the amplitude.
+
+**PDF_INTEGRATION_WINDOW_TOO_SMALL = 14**
+   PDF integration range goes beyond redshift window size. Integration range is
+   therefore cropped.
+   If this warning appears many times, consider increasing in the parameter
+   second pass `halfWindowSize` value.
+
+**FORCED_POWERLAW_TO_ZERO = 15**
+   For QSO power law fitting: many samples have fluxes too low compared to SNR to be taken into account.
+   Power law coefficients are set to zero.
+
+**UNUSED_PARAMETER = 16**
+   A parameter has been defined in the parameters file but it is not used. 
+   NB: Some parameters are usefull only under some conditions.
+
+**SPECTRUM_WAVELENGTH_TIGHTER_THAN_PARAM = 17**
+   Parameters lambda range goes beyond spectrum range. This means that a part of the lambda range specified in the parameters will not be studied.
+
+**MULTI_OBS_ARBITRARY_LSF = 18**
+  Happens in the case of multi obs, for which only one lsf is support.
+  Only the lsf of the first observation is taken into account and applied
+  to all observations.
+
+**NULL_LINES_PROFILE = 19**
+   One line profile is null (zero flux) on all its samples: the corresponding line is discarded
+
+**STD_ESTIMATION_FAILED = 20**
+   The number of samples available to estimate the RMS of the residual is too low. 
+
+**VELOCITY_FIT_RANGE = 21**
+   The lineMeas velocity fit range does not include the input velocity
+   (comming from either the previous redhiftSolver stage, input lineMeas catalog).
+   The range is thus extended to contain this velocity.
+
+-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+Redshift candidates Collection
+
+Following pfsCoadd logic, we propose a collection Redshift candidates, based on pfsCoadd file format
+For the naming, waiting for another construction than "per object catalog", I propose following naming:
+		"pfsCoZcandidates-%05d.fits"
+        % (catId)
 
 The path would be
-   tract/patch/pfsZcandidate-*.fits
+   pfsCoZcandidate-*.fits
 
 The file will have several HDUs:
 
 HDU#0 PHDU
-     tract       INT         Tract identifier
-     patch       KEYWORD     Patch identifier
-     catId       INT         Catalog identifier
-     objId       INT	       Object identifier
-     nvisit	     INT	       Number of visit
-     vHash	     KEYWORD     63-bit SHA-1 list of visits
-     CRPIX1	     FLOAT	     Pixel coordinate of reference point
-     CRVAL1	     FLOAT	     [m] Coordinate value at reference point
-     CDELT1	     FLOAT	     [m] Coordinate increment at reference point
-     D1D_VER     KEYWORD     Version of the DRP_1D library
-     D1DP_VER    KEYWORD     Version of the DRP_1DPIPE pipeline
-     DAMD_VER    KEYWORD     Version of the data model
-     U_PARAM     KEYWORD     User parameters contents, json
-     ZWARNING    INT64       Quality flag
+     D1D_VER                   STR         Version of the DRP_1D library
+     D1DP_VER                  STR         Version of the DRP_1DPIPE pipeline
+     DAMD_VER                  STR         Version of the data model
+     D2D_VER                   STR         Version of stella
+     OBS_VER                   STR         Version of obs pfs
+     U_PARAM                   STR         User parameters contents, json
 
-HDU#1 CLASSIFICATION
-     CLASS        KEYWORD     Spectro classification: GALAXY, QSO, STAR
-     P_GALAXY     KEYWORD     Probability to be a galaxy
-     P_QSO        KEYWORD     Probability to be a QSO
-     P_STAR       KEYWORD     Probability to be a star
+HDU #1 TARGET           Target information                          [FITS BINARY TABLE] NOBJECT
+    Columns:
+        targetId [16-bit INT]: Target identifier, used to tie to data in other HDUs
+        catId [32-bit INT]: Catalog identifier
+        tract [32-bit INT]: Tract identifier
+        patch [STRING]: Patch identifier
+        objId [64-bit INT]: Object identifier
+	nVisit [64-bit INT]: Number of visit (module 1000)
+	visitHash [64-bit INT] : 63-bit SHA-1 list of visits
+        ra [64-bit FLOAT]: Right Ascension (ICRS)
+        dec [64-bit FLOAT]: Declination (ICRS)
+        targetType [16-bit INT]: Type of target (enumerated type, usually 1 = SCIENCE)
 
-HDU#2 GALAXY_CANDIDATES         Binary table            [FITS BINARY TABLE]     NGALAXY_CANDIDATES
-        Colums for :
-        CRANK                   INT32                   Rank of galaxy candidate (best=0)
-        Z                       FLOAT                   Redshift
-        Z_ERR                   FLOAT                   Redshift error
-        Z_PROBA                 FLOAT                   Areak of the PDF peak (dz=+/-3.e-3)
-        SUBCLASS                STR                     Subclassifications
-        CFILE                   STR                     Continuum template file name
-        LFILE                   STR                     Linecatalog ratio template file name
-        MODELFLUX               FLOAT[NROW]             Spectrum model (unit: nJy)
+HDU #2 WARNINGS     Warning flags for each solver     [FITS BINARY TABLE] NOBJECT
+    Columns:
+        targetId [16-bit INT]: Target identifier, links to TARGET HDU
+        initWarning [64-bit INT]: Quality flags for spectrum initialization
+        galaxyZWarning [64-bit INT]: Quality flags for galaxy solver
+        QSOZWarning [64-bit INT]: Quality flags for QSO solver
+        starZWarning [64-bit INT]: Quality flags for star solver
+        galaxyLWarning [64-bit INT]: Quality flags for galaxy line measurement solver
+        QSOLWarning [64-bit INT]: Quality flags for QSO line measurement solver
+        classificationWarning [64-bit INT]: Quality flags for classification solver
 
-HDU#3 GALAXY_PDF                Binary table            [FITS BINARY TABLE]     NPIX
-        Colums for :
-        REDSHIFT                FLOAT[NPIX]             Redshift grid
-        PDF                     FLOAT[NPIX]             PDF marginalised over all models
+HDU #3 ERRORS     Error code and message for each solver     [FITS BINARY TABLE] NOBJECT
+    Columns:
+        targetId [16-bit INT]: Target identifier, links to TARGET HDU
+        initError [64-bit INT]: Error code for spectrum initialization	
+        galaxyZError [64-bit INT]: Error code for galaxy solver
+        QSOZError [64-bit INT]: Error code for QSO solver
+        starZError [64-bit INT]: Error code for star solver
+        galaxyLError [64-bit INT]: Error code for galaxy line measurement solver
+        QSOLError [64-bit INT]: Error code for QSO line measurement solver
+        classificationError [64-bit INT]: Error code for classification solver
+        initErrorMessage [STRING]: Error message for spectrum initialization
+        galaxyZErrorMessage [STRING]: Error message for galaxy solver
+        QSOZErrorMessage [STRING]: Error message for QSO solver
+        starZErrorMessage [STRING]: Error message for star solver
+        galaxyLErrorMessage [STRING]: Error message for galaxy line measurement solver
+        QSOLErrorMessage [STRING]: Error message for QSO line measurement solver
 
-HDU#4 GALAXY_LINES              Binary table            [FITS BINARY TABLE]     NLINE
-        Columns for :
-        LINENAME                STR                     Line name
-        LINEWAVE                FLOAT                   Catalog wavelength for this line in vacuum (unit: nm)
-        LINEZ                   FLOAT                   Redshift
-        LINEZ_ERR               FLOAT                   Redshift error
-        LINESIGMA               FLOAT                   Gaussian width (unit: nm)
-        LINESIGMA_ERR           FLOAT                   Error in gaussian width
-        LINEVEL                 FLOAT                   Gaussian width (unit: km/sec)
-        LINEVEL_ERR             FLOAT                   Error in gaussian width
-        LINEFLUX                FLOAT                   Area in gaussian fit (unit: 10^-35 W/m2)
-        LINEFLUX_ERR            FLOAT                   Flux error
-        LINEEW                  FLOAT                   Equivalent width (unit: nm)
-        LINEEW_ERR              FLOAT                   Equivalent width error
-        LINECONTLEVEL           FLOAT                   Continuum level at line center (unit: nJy)
-        LINECONTLEVEL_ERR       FLOAT                   Error in continuum level at line center
+HDU #4 CLASSIFICATION   Classification results      [FITS BINARY TABLE] NOBJECT
+    Columns:
+        targetId [16-bit INT]: Target identifier, links to TARGET HDU
+        class [STRING]: Spectro classification: GALAXY, QSO, STAR
+        probaGalaxy [FLOAT]: Probability to be a galaxy
+        probaQSO [FLOAT]: Probability to be a QSO
+        probaStar [FLOAT]: Probability to be a star
+ 
+HDU #5 GALAXY_CANDIDATES               [FITS BINARY TABLE]     NGALAXY_CANDIDATES?*NOBJECT
+    Columns:
+        targetId [16-bit INT]: Target identifier, links to TARGET HDU       
+        cRank [32-bit INT]: Rank of galaxy candidate (best=0)
+        redshift [32-bit FLOAT]:  Redshift
+        redshiftError [32-bit FLOAT]: Redshift error
+        redshiftProba [32-bit FLOAT: Area of the PDF peak (dz=+/-3.e-3)
+        subClass [STRING]: Subclassifications
+        continuumFile [STRING]: Continuum template file name
+        lineCatalogRatioFile [STRING]: Linecatalog ratio template file name
+	modelId [32-bit INT]: index of galaxy model in HDU#6
+	
+HDU #6 GALAXY_MODELS    Spectrum model fluxes (nJy), as an image or table [32-bit FLOAT]     NWAVELENGTH*(NGALAXY_CANDIDATES?*NOBJECT)
 
-HDU#5 QSO_CANDIDATES            Binary table            [FITS BINARY TABLE]     NQSO_CANDIDATES
-        Colums for :
-        CRANK                   INT32                   Rank of QSO candidate (best=0)
-        Z                       FLOAT                   Redshift
-        Z_ERR                   FLOAT                   Redshift error
-        Z_PROBA                 FLOAT                   Areak of the PDF peak (dz=+/-3.e-3)
-        SUBCLASS                STR                     Subclassifications
-        MODELFLUX               FLOAT[NROW]             Spectrum model (unit: nJy)
+        
+HDU #7 GALAXY_REDSHIFT_GRID                Binary table            [FITS BINARY TABLE]       REDSHIFT_SAMPLES
+    Colums:
+        redshift [32-bit FLOAT]: Redshift grid
 
-HDU#6 QSO_PDF                   Binary table            [FITS BINARY TABLE]     NPIX
-        Colums for :
-        REDSHIFT                FLOAT[NPIX]             Redshift grid
-        PDF                     FLOAT[NPIX]             PDF marginalised over all models
+#HDU #8 GALAXY_LN_PDF ln(Probability) marginalised over all models [32-bit FLOAT]            REDSHIFT_SAMPLES*NOBJECT
 
-HDU#7 QSO_LINES                 Binary table            [FITS BINARY TABLE]     NLINE
-        Columns for :
-        LINENAME                STR                     Line name
-        LINEWAVE                FLOAT                   Catalog wavelength for this line in vacuum (unit: nm)
-        LINEZ                   FLOAT                   Redshift
-        LINEZ_ERR               FLOAT                   Redshift error
-        LINESIGMA               FLOAT                   Gaussian width (unit: nm)
-        LINESIGMA_ERR           FLOAT                   Error in gaussian width
-        LINEVEL                 FLOAT                   Gaussian width (unit: km/sec)
-        LINEVEL_ERR             FLOAT                   Error in gaussian width
-        LINEFLUX                FLOAT                   Area in gaussian fit (unit: erg/cm^2/s)
-        LINEFLUX_ERR            FLOAT                   Flux error
-        LINEEW                  FLOAT                   Equivalent width (unit: nm)
-        LINEEW_ERR              FLOAT                   Equivalent width error
-        LINECONTLEVEL           FLOAT                   Continuum level at line center (unit: nJy)
-        LINECONTLEVEL_ERR       FLOAT                   Error in continuum level at line center
 
-HDU#8 STAR_CANDIDATES            Binary table            [FITS BINARY TABLE]        NSTAR_CANDIDATES
-        Columns for :
-        CRANK                   INT32                   Rank of star candidate (best=0)
-        V                       FLOAT                   Star velocity (unit: kms-1)
-        V_ERR                   FLOAT                   Star velocity error
-        T_PROBA                 FLOAT                   Probability a posteriori of the star best template
-        SUBCLASS                STR                     Subclassifications
-        TFILE                   STR                     Template file name
-        MODELFLUX               FLOAT[NROW]             Spectrum model (unit: nJy)
+HDU #9 GALAXY_LINES              Binary table            [FITS BINARY TABLE]     NLINE?*NOBJECT
+    Columns:
+        targetId [16-bit INT]: Target identifier, links to TARGET HDU       
+        lineName [STRING]: Line name
+        lineWave [32-bit FLOAT]: Catalog wavelength for this line in vacuum (unit: nm)
+        lineZ [32-bit FLOAT]: Redshift
+        lineZError [32-bit FLOAT]: Redshift error
+        lineSigma [32-bit FLOAT]: Gaussian width (unit: nm)
+        lineSigmaError [32-bit FLOAT]: Error in gaussian width
+        lineVelocity [32-bit FLOAT]: Gaussian width (unit: km/sec)
+        lineVelocityError [32-bit FLOAT]:Error in gaussian width
+        lineFlux [32-bit FLOAT]: Area in gaussian fit (unit: 10^-35 W/m2)
+        lineFluxError [32-bit FLOAT]: Flux error
+        lineEW [32-bit FLOAT]: Equivalent width (unit: nm)
+        lineEWError [32-bit FLOAT]: Equivalent width error
+        lineContinuumLevel [32-bit FLOAT]: Continuum level at line center (unit: nJy)
+        lineContinuumLevelError [32-bit FLOAT]: Error in continuum level at line center
 
-HDU#9 STAR_PDF                   Binary table            [FITS BINARY TABLE]     NPIX
-        Colums for :
-        VELOCITY                FLOAT[NPIX]             Radial velocity grid
-        PDF                     FLOAT[NPIX]             PDF related to best model
--=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+HDU #10 QSO_CANDIDATES            Binary table            [FITS BINARY TABLE]              QSO_CANDIDATES?*NOBJECT
+     Colums for :
+        targetId [16-bit INT]: Target identifier, links to TARGET HDU       
+        cRank [32-bit INT]: Rank of QSO candidate (best=0)
+        Z [32-bit FLOAT]:  Redshift
+        ZErr [32-bit FLOAT]: Redshift error
+        ZProba [32-bit FLOAT: Area of the PDF peak (dz=+/-3.e-3)
+        SubClass [STRING]: Subclassifications
+        ContinuumFile [STRING]: Continuum template file name
+        lineCatalogRatioFile [STRING]: Linecatalog ratio template file name
+	modelId [32-bit INT]: index of QSO model in HDU#11
+
+HDU #11 QSO_MODELS    Spectrum model fluxes (nJy), as an image or table [32-bit FLOAT]     NWAVELENGTH*(QSO_CANDIDATES?*NOBJECT)
+        
+HDU #12 QSO_REDSHIFT_GRID                Binary table            [FITS BINARY TABLE]       REDSHIFT_SAMPLES
+    Colums:
+        redshift [32-bit FLOAT]: Redshift grid
+
+#HDU #13 QSO_LN_PDF   ln(Probability) marginalised over all models [32-bit FLOAT]            REDSHIFT_SAMPLES*NOBJECT
+
+HDU #14 QSO_LINES                 Binary table            [FITS BINARY TABLE]              NLINE?*NOBJECT
+    Columns:
+        targetId [16-bit INT]: Target identifier, links to TARGET HDU       
+        lineName [STRING]: Line name
+        lineWave [32-bit FLOAT]: Catalog wavelength for this line in vacuum (unit: nm)
+        lineZ [32-bit FLOAT]: Redshift
+        lineZError [32-bit FLOAT]: Redshift error
+        lineSigma [32-bit FLOAT]: Gaussian width (unit: nm)
+        lineSigmaError [32-bit FLOAT]: Error in gaussian width
+        lineVelocity [32-bit FLOAT]: Gaussian width (unit: km/sec)
+        lineVelocityError [32-bit FLOAT]:Error in gaussian width
+        lineFlux [32-bit FLOAT]: Area in gaussian fit (unit: 10^-35 W/m2)
+        lineFluxError [32-bit FLOAT]: Flux error
+        lineEW [32-bit FLOAT]: Equivalent width (unit: nm)
+        lineEWError [32-bit FLOAT]: Equivalent width error
+        lineContinuumLevel [32-bit FLOAT]: Continuum level at line center (unit: nJy)
+        lineContinuumLevelError [32-bit FLOAT]: Error in continuum level at line center
+
+HDU #15 STAR_CANDIDATES            Binary table            [FITS BINARY TABLE]              NSTAR_CANDIDATES?*NOBJECT
+    Columns for :
+        targetId [16-bit INT]: Target identifier, links to TARGET HDU       
+        cRank [32-bit INT]: Rank of star candidate (best=0)
+        velocity [32-bit FLOAT]:  Radial velocity [km/s]
+        velocityError [32-bit FLOAT]: Velocity error
+        templateProba [32-bit FLOAT: Area of the PDF peak (dv=+/-3.e-3 km/s)
+        subClass [STRING]: Subclassifications
+        templateFile [STRING]: Continuum template file name
+	modelId [32-bit INT]: index of star model in HDU#16
+
+HDU #16 STAR_MODELS    Spectrum model fluxes (nJy), as an image or table [32-bit FLOAT]     NWAVELENGTH*(N_STAR_CANDIDATES?*NOBJECT)
+        
+HDU #17 STAR_VELOCITY_GRID                Binary table            [FITS BINARY TABLE]       VELOCITY_SAMPLES
+    Colums:
+        velocity [32-bit FLOAT]: Radial velocity grid
+
+HDU #18 STAR_LN_PDF ln(Probability) marginalised over all models [32-bit FLOAT]            VELOCITY_SAMPLES*NOBJECT
 
 
 			Example File Names
