@@ -107,7 +107,9 @@ class MaskHelper:
         # NOTE: When making any changes to this method that modify the output
         # format, increment the DAMD_VER header value and record the change in
         # the versions.txt file FOR ALL CLASSES THAT USE THIS.
-        return {self.maskPlanePrefix + key: value for key, value in self.flags.items()}
+        header = {self.maskPlanePrefix + key: value for key, value in self.flags.items()}
+        header = {("HIERARCH " + key if len(key) > 8 else key): value for key, value in header.items()}
+        return header
 
     @classmethod
     def fromMerge(cls, helpers):
