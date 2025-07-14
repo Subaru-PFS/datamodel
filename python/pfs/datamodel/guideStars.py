@@ -1,6 +1,5 @@
 import numpy as np
 import astropy.io.fits
-from enum import IntFlag
 
 __all__ = ["GuideStars"]
 
