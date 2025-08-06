@@ -193,6 +193,12 @@ class PfsTargetSpectra(Mapping[Target, PfsFiberArray]):
                 )
 
                 select = observationsHdu.targetId == targetId
+                obsTime = None
+                if "obsTime" in observationsHdu.columns.names:
+                    obsTime = ["".join(ss) for ss in observationsHdu.obsTime[select]]
+                expTime = None
+                if "expTime" in observationsHdu.columns.names:
+                    expTime = observationsHdu.expTime[select]
                 observations = Observations(
                     observationsHdu.visit[select],
                     ["".join(np.char.decode(ss.astype("S"))) for ss in observationsHdu.arm[select]],
@@ -201,6 +207,8 @@ class PfsTargetSpectra(Mapping[Target, PfsFiberArray]):
                     observationsHdu.fiberId[select],
                     observationsHdu.pfiNominal[select],
                     observationsHdu.pfiCenter[select],
+                    obsTime,
+                    expTime,
                 )
 
                 metadataRow = metadataHdu[ii]
@@ -321,6 +329,8 @@ class PfsTargetSpectra(Mapping[Target, PfsFiberArray]):
         fiberId = np.empty(numObservations, dtype=np.int32)
         pfiNominal = np.empty((numObservations, 2), dtype=float)
         pfiCenter = np.empty((numObservations, 2), dtype=float)
+        obsTime: List[str] = []
+        expTime = np.empty(numObservations, dtype=float)
         start = 0
         for tt, spectrum in zip(targetId, self.values()):
             observations = spectrum.observations
@@ -334,6 +344,8 @@ class PfsTargetSpectra(Mapping[Target, PfsFiberArray]):
             fiberId[start:stop] = observations.fiberId
             pfiNominal[start:stop] = observations.pfiNominal
             pfiCenter[start:stop] = observations.pfiCenter
+            obsTime += list(observations.obsTime)
+            expTime[start:stop] = observations.expTime
             start = stop
 
         fits.append(
@@ -347,6 +359,8 @@ class PfsTargetSpectra(Mapping[Target, PfsFiberArray]):
                     Column("fiberId", "J", array=fiberId),
                     Column("pfiNominal", "2D", array=pfiNominal),
                     Column("pfiCenter", "2D", array=pfiCenter),
+                    Column("obsTime", "PA()", array=obsTime),
+                    Column("expTime", "E", array=expTime),
                 ],
                 name="OBSERVATIONS",
             )
