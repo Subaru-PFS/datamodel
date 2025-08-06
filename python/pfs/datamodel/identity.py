@@ -161,7 +161,7 @@ class Identity(types.SimpleNamespace):
                 kwargs["obsTime"] = obsTime
         if "expTime" in hdu.columns.names:
             expTime = hdu.data["expTime"][0]
-            if not np.isfinite(expTime):
+            if np.isfinite(expTime):
                 kwargs["expTime"] = expTime
         return cls(**kwargs)
 
