@@ -210,14 +210,14 @@ class GuideStars:
         guidestar information can be provided.
         """
         return cls(np.array([], dtype=np.int64),
-                   np.array([], dtype='a7'),
+                   np.array([], dtype='|S7'),
                    np.array([], dtype=np.float64),
                    np.array([], dtype=np.float64),
                    np.array([], dtype=np.float32),
                    np.array([], dtype=np.float32),
                    np.array([], dtype=np.float32),
                    np.array([], dtype=np.float32),
-                   np.array([], dtype='a1'),
+                   np.array([], dtype='|S1'),
                    np.array([], dtype=np.float32),
                    np.array([], dtype=np.int32),
                    np.array([], dtype=np.float32),
