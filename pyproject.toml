@@ -1,0 +1,51 @@
+[build-system]
+requires = ["setuptools >= 77.0.3"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pfs-datamodel"
+description = "Common util tools for the Subaru PFS DRP"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "PyYAML",
+    "astroplan",
+    "astropy",
+    "lsst-utils",
+    "matplotlib",
+    "numpy",
+    "pandas",
+    "pytz",
+    "scipy",
+    "sdss-opscore",
+]
+dynamic = ["version"]
+[project.optional-dependencies]
+dev = [
+    "black",
+    "isort",
+    "lsst-versions",
+    "pytest>=8.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["python/"]
+include = ["pfs", "pfs.*"]
+
+[tool.black]
+line-length = 110
+target-version = ["py311"]
+
+[tool.isort]
+profile = "black"
+line_length = 110
+known_first_party = ["pfs"]
+
+[tool.lsst_versions]
+write_to = "python/pfs/datamodel/version.py"
+
+[tool.pytest.ini_options]
+addopts = "--import-mode=importlib"  # Recommended as best practice
+
+[tool.pydocstyle]
+convention = "numpy"
