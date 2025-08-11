@@ -349,6 +349,7 @@ class PfsTargetSpectraTestCase(lsst.utils.tests.TestCase):
 
     def testIO(self):
         """Test I/O functionality"""
+
         spectra = self.makePfsTargetSpectra(list(range(123)))
         with lsst.utils.tests.getTempFilePath(".fits") as filename:
             spectra.writeFits(filename)
@@ -359,6 +360,23 @@ class PfsTargetSpectraTestCase(lsst.utils.tests.TestCase):
             with astropy.io.fits.open(filename) as hdus:
                 self.assertIn("DAMD_VER", hdus[0].header)
 
+    def testIOWithFilters(self):
+        """Test I/O functionality with filters"""
+
+        spectra = self.makePfsTargetSpectra(list(range(123)), catId=itertools.cycle([12345, 12346, 12347]))
+        with lsst.utils.tests.getTempFilePath(".fits") as filename:
+            spectra.writeFits(filename)
+
+            # Filter single spectrum by objId
+            copy = PfsCoadd.readFits(filename, objId=22)
+            self.assertPfsTargetSpectraEqual(copy, PfsCoadd([spectra[22]]))
+
+            # Filter multiple spectra by catId
+            copy = PfsCoadd.readFits(filename, catId=12345)
+            for (_, left), right in zip(copy.items(), [s for t, s in spectra.items() if t.catId == 12345]):
+                self.assertTargetEqual(left.target, right.target)
+                self.assertPfsFiberArrayEqual(left, right)
+
     def testDifferentLengths(self):
         """Test I/O when the spectra have different lengths"""
         spectra = self.makePfsTargetSpectra(list(range(123)), length=itertools.cycle([999, 1000, 1001]))
@@ -366,6 +384,30 @@ class PfsTargetSpectraTestCase(lsst.utils.tests.TestCase):
             spectra.writeFits(filename)
             copy = PfsCoadd.readFits(filename)
             self.assertPfsTargetSpectraEqual(copy, spectra)
+
+    def testDifferentLengthsWithFilters(self):
+        """Test I/O when the spectra have different lengths and filters are used"""
+        spectra = self.makePfsTargetSpectra(
+            list(range(123)),
+            catId=itertools.cycle([12345, 12346, 12347]),
+            length=itertools.cycle([999, 1000, 1001, 1002, 1003])
+        )
+        with lsst.utils.tests.getTempFilePath(".fits") as filename:
+            spectra.writeFits(filename)
+
+            # Filter single spectrum by objId
+            for ii in range(22, 27):
+                copy = PfsCoadd.readFits(filename, objId=ii)
+                self.assertPfsTargetSpectraEqual(copy, PfsCoadd([spectra[ii]]))
+
+            # Filter multiple spectra by catId
+            copy = PfsCoadd.readFits(filename, catId=12345)
+            for (_, left), right in zip(
+                    copy.items(),
+                    [s for t, s in spectra.items() if t.catId == 12345]):
+
+                self.assertTargetEqual(left.target, right.target)
+                self.assertPfsFiberArrayEqual(left, right)
 
 
 class TestMemory(lsst.utils.tests.MemoryTestCase):
