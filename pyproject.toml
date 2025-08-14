@@ -17,7 +17,6 @@ dependencies = [
     "pandas",
     "pytz",
     "scipy",
-    "sdss-opscore",
 ]
 dynamic = ["version"]
 [project.optional-dependencies]
