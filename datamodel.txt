@@ -1651,15 +1651,15 @@ HDU #9 GALAXY_LINES              Binary table            [FITS BINARY TABLE]    
         lineZ [32-bit FLOAT]: Redshift
         lineZError [32-bit FLOAT]: Redshift error
         lineSigma [32-bit FLOAT]: Gaussian width (unit: nm)
-        lineSigmaError [32-bit FLOAT]: Error in gaussian width
-        lineVelocity [32-bit FLOAT]: Gaussian width (unit: km/sec)
-        lineVelocityError [32-bit FLOAT]:Error in gaussian width
-        lineFlux [32-bit FLOAT]: Area in gaussian fit (unit: 10^-35 W/m2)
-        lineFluxError [32-bit FLOAT]: Flux error
+        lineSigmaError [32-bit FLOAT]: Error in gaussian width (unit: nm)
+        lineVelocity [32-bit FLOAT]: Velocity (unit: km/sec)
+        lineVelocityError [32-bit FLOAT]: Error in velocity  (unit: km/sec)
+        lineFlux [32-bit FLOAT]: Area in gaussian fit (unit: 10-35W/m2)
+        lineFluxError [32-bit FLOAT]: Flux error (unit: 10-35W/m2)
         lineEW [32-bit FLOAT]: Equivalent width (unit: nm)
-        lineEWError [32-bit FLOAT]: Equivalent width error
+        lineEWError [32-bit FLOAT]: Equivalent width error (unit: nm)
         lineContinuumLevel [32-bit FLOAT]: Continuum level at line center (unit: nJy)
-        lineContinuumLevelError [32-bit FLOAT]: Error in continuum level at line center
+        lineContinuumLevelError [32-bit FLOAT]: Error in continuum level at line center (unit: nJy)
 
 HDU #10 QSO_CANDIDATES            Binary table            [FITS BINARY TABLE]              QSO_CANDIDATES?*NOBJECT
      Colums for :
@@ -1711,15 +1711,15 @@ HDU #14 QSO_LINES                 Binary table            [FITS BINARY TABLE]   
         lineZ [32-bit FLOAT]: Redshift
         lineZError [32-bit FLOAT]: Redshift error
         lineSigma [32-bit FLOAT]: Gaussian width (unit: nm)
-        lineSigmaError [32-bit FLOAT]: Error in gaussian width
-        lineVelocity [32-bit FLOAT]: Gaussian width (unit: km/sec)
-        lineVelocityError [32-bit FLOAT]:Error in gaussian width
-        lineFlux [32-bit FLOAT]: Area in gaussian fit (unit: 10^-35 W/m2)
-        lineFluxError [32-bit FLOAT]: Flux error
+        lineSigmaError [32-bit FLOAT]: Error in gaussian width (unit: nm)
+        lineVelocity [32-bit FLOAT]: Velocity (unit: km/sec)
+        lineVelocityError [32-bit FLOAT]: Error in velocity  (unit: km/sec)
+        lineFlux [32-bit FLOAT]: Area in gaussian fit (unit: nJy)
+        lineFluxError [32-bit FLOAT]: Flux error (unit: nJy)
         lineEW [32-bit FLOAT]: Equivalent width (unit: nm)
-        lineEWError [32-bit FLOAT]: Equivalent width error
+        lineEWError [32-bit FLOAT]: Equivalent width error (unit: nm)
         lineContinuumLevel [32-bit FLOAT]: Continuum level at line center (unit: nJy)
-        lineContinuumLevelError [32-bit FLOAT]: Error in continuum level at line center
+        lineContinuumLevelError [32-bit FLOAT]: Error in continuum level at line center (unit: nJy)
 
 HDU #15 STAR_CANDIDATES            Binary table            [FITS BINARY TABLE]              NSTAR_CANDIDATES?*NOBJECT
     Columns for :
