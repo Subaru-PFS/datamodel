@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
 from typing import Dict
 
@@ -14,6 +16,8 @@ __all__ = (
     "PfsPolynomialPerFiber",
     "PfsFluxCalib",
     "PfsFocalPlanePolynomial",
+    "PfsConstantPerFiber",
+    "PfsFiberPolynomials",
 )
 
 
@@ -590,6 +594,150 @@ class PfsFocalPlanePolynomial(PfsFocalPlaneFunction):
         header["RMS"] = (self.rms, "RMS of residuals from fit")
         hdu = astropy.io.fits.ImageHDU(
             data=self.coeffs.astype(np.float64),
+            header=header,
+            name=self.HDU_NAME,
+        )
+        return astropy.io.fits.HDUList(hdus=[hdu])
+
+
+class PfsConstantPerFiber(PfsFocalPlaneFunction):
+    """A constant value for each fiber
+
+    Parameters
+    ----------
+    fiberId : `numpy.ndarray` of `int`
+        Fiber identifiers.
+    value : `numpy.ndarray` of `float`
+        Constant value for each fiber.
+    rms : `numpy.ndarray` of `float`
+        RMS of residuals from fit for each fiber.
+    """
+
+    HDU_NAME = "CONSTANT_PER_FIBER"
+
+    def __init__(self, fiberId: np.ndarray, value: np.ndarray, rms: np.ndarray):
+        self.fiberId = fiberId
+        self.value = value
+        self.rms = rms
+
+    @classmethod
+    def fromFits(cls, fits: astropy.io.fits.HDUList) -> "PfsConstantPerFiber":
+        """Construct from FITS file
+
+        Parameters
+        ----------
+        fits : `astropy.io.fits.HDUList`
+            FITS file from which to read.
+
+        Returns
+        -------
+        self : cls
+            Constructed focal plane function.
+        """
+        hdu: astropy.io.fits.BinTableHDU = fits[cls.HDU_NAME]
+        fiberId = hdu.data["fiberId"].astype(int)
+        value = hdu.data["value"].astype(float)
+        rms = hdu.data["rms"].astype(float)
+        return cls(fiberId, value, rms)
+
+    def toFits(self) -> astropy.io.fits.HDUList:
+        """Write to FITS file
+
+        Returns
+        -------
+        fits : `astropy.io.fits.HDUList`
+            FITS file to write.
+        """
+        hdu = astropy.io.fits.BinTableHDU.from_columns(
+            [
+                astropy.io.fits.Column("fiberId", format="J", array=self.fiberId),
+                astropy.io.fits.Column("value", format="D", array=self.value),
+                astropy.io.fits.Column("rms", format="D", array=self.rms),
+            ],
+            name=self.HDU_NAME,
+        )
+        return astropy.io.fits.HDUList(hdus=[hdu])
+
+
+class PfsFiberPolynomials(PfsFocalPlaneFunction):
+    """A 2D polynomial in position for each fiber
+
+    Parameters
+    ----------
+    coeffs : `dict` mapping `int` to `numpy.ndarray` of `float`
+        Polynomial coefficients, indexed by ``fiberId``.
+    xCenter, yCenter : `dict` mapping `int` to `float`
+        Center of each fiber, in mm.
+    radius : `float`
+        Radius of the fiber patrol regions, in mm.
+    rms : `dict` mapping `int` to `float`
+        RMS of residuals from fit, indexed by ``fiberId``.
+    """
+
+    HDU_NAME = "FIBER_POLYNOMIALS"
+
+    def __init__(
+        self,
+        coeffs: dict[int, np.ndarray],
+        xCenter: dict[int, float],
+        yCenter: dict[int, float],
+        radius: float,
+        rms: dict[int, float],
+    ):
+        self.coeffs = coeffs
+        self.xCenter = xCenter
+        self.yCenter = yCenter
+        self.radius = radius
+        self.rms = rms
+
+    @property
+    def fiberId(self):
+        """Fiber identifiers with a corresponding polynomial"""
+        return np.array(sorted(self.coeffs.keys()), dtype=int)
+
+    @classmethod
+    def fromFits(cls, fits: astropy.io.fits.HDUList) -> "PfsFiberPolynomials":
+        """Construct from FITS file
+
+        Parameters
+        ----------
+        fits : `astropy.io.fits.HDUList`
+            FITS file from which to read.
+
+        Returns
+        -------
+        self : cls
+            Constructed focal plane function.
+        """
+        hdu: astropy.io.fits.BinTableHDU = fits[cls.HDU_NAME]
+        fiberId = hdu.data["fiberId"].astype(int)
+        coeffs = {ff: data.astype(float) for ff, data in zip(fiberId, hdu.data["coeffs"])}
+        xCenter = {ff: data for ff, data in zip(fiberId, hdu.data["xCenter"].astype(float))}
+        yCenter = {ff: data for ff, data in zip(fiberId, hdu.data["yCenter"].astype(float))}
+        radius = float(hdu.header["RADIUS"])
+        rms = {ff: data for ff, data in zip(fiberId, hdu.data["rms"])}
+        return cls(coeffs, xCenter, yCenter, radius, rms)
+
+    def toFits(self) -> astropy.io.fits.HDUList:
+        """Write to FITS file
+
+        Returns
+        -------
+        fits : `astropy.io.fits.HDUList`
+            FITS file to write.
+        """
+        header = astropy.io.fits.Header()
+        header["HIERARCH RADIUS"] = (self.radius, "Radius of the fiber patrol regions (mm)")
+        fiberId = self.fiberId
+
+        hdu = astropy.io.fits.BinTableHDU.from_columns(
+            [
+                astropy.io.fits.Column("fiberId", format="J", array=fiberId),
+                astropy.io.fits.Column("coeffs", format="PD()", array=[self.coeffs[ff] for ff in fiberId]),
+                astropy.io.fits.Column("xCenter", format="D", array=[self.xCenter[ff] for ff in fiberId]),
+                astropy.io.fits.Column("yCenter", format="D", array=[self.yCenter[ff] for ff in fiberId]),
+                astropy.io.fits.Column("rms", format="D", array=[self.rms[ff] for ff in fiberId]),
+            ],
             header=header,
             name=self.HDU_NAME,
         )
