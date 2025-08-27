@@ -11,3 +11,4 @@ pytest_session.txt
 .idea
 build
 **egg-info**
+**dist-info**
