@@ -204,7 +204,13 @@ class PfsTargetSpectra(Mapping[Target, PfsFiberArray]):
             for key, value in kwargs.items():
                 if key not in targetHdu.columns.names:
                     raise KeyError(f"Keyword argument '{key}' not found in TARGET HDU.")
-                m = targetHdu[key] == value
+                
+                if targetHdu.dtype[key].kind == "V":
+                    # Handle variable length string columns
+                    m = np.array([''.join(v) for v in targetHdu[key]]) == value
+                else:
+                    m = np.array(targetHdu[key]) == value
+                
                 mask = m if mask is None else mask & m
 
             targetFluxHdu = fits["TARGETFLUX"].data
