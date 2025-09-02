@@ -33,6 +33,7 @@ class PfsArmNotes(PfsTable):
         Column("blackSpotDistance", np.float32, "Distance to nearest black spot center (mm)", np.nan),
         Column("blackSpotCorrection", np.float32, "Black spot flux correction", np.nan),
         Column("barycentricCorrection", np.float32, "Barycentric correction to be applied (km/s)", np.nan),
+        Column("pfiCorrection", np.float32, "PFI correction applied", np.nan),
     ]
 
 
@@ -57,6 +58,7 @@ class PfsMergedNotes(PfsTable):
         Column("blackSpotDistance", np.float32, "Distance to nearest black spot center (mm)", np.nan),
         Column("blackSpotCorrection", np.float32, "Black spot flux correction", np.nan),
         Column("barycentricCorrection", np.float32, "Barycentric correction applied (km/s)", np.nan),
+        Column("pfiCorrection", np.float32, "PFI correction applied", np.nan),
     ]
 
 
