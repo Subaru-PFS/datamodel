@@ -808,6 +808,25 @@ The particular representation used is written in the PHDU as the value of the
   normalization is from (-1, -1, -1) to (1, 1, 1). This nomalization happens
   before the arguments are substituted for the variables of the polynomial.
 
+* PfsFocalPlanePolynomial: a polynomial on the focal plane. The FITS file
+  includes an HDU called "POLYNOMIAL", which is an image with the polynomial
+  coefficients.
+
+* PfsConstantPerFiber: a constant value for each fiber. The FITS file includes
+  an HDU called "CONSTANT_PER_FIBER", which is a table with "fiberId" (32-bit
+  integer), "value" (64-bit float) and "rms" (64-bit float) columns.
+
+* PfsFiberPolynomials: a 2D polynomial in position for each fiber. The FITS file
+  contains an HDU called "FIBER_POLYNOMIALS", which contains a header keyword
+  "FIBER_RADIUS" (fiber patrol radius) and a table with the following columns:
+
+    fiberId         32-bit integer          Fiber identifier
+    coeffs          64-bit float array      Polynomial coefficients
+    xCenter         64-bit float            Fiber center in x (mm)
+    yCenter         64-bit float            Fiber center in y (mm)
+    rms             64-bit float            RMS of fit
+
+
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 The PSF for a single exposure
