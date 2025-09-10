@@ -7,6 +7,7 @@ import functools
 from typing import Optional, Set, Type, TypeVar, Union
 from logging import Logger
 import datetime
+from collections import OrderedDict
 
 import numpy as np
 import astropy.io.fits
@@ -143,7 +144,12 @@ def astropyHeaderToDict(header):
     metadata : `dict`
         FITS header keywords and values.
     """
-    return {key: value for key, value in header.items() if key not in set(("HISTORY", "COMMENT"))}
+    metadata = OrderedDict()
+    for key, value in header.items():
+        if key in ("HISTORY", "COMMENT"):
+            continue
+        metadata[key] = value
+    return metadata
 
 
 def astropyHeaderFromDict(metadata):
