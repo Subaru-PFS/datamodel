@@ -155,6 +155,7 @@ class FiberStatus(DocEnum):
     BROKENCOBRA = 6, "Cobra does not move, but the fiber still carries flux."
     NOTCONVERGED = 7, "Cobra did not converge to the target."
     BAD_PSF = 8, "Known bad PSF"
+    MASKED = 9, "Excluded from convergence for this visit."
 
 
 try:
