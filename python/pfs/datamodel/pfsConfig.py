@@ -24,6 +24,7 @@ __all__ = (
     "DocEnum",
     "TargetType",
     "FiberStatus",
+    "CobraId",
     "PfsDesign",
     "PfsConfig",
     "PFSCONFIG_FILENAME_REGEX",
@@ -158,6 +159,13 @@ class FiberStatus(DocEnum):
     MASKED = 9, "Excluded from convergence for this visit."
 
 
+class CobraId(DocEnum):
+    """Enumerated options for cobraId"""
+    ENGINEERING = 65533, "Engineering fiber"
+    NOT_CONNECTED = 65534, "PFS is not connected to PFI"
+    NOT_SET = 65535, "cobraId is not set"
+
+
 try:
     def verify(*args, **kwargs):
         return enum.verify(enum.UNIQUE)(*args, **kwargs)
@@ -267,6 +275,8 @@ class PfsDesign:
         pfs_utils version used to create the design file.
     header : `astropy.io.fits.Header` or `dict`, optional
         Header to be written to the FITS file.
+    cobraId : `numpy.ndarray` of `int32`, optional
+        Cobra identifier for each fiber.
     """
     # Scalar values
     _scalars = ["pfsDesignId", "designName",
@@ -277,6 +287,7 @@ class PfsDesign:
     #     fiberId, targetType
     # fiberStatus is handled separately, for backwards-compatibility
     _fields = {"fiberId": "J",
+               "cobraId": "J",
                "tract": "J",
                "patch": "A",
                "ra": "D",
@@ -416,6 +427,7 @@ class PfsDesign:
                  obstime=None,
                  pfsUtilsVer="",
                  header=None,
+                 cobraId=None
                  ):
         self.pfsDesignId = pfsDesignId
         self.raBoresight = raBoresight
@@ -453,6 +465,11 @@ class PfsDesign:
         self.pfsUtilsVer = pfsUtilsVer
         self.isSubset = False
         self.header = Header() if header is None else header
+
+        if cobraId is None:
+            cobraId = np.full(len(self.fiberId), int(CobraId.NOT_SET), dtype=np.int32)
+        self.cobraId = np.array(cobraId).astype(np.int32)
+
         self.validate()
 
     def __len__(self):
@@ -704,7 +721,7 @@ class PfsDesign:
         header["POSANG"] = (self.posAng, "[degree] PFI position angle")
         header["ARMS"] = (self.arms, "Exposed arms")
         header["DSGN_NAM"] = (self.designName, "Name of design")
-        header["DAMD_VER"] = (3, "PfsDesign/PfsConfig datamodel version")
+        header["DAMD_VER"] = (4, "PfsDesign/PfsConfig datamodel version")
         header["W_PFDSGN"] = (self.pfsDesignId, "Identifier for fiber configuration")
         header["VARIANT"] = (self.variant, "Which variant of PFDSGN0 we are.")
         header["PFDSGN0"] = (self.designId0, "The base design of which we are a variant")
@@ -772,7 +789,10 @@ class PfsDesign:
                 # skip astrometry and operation keywords as they have already been set
                 if (nn not in cls._astrometry) and (nn not in cls._operation):
                     assert nn not in kwargs
-                    kwargs[nn] = data[nn]
+                    if nn in ['cobraId', 'cobraTheta', 'cobraPhi'] and nn not in data.columns.names:
+                        kwargs[nn] = None
+                    else:
+                        kwargs[nn] = data[nn]
 
             # Handle fiberStatus explicitly, for backwards compatibility
             kwargs["fiberStatus"] = (data["fiberStatus"] if "fiberStatus" in (col.name for col in
@@ -894,6 +914,7 @@ class PfsDesign:
         # Add in the enumerations for the DESIGN fields
         hdr.update(TargetType.getFitsHeaders())
         hdr.update(FiberStatus.getFitsHeaders())
+        hdr.update(CobraId.getFitsHeaders())
 
         lengths = [len(pp) for pp in self.patch]
         maxLength = 1 if len(lengths) == 0 else max(lengths)
@@ -1331,6 +1352,12 @@ class PfsConfig(PfsDesign):
         Bitmask indicating instrument-related status flags for this visit.
     visit0 : `int`, optional
         visitId used for the convergence.
+    cobraId : `numpy.ndarray` of `int32`, optional
+        Cobra identifier for each fiber.
+    cobraTheta : `numpy.ndarray` of `float32`
+        Theta angle for each cobra, degrees.
+    cobraPhi : `numpy.ndarray` of `float32`
+        Phi angle for each cobra, degrees.
     """
     # Scalar values
     _scalars = ["pfsDesignId", "designName",
@@ -1343,6 +1370,7 @@ class PfsConfig(PfsDesign):
     #     fiberId, targetType
     # fiberStatus is handled separately, for backwards-compatibility
     _fields = {"fiberId": "J",
+               "cobraId": "J",
                "tract": "J",
                "patch": "A",
                "ra": "D",
@@ -1358,6 +1386,8 @@ class PfsConfig(PfsDesign):
                "obCode": "A",
                "pfiNominal": "2E",
                "pfiCenter": "2E",
+               "cobraTheta": "E",
+               "cobraPhi": "E",
                }
     _pointFields = ["pfiNominal", "pfiCenter"]  # List of point fields; should be in _fields too
     _photometry = ["fiberFlux",
@@ -1397,9 +1427,20 @@ class PfsConfig(PfsDesign):
                  header=None,
                  camMask=0,
                  instStatusFlag=0,
-                 visit0=None):
+                 visit0=None,
+                 cobraId=None,
+                 cobraTheta=None,
+                 cobraPhi=None):
+
+        if cobraTheta is None:
+            cobraTheta = np.full(len(fiberId), np.nan, dtype=np.float32)
+        if cobraPhi is None:
+            cobraPhi = np.full(len(fiberId), np.nan, dtype=np.float32)
+            
         self.visit = visit
         self.pfiCenter = np.array(pfiCenter)
+        self.cobraTheta = np.asarray(cobraTheta, dtype=np.float32)
+        self.cobraPhi = np.asarray(cobraPhi, dtype=np.float32)
         self.camMask = camMask
         self.instStatusFlag = instStatusFlag
         self.obstimeDesign = convertToIso8601Utc(obstimeDesign) if obstimeDesign else None
@@ -1425,7 +1466,8 @@ class PfsConfig(PfsDesign):
                          designId0=designId0,
                          obstime=obstime,
                          pfsUtilsVer=pfsUtilsVer,
-                         header=header)
+                         header=header,
+                         cobraId=cobraId)
 
     def __str__(self):
         """String representation"""
@@ -1438,7 +1480,7 @@ class PfsConfig(PfsDesign):
 
     @classmethod
     def fromPfsDesign(cls, pfsDesign, visit, pfiCenter, header=None, camMask=0, instStatusFlag=0,
-                      visit0=None):
+                      visit0=None, cobraTheta=None, cobraPhi=None):
         """Construct from a ``PfsDesign``
 
         Parameters
@@ -1457,6 +1499,10 @@ class PfsConfig(PfsDesign):
             Bitmask indicating instrument-related status flags for this visit.
         visit0 : `int`, optional
             visitId used for the convergence.
+        cobraTheta : `numpy.ndarray` of `float32`, optional
+            Theta angle for each cobra, degrees.
+        cobraPhi : `numpy.ndarray` of `float32`, optional
+            Phi angle for each cobra, degrees.
 
         Returns
         -------
@@ -1476,6 +1522,8 @@ class PfsConfig(PfsDesign):
         kwargs["obstimeDesign"] = pfsDesign.obstime
         kwargs["pfsUtilsVerDesign"] = pfsDesign.pfsUtilsVer
         kwargs["visit0"] = visit0
+        kwargs["cobraTheta"] = cobraTheta
+        kwargs["cobraPhi"] = cobraPhi
 
         return PfsConfig(**kwargs)
 

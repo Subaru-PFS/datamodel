@@ -52,6 +52,7 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
         self.pfsDesignId = 12345
         self.visit = 67890
         self.fiberId = np.array(list(reversed(range(self.numFibers))))
+        self.cobraId = np.arange(1, self.numFibers + 1, dtype=np.int32)
         rng = np.random.RandomState(12345)
         self.tract = rng.uniform(high=30000, size=self.numFibers).astype(int)
         self.patch = ["%d,%d" % tuple(xy.tolist()) for
@@ -134,6 +135,8 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
         self.pfsUtilsVer = self.pfsUtilsVerDesign = "w.2025.06"
 
         self.visit0 = 67889
+        self.cobraTheta = np.full(len(self.fiberId), 0.0)
+        self.cobraPhi = np.full(len(self.fiberId), 0.0)
 
     def _makeInstance(self, Class, **kwargs):
         """Construct a PfsDesign or PfsConfig using default values
