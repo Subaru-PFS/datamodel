@@ -997,7 +997,7 @@ class PfsDesign:
             fileName = self.filename
         self._writeImpl(os.path.join(dirName, fileName), allowSubset=allowSubset)
 
-    def getSelection(self, fiberId=None, targetType=None, fiberStatus=None,
+    def getSelection(self, *, fiberId=None, cobraId=None, targetType=None, fiberStatus=None,
                      catId=None, tract=None, patch=None, objId=None,
                      spectrograph=None):
         """Return a boolean array indicating which fibers are selected
@@ -1015,6 +1015,8 @@ class PfsDesign:
         ----------
         fiberId : `int` (scalar or array_like), optional
             Fiber identifier to select.
+        cobraId : `int` (scalar or array_like), optional
+            Cobra identifier to select.
         targetType : `TargetType` (scalar or array_like), optional
             Target type to select.
         fiberStatus : `FiberStatus` (scalar or array_like), optional
@@ -1038,6 +1040,8 @@ class PfsDesign:
         selection = np.ones(len(self), dtype=bool)
         if fiberId is not None:
             selection &= np.isin(self.fiberId, fiberId)
+        if cobraId is not None:
+            selection &= np.isin(self.cobraId, cobraId)
         if targetType is not None:
             selection &= np.isin(self.targetType, targetType)
         if fiberStatus is not None:
@@ -1070,6 +1074,8 @@ class PfsDesign:
         ----------
         fiberId : `int` (scalar or array_like), optional
             Fiber identifier to select.
+        cobraId : `int` (scalar or array_like), optional
+            Cobra identifier to select.
         targetType : `TargetType` (scalar or array_like), optional
             Target type to select.
         fiberStatus : `FiberStatus` (scalar or array_like), optional

@@ -531,6 +531,11 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
         self.assertEqual(len(sub), 1)
         self.assertFloatsEqual(sub.fiberId, fiberId)
 
+        cobraId = self.cobraId[3]
+        sub = pfsConfig.select(cobraId=cobraId)
+        self.assertEqual(len(sub), 1)
+        self.assertFloatsEqual(sub.cobraId, cobraId)
+
         targetType = TargetType.FLUXSTD
         sub = pfsConfig.select(targetType=targetType)
         self.assertEqual(len(sub), self.numFluxStd)
