@@ -158,10 +158,10 @@ class PfsConstantFocalPlaneFunction(PfsFocalPlaneFunction):
         self : cls
             Constructed focal plane function.
         """
-        wavelength = fits["WAVELENGTH"].data
-        value = fits["VALUE"].data
+        wavelength = fits["WAVELENGTH"].data.astype(np.float64)
+        value = fits["VALUE"].data.astype(np.float32)
         mask = fits["MASK"].data.astype(bool)
-        variance = fits["VARIANCE"].data
+        variance = fits["VARIANCE"].data.astype(np.float32)
         return cls(wavelength, value, mask, variance)
 
     def toFits(self) -> astropy.io.fits.HDUList:
@@ -175,9 +175,9 @@ class PfsConstantFocalPlaneFunction(PfsFocalPlaneFunction):
         return astropy.io.fits.HDUList(
             hdus=[
                 astropy.io.fits.ImageHDU(self.wavelength, name="WAVELENGTH"),
-                astropy.io.fits.ImageHDU(self.value, name="VALUE"),
+                astropy.io.fits.ImageHDU(self.value.astype(np.float32), name="VALUE"),
                 astropy.io.fits.ImageHDU(self.mask.astype(np.uint8), name="MASK"),
-                astropy.io.fits.ImageHDU(self.variance, name="VARIANCE"),
+                astropy.io.fits.ImageHDU(self.variance.astype(np.float32), name="VARIANCE"),
             ],
         )
 
