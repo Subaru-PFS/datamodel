@@ -258,7 +258,7 @@ class PfsFiberArraySet:
                                 ("mask", np.uint32),
                                 ("sky", np.float32),
                                 # "norm" is treated separately, for backwards-compatibility
-                                ("covar", float)
+                                ("covar", np.float32)
                                 ):
                 hduName = attr.upper()
                 data[attr] = fd[hduName].data.astype(dtype)
