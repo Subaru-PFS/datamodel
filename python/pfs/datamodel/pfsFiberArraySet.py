@@ -336,7 +336,10 @@ class PfsFiberArraySet:
         ):
             hduName = attr.upper()
             data = getattr(self, attr)
-            fits.append(astropy.io.fits.ImageHDU(data.astype(dtype), name=hduName))
+            HduClass = astropy.io.fits.ImageHDU
+            if np.issubdtype(dtype, np.integer):
+                HduClass = astropy.io.fits.CompImageHDU
+            fits.append(HduClass(data.astype(dtype), name=hduName))
 
         self.identity.toFits(fits)
         self.notes.writeHdu(fits)
