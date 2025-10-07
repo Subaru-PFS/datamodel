@@ -228,7 +228,11 @@ class PfsTable:
                         break
                 else:
                     array = np.full(len(hdu.data), col.default, dtype=col.dtype)
-            columns[col.name] = array.astype(col.dtype)
+            if array.dtype == np.object_ and issubclass(col.dtype, str):
+                array = np.array(["".join(arr.astype(str)) for arr in array])
+            else:
+                array = array.astype(col.dtype)
+            columns[col.name] = array
         return cls(**columns)
 
     @classmethod
@@ -288,11 +292,7 @@ class PfsTable:
                 FITS column format string.
             """
             if issubclass(dtype, str):
-                length = (
-                    max(len(ss) for ss in getattr(self, name)) if len(self) > 0 else 0
-                )
-                length = max(1, length)  # Minimum length of 1 makes astropy happy
-                return f"{length}A"
+                return f"PA()"
             return format[dtype]
 
         columns = [
