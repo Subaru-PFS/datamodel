@@ -161,7 +161,7 @@ class PfsSimpleSpectrum:
         # NOTE: When making any changes to this method that modify the output
         # format, increment the DAMD_VER header value and record the change in
         # the versions.txt file.
-        from astropy.io.fits import ImageHDU, Header
+        from astropy.io.fits import CompImageHDU, ImageHDU, Header
         haveWavelengthHeader = False
         try:
             header = self.wavelength.toFitsHeader()  # For WavelengthArray
@@ -177,7 +177,7 @@ class PfsSimpleSpectrum:
         fits.append(ImageHDU(self.flux.astype(np.float32), header=header, name="FLUX"))
         maskHeader = astropyHeaderFromDict(self.flags.toFitsHeader())
         maskHeader.extend(header)
-        fits.append(ImageHDU(self.mask, header=maskHeader, name="MASK"))
+        fits.append(CompImageHDU(self.mask, header=maskHeader, name="MASK"))
         if not haveWavelengthHeader:
             fits.append(ImageHDU(self.wavelength, header=header, name="WAVELENGTH"))
         self.target.toFits(fits)
