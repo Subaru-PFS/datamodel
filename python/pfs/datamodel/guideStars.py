@@ -226,3 +226,27 @@ class GuideStars:
                    0,
                    np.array([], dtype=np.int32),
                    )
+
+    def updateObjectPositions(self, ra, dec, agX, agY):
+        """Update on-sky and AG-detector positions in place.
+
+        Parameters
+        ----------
+        ra : numpy.ndarray of float64
+            Right Ascension in degrees, shape (N,).
+        dec : numpy.ndarray of float64
+            Declination in degrees, shape (N,).
+        agX : numpy.ndarray of float32
+            AG-camera x position in pixels, shape (N,).
+        agY : numpy.ndarray of float32
+            AG-camera y position in pixels, shape (N,).
+
+        Notes
+        -----
+        Vectorized assignment; shapes must be consistent with len(self). No return value.
+        Complexity: O(N) for N guide stars (pure assignments).
+        """
+        self.ra = ra
+        self.dec = dec
+        self.agX = agX
+        self.agY = agY
