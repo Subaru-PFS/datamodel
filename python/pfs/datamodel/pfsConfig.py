@@ -1685,7 +1685,8 @@ class PfsConfig(PfsDesign):
                 cameraList.append(cam)
         return cameraList
 
-    def updateTargetPosition(self, ra, dec, pfiNominal, obstime, pfsUtilsVer):
+    def updateTargetPosition(self, ra, dec, pfiNominal, obstime, pfsUtilsVer, guide_ra, guide_dec,
+                             guide_x_pix, guide_y_pix):
         """Update the target position with tweaked values.
 
         Parameters
@@ -1699,13 +1700,22 @@ class PfsConfig(PfsDesign):
         obstime : `str`
             Observation time in ISO format (UTC-time).
         pfsUtilsVer : `str`, optional
-         pfs_utils version used to update the positions.
+            pfs_utils version used to update the positions.
+        guide_ra : numpy.ndarray of float64
+            Guide-star Right Ascension in degrees, shape (N,).
+        guide_dec : numpy.ndarray of float64
+            Guide-star Declination in degrees, shape (N,).
+        guide_x_pix : numpy.ndarray of float32
+            Guide-star AG x positions in pixels, shape (N,).
+        guide_y_pix : numpy.ndarray of float32
+            Guide-star AG y positions in pixels, shape (N,).
         """
         self.ra = ra
         self.dec = dec
         self.pfiNominal = pfiNominal
         self.obstime = convertToIso8601Utc(obstime)
         self.pfsUtilsVer = pfsUtilsVer
+        self.guideStars.updateObjectPositions(guide_ra, guide_dec, guide_x_pix, guide_y_pix)
 
     def setInstrumentStatusFlag(self, flag: InstrumentStatusFlag):
         """Set a flag in the instrument status bitmask.
