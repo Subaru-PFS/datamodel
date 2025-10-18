@@ -1,20 +1,21 @@
 import os
 import re
+
 import numpy as np
-from unittest import TestCase
+
+import lsst.utils.tests
 
 from pfs.datamodel import TargetType, Observations
-from pfs.datamodel.ga import PfsGACatalog, GACatalogTable
+from pfs.datamodel import PfsStarCatalog, StarCatalogTable
 
-
-class PfsGACatalogTestCase(TestCase):
+class PfsStarCatalogTestCase(lsst.utils.tests.TestCase):
     """ Check the format of example datamodel files are
         consistent with that specified in the corresponding
         datamodel classes.
     """
 
-    def makePfsGACatalog(self):
-        """Construct a PfsGACatalog with dummy values for testing."""
+    def makePfsStarCatalog(self):
+        """Construct a PfsStarCatalog with dummy values for testing."""
 
         catId = 12345
 
@@ -31,7 +32,7 @@ class PfsGACatalogTestCase(TestCase):
             expTime=np.array([1800.0, 1800.0, 1800.0, 1800.0]),
         )
 
-        catalog = GACatalogTable(
+        catalog = StarCatalogTable(
             catId=np.array([10001, 10001, 10001]),
             objId=np.array([1, 2, 3]),
             gaiaId=np.array([11, 12, 13]),
@@ -40,7 +41,7 @@ class PfsGACatalogTestCase(TestCase):
             miscId=np.array([-1, -1, 33]),
             ra=np.array([210.01, 210.02, 210.03]),
             dec=np.array([67.1, 67.2, 67.3]),
-            epoch=np.array([2016.0, 2016.0, 2016.0]),
+            epoch=np.array(['J2016.0', 'J2016.0', 'J2016.0']),
             pmRa=np.array([0.0, 0.0, 0.0]),
             pmDec=np.array([0.0, 0.0, 0.0]),
             parallax=np.array([0.0, 0.0, 0.0]),
@@ -58,24 +59,35 @@ class PfsGACatalogTestCase(TestCase):
             expTimeEff_r=np.array([5400, 5400, 5400]),
             expTimeEff_n=np.array([5400, 5400, 5400]),
 
-            rv=np.array([0.0, 0.0, 0.0]),
-            rvErr=np.array([0.0, 0.0, 0.0]),
-            tEff=np.array([0.0, 0.0, 0.0]),
-            tEffErr=np.array([0.0, 0.0, 0.0]),
-            m_h=np.array([0.0, 0.0, 0.0]),
-            m_hErr=np.array([0.0, 0.0, 0.0]),
-            logg=np.array([0.0, 0.0, 0.0]),
-            loggErr=np.array([0.0, 0.0, 0.0]),
+            snr_b=np.array([0.0, 0.0, 0.0]),
+            snr_m=np.array([0.0, 0.0, 0.0]),
+            snr_r=np.array([0.0, 0.0, 0.0]),
+            snr_n=np.array([0.0, 0.0, 0.0]),
+
+            v_los=np.array([0.0, 0.0, 0.0]),
+            v_losErr=np.array([0.0, 0.0, 0.0]),
+            EBV=np.array([0.0, 0.0, 0.0]),
+            EBVErr=np.array([0.0, 0.0, 0.0]),
+            T_eff=np.array([0.0, 0.0, 0.0]),
+            T_effErr=np.array([0.0, 0.0, 0.0]),
+            M_H=np.array([0.0, 0.0, 0.0]),
+            M_HErr=np.array([0.0, 0.0, 0.0]),
+            a_M=np.array([0.0, 0.0, 0.0]),
+            a_MErr=np.array([0.0, 0.0, 0.0]),
+            C=np.array([0.0, 0.0, 0.0]),
+            CErr=np.array([0.0, 0.0, 0.0]),
+            log_g=np.array([0.0, 0.0, 0.0]),
+            log_gErr=np.array([0.0, 0.0, 0.0]),
 
             flag=np.array([False, False, False]),
             status=np.array(['', '', '']),
         )
 
-        return PfsGACatalog(
+        return PfsStarCatalog(
             catId, observations, catalog, metadata=None, notes=None
         )
 
-    def assertPfsGACatalog(self, lhs, rhs):
+    def assertPfsStarCatalog(self, lhs, rhs):
         np.testing.assert_array_equal(lhs.observations.visit, rhs.observations.visit)
 
         # TODO: add more tests here
@@ -105,38 +117,38 @@ class PfsGACatalogTestCase(TestCase):
             d[kk] = ii
         return d
 
-    def test_filenameRegex(self):
+    def testFilenameRegex(self):
         d = self.extractAttributes(
-            PfsGACatalog,
-            'pfsGACatalog-07621-003-0x0123456789abcdef.fits')
+            PfsStarCatalog,
+            'pfsStarCatalog-07621-003-0x0123456789abcdef.fits')
         self.assertEqual(d['catId'], 7621)
         self.assertEqual(d['nVisit'], 3)
         self.assertEqual(d['pfsVisitHash'], 81985529216486895)
 
-    def test_validate(self):
-        """Construct a PfsGACatalog and run validation."""
+    def testValidate(self):
+        """Construct a PfsStarCatalog and run validation."""
 
-        pfsGACatalog = self.makePfsGACatalog()
-        pfsGACatalog.validate()
+        pfsStarCatalog = self.makePfsStarCatalog()
+        pfsStarCatalog.validate()
 
-    def test_writeFits_fromFits(self):
-        """Construct a PfsGACatalog and save it to a FITS file."""
+    def testWriteFitsFromFits(self):
+        """Construct a PfsStarCatalog and save it to a FITS file."""
 
-        pfsGACatalog = self.makePfsGACatalog()
+        pfsStarCatalog = self.makePfsStarCatalog()
 
         dirName = os.path.splitext(__file__)[0]
         if not os.path.exists(dirName):
             os.makedirs(dirName)
 
-        id = pfsGACatalog.getIdentity()
-        filename = os.path.join(dirName, pfsGACatalog.filenameFormat % id)
+        id = pfsStarCatalog.getIdentity()
+        filename = os.path.join(dirName, pfsStarCatalog.filenameFormat % id)
         if os.path.exists(filename):
             os.unlink(filename)
 
         try:
-            pfsGACatalog.writeFits(filename)
-            other = PfsGACatalog.readFits(filename)
-            self.assertPfsGACatalog(pfsGACatalog, other)
+            pfsStarCatalog.writeFits(filename)
+            other = PfsStarCatalog.readFits(filename)
+            self.assertPfsStarCatalog(pfsStarCatalog, other)
         except Exception as e:
             raise e
         finally:

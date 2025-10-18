@@ -1,23 +1,24 @@
 import os
 import re
+
 import numpy as np
-from unittest import TestCase
+
+import lsst.utils.tests
 
 from pfs.datamodel import Target, TargetType
 from pfs.datamodel import Observations
 from pfs.datamodel import MaskHelper
-from pfs.datamodel import GAFluxTable
-from pfs.datamodel import PfsGAObject, StellarParams, Abundances, VelocityCorrections
+from pfs.datamodel import StarFluxTable
+from pfs.datamodel import PfsStar, StellarParams, Abundances, VelocityCorrections
 
-
-class PfsGAObjectTestCase(TestCase):
+class PfsStarTestCase(lsst.utils.tests.TestCase):
     """ Check the format of example datamodel files are
         consistent with that specified in the corresponding
         datamodel classes.
     """
 
-    def makePfsGAObject(self):
-        """Construct a PfsGAObject with dummy values for testing."""
+    def makePfsStar(self):
+        """Construct a PfsStar with dummy values for testing."""
 
         catId = 12345
         tract = 1
@@ -58,9 +59,9 @@ class PfsGAObjectTestCase(TestCase):
 
         flags = MaskHelper()                                        #
         metadata = {}                                               # Key-value pairs to put in the header
-        fluxTable = GAFluxTable(wavelength, flux, error, model, cont,
-                                norm_flux, norm_error, norm_model,
-                                mask, flags)
+        fluxTable = StarFluxTable(wavelength, flux, error, model, cont,
+                                  norm_flux, norm_error, norm_model,
+                                  mask, flags)
 
         stellarParams = StellarParams(
             method=np.array(['tempfit', 'tempfit', 'tempfit', 'tempfit', 'tempfit']),
@@ -95,7 +96,7 @@ class PfsGAObjectTestCase(TestCase):
         abundCovar = np.eye(4, dtype=np.float32)
         notes = None
 
-        return PfsGAObject(target, observations,
+        return PfsStar(target, observations,
                            wavelength, flux, mask, sky, covar, covar2,
                            flags, metadata,
                            fluxTable,
@@ -106,7 +107,7 @@ class PfsGAObjectTestCase(TestCase):
                            abundCovar,
                            notes)
 
-    def assertPfsGAObject(self, lhs, rhs):
+    def assertPfsStar(self, lhs, rhs):
         np.testing.assert_array_equal(lhs.observations.visit, rhs.observations.visit)
 
         # TODO: add more tests here
@@ -136,10 +137,10 @@ class PfsGAObjectTestCase(TestCase):
             d[kk] = ii
         return d
 
-    def test_filenameRegex(self):
+    def testFilenameRegex(self):
         d = self.extractAttributes(
-            PfsGAObject,
-            'pfsGAObject-07621-01234-2,2-02468ace1234abcd-003-0x0123456789abcdef.fits')
+            PfsStar,
+            'pfsStar-07621-01234-2,2-02468ace1234abcd-003-0x0123456789abcdef.fits')
         self.assertEqual(d['catId'], 7621)
         self.assertEqual(d['tract'], 1234)
         self.assertEqual(d['patch'], '2,2')
@@ -147,39 +148,39 @@ class PfsGAObjectTestCase(TestCase):
         self.assertEqual(d['nVisit'], 3)
         self.assertEqual(d['pfsVisitHash'], 81985529216486895)
 
-    def test_getIdentity(self):
-        """Construct a PfsGAObject and get its identity."""
+    def testGetIdentity(self):
+        """Construct a PfsStar and get its identity."""
 
-        pfsGAObject = self.makePfsGAObject()
-        identity = pfsGAObject.getIdentity()
-        filename = pfsGAObject.filenameFormat % identity
+        pfsStar = self.makePfsStar()
+        identity = pfsStar.getIdentity()
+        filename = pfsStar.filenameFormat % identity
 
-        self.assertEqual('pfsGAObject-12345-00001-1,1-00000000075bcd15-002-0x05a95bc24d8ce16f.fits', filename)
+        self.assertEqual('pfsStar-12345-00001-1,1-00000000075bcd15-002-0x05a95bc24d8ce16f.fits', filename)
 
-    def test_validate(self):
-        """Construct a PfsGAObject and run validation."""
+    def testValidate(self):
+        """Construct a PfsStar and run validation."""
 
-        pfsGAObject = self.makePfsGAObject()
-        pfsGAObject.validate()
+        pfsStar = self.makePfsStar()
+        pfsStar.validate()
 
-    def test_writeFits_fromFits(self):
-        """Construct a PfsGAObject and save it to a FITS file."""
+    def testWriteFitsFromFits(self):
+        """Construct a PfsStar and save it to a FITS file."""
 
-        pfsGAObject = self.makePfsGAObject()
+        pfsStar = self.makePfsStar()
 
         dirName = os.path.splitext(__file__)[0]
         if not os.path.exists(dirName):
             os.makedirs(dirName)
 
-        id = pfsGAObject.getIdentity()
-        filename = os.path.join(dirName, pfsGAObject.filenameFormat % id)
+        id = pfsStar.getIdentity()
+        filename = os.path.join(dirName, pfsStar.filenameFormat % id)
         if os.path.exists(filename):
             os.unlink(filename)
 
         try:
-            pfsGAObject.writeFits(filename)
-            other = PfsGAObject.readFits(filename)
-            self.assertPfsGAObject(pfsGAObject, other)
+            pfsStar.writeFits(filename)
+            other = PfsStar.readFits(filename)
+            self.assertPfsStar(pfsStar, other)
         except Exception as e:
             raise e
         finally:

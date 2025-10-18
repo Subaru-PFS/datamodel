@@ -20,12 +20,12 @@ __all__ = [
     "VelocityCorrections",
     "StellarParams",
     "Abundances",
-    "GAFluxTable",
-    "PfsGAObjectNotes",
-    "PfsGAObject",
-    "GACatalogTable",
-    "PfsGACatalogNotes",
-    "PfsGACatalog",
+    "StarFluxTable",
+    "PfsStarNotes",
+    "PfsStar",
+    "StarCatalogTable",
+    "PfsStarCatalogNotes",
+    "PfsStarCatalog",
 ]
 
 class TempFitFlag(IntFlag):
@@ -93,7 +93,7 @@ class Abundances(PfsTable):
     fitsExtName = 'ABUND'
 
 
-class GAFluxTable(FluxTable):
+class StarFluxTable(FluxTable):
     """Table of coadded fluxes at near-original sampling and model fits
 
     Merged and coadded spectra have been resampled to a standard wavelength
@@ -169,7 +169,7 @@ class GAFluxTable(FluxTable):
         # the versions.txt file.
         from astropy.io.fits import BinTableHDU, Column
         header = astropyHeaderFromDict(self.flags.toFitsHeader())
-        header['DAMD_VER'] = (GA_DAMD_VER, "GAFluxTable datamodel version")
+        header['DAMD_VER'] = (GA_DAMD_VER, "StarFluxTable datamodel version")
         hdu = BinTableHDU.from_columns([
             Column("wavelength", "D", array=self.wavelength),
             Column("flux", "E", array=self.flux),
@@ -212,14 +212,14 @@ class GAFluxTable(FluxTable):
                    flags)
 
 
-PfsGAObjectNotes = makeNotesClass(
-    "PfsGAObjectNotes",
+PfsStarNotes = makeNotesClass(
+    "PfsStarNotes",
     []
 )
 
 
 @inheritDocstrings
-class PfsGAObject(PfsFiberArray):
+class PfsStar(PfsFiberArray):
     """Coadded spectrum of a GA target with derived quantities.
 
     Produced by ˙˙gapipe``
@@ -246,7 +246,7 @@ class PfsGAObject(PfsFiberArray):
         Helper for dealing with symbolic names for mask values.
     metadata : `dict` (`str`: POD), optional
         Keyword-value pairs for the header.
-    fluxTable : `pfs.datamodel.GAFluxTable`, optional
+    fluxTable : `pfs.datamodel.StarFluxTable`, optional
         Table of coadded fluxes and continuum-normalized flux from contributing observations.
     stellarParams: `pfs.datamodel.StellarParams`, optional
         Table of measured stellar parameters.
@@ -262,13 +262,13 @@ class PfsGAObject(PfsFiberArray):
         Reduction notes.
     """
 
-    filenameFormat = ("pfsGAObject-%(catId)05d-%(tract)05d-%(patch)s-%(objId)016x"
+    filenameFormat = ("pfsStar-%(catId)05d-%(tract)05d-%(patch)s-%(objId)016x"
                       "-%(nVisit)03d-0x%(pfsVisitHash)016x.fits")
-    filenameRegex = r"^pfsGAObject-(\d{5})-(\d{5})-(.*)-([0-9a-f]{16})-(\d{3})-0x([0-9a-f]{16})\.fits.*$"
+    filenameRegex = r"^pfsStar-(\d{5})-(\d{5})-(.*)-([0-9a-f]{16})-(\d{3})-0x([0-9a-f]{16})\.fits.*$"
     filenameKeys = [("catId", int), ("tract", int), ("patch", str), ("objId", int),
                     ("nVisit", int), ("pfsVisitHash", int)]
-    NotesClass = PfsGAObjectNotes
-    FluxTableClass = GAFluxTable
+    NotesClass = PfsStarNotes
+    FluxTableClass = StarFluxTable
 
     StellarParamsFitsExtName = "STELLARCOVAR"
     AbundancesFitsExtName = "ABUNDCOVAR"
@@ -347,8 +347,8 @@ class PfsGAObject(PfsFiberArray):
         return header
 
 
-class GACatalogTable(PfsTable):
-    """Catalog of GA objects with associated parameters."""
+class StarCatalogTable(PfsTable):
+    """Catalog of stellar objects with associated parameters."""
 
     damdVer = GA_DAMD_VER
     schema = [
@@ -378,41 +378,50 @@ class GACatalogTable(PfsTable):
         Column("expTimeEff_r", np.float32, "Effective exposure time in R [s]", np.nan),
         Column("expTimeEff_n", np.float32, "Effective exposure time in N [s]", np.nan),
 
-        # TODO: add SNR
+        Column("snr_b", np.float32, "Signal-to-noise ratio in B", np.nan),
+        Column("snr_m", np.float32, "Signal-to-noise ratio in M", np.nan),
+        Column("snr_r", np.float32, "Signal-to-noise ratio in R", np.nan),
+        Column("snr_n", np.float32, "Signal-to-noise ratio in N", np.nan),
 
         Column("v_los", np.float32, "Radial velocity [km/s]", np.nan),
         Column("v_losErr", np.float32, "Radial velocity error [km/s]", np.nan),
+        Column("EBV", np.float32, "E(B-V) extinction", np.nan),
+        Column("EBVErr", np.float32, "E(B-V) extinction error", np.nan),
         Column("T_eff", np.float32, "Effective temperature [K]", np.nan),
         Column("T_effErr", np.float32, "Effective temperature error [K]", np.nan),
         Column("M_H", np.float32, "Metallicity [dex]", np.nan),
         Column("M_HErr", np.float32, "Metallicity error [dex]", np.nan),
+        Column("a_M", np.float32, "Alpha abundance [dex]", np.nan),
+        Column("a_MErr", np.float32, "Alpha abundance error [dex]", np.nan),
+        Column("C", np.float32, "Relative carbon", np.nan),
+        Column("CErr", np.float32, "Relative carbon error", np.nan),
         Column("log_g", np.float32, "log g", np.nan),
         Column("log_gErr", np.float32, "log g error", np.nan),
 
         Column("flag", bool, "Measurement flag (true means bad)", False),
         Column("status", str, "Measurement flags", ""),
     ]
-    fitsExtName = 'GACATALOG'
+    fitsExtName = 'STARCATALOG'
 
 
-PfsGACatalogNotes = makeNotesClass(
-    "PfsGACatalogNotes",
+PfsStarCatalogNotes = makeNotesClass(
+    "PfsStarCatalogNotes",
     []
 )
 
 
-class PfsGACatalog():
-    filenameFormat = ("pfsGACatalog-%(catId)05d-%(nVisit)03d-0x%(pfsVisitHash)016x.fits")
-    filenameRegex = r"^pfsGACatalog-(\d{5})-([0-9]{3})-0x([0-9a-f]{16})\.fits.*$"
+class PfsStarCatalog():
+    filenameFormat = ("pfsStarCatalog-%(catId)05d-%(nVisit)03d-0x%(pfsVisitHash)016x.fits")
+    filenameRegex = r"^pfsStarCatalog-(\d{5})-([0-9]{3})-0x([0-9a-f]{16})\.fits.*$"
     filenameKeys = [("catId", int), ("nVisit", int), ("pfsVisitHash", int)]
 
-    NotesClass = PfsGACatalogNotes
+    NotesClass = PfsStarCatalogNotes
 
     def __init__(
             self,
             catId,
             observations: Observations,
-            catalog: GACatalogTable,
+            catalog: StarCatalogTable,
             metadata=None,
             notes: Notes = None):
 
@@ -472,7 +481,7 @@ class PfsGACatalog():
             data['observations'] = None
 
         try:
-            catalog = GACatalogTable.readHdu(fits)
+            catalog = StarCatalogTable.readHdu(fits)
             data['catalog'] = catalog
             data['catId'] = catalog.catId[0]
         except KeyError as exc:
