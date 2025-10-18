@@ -63,7 +63,7 @@ class PfsGAObjectTestCase(TestCase):
                                 mask, flags)
 
         stellarParams = StellarParams(
-            method=np.array(['rvfit', 'rvfit', 'rvfit', 'rvfit', 'rvfit']),
+            method=np.array(['tempfit', 'tempfit', 'tempfit', 'tempfit', 'tempfit']),
             frame=np.array(['helio', '', '', '', '']),
             param=np.array(['v_los', 'Fe_H', 'T_eff', 'log_g', 'a_Fe']),
             covarId=np.array([0, 1, 2, 3, 4]),
