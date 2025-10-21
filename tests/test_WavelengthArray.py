@@ -20,7 +20,7 @@ class WavelengthArrayTestCase(lsst.utils.tests.TestCase):
 
         # Creation
         wlArray = WavelengthArray(minWl, maxWl, size)
-        linspace = np.linspace(minWl, maxWl, size, dtype=np.float32)
+        linspace = np.linspace(minWl, maxWl, size, dtype=np.float64)
         self.assertEqual(len(wlArray), size)
         self.assertEqual(len(wlArray), len(linspace))
         self.assertFloatsEqual(wlArray, linspace)
@@ -45,7 +45,7 @@ class WavelengthArrayTestCase(lsst.utils.tests.TestCase):
         header = wlArray.toFitsHeader()
         copy = WavelengthArray.fromFitsHeader(header, size)
         self.assertEqual(len(copy), size)
-        self.assertFloatsEqual(copy, wlArray)
+        self.assertFloatsAlmostEqual(copy, wlArray, atol=2.0e-12)
         self.assertEqual(type(copy), type(wlArray))
 
     def testWcs(self):
@@ -56,7 +56,7 @@ class WavelengthArrayTestCase(lsst.utils.tests.TestCase):
         wcs = astropy.wcs.WCS(header)
         for ii in range(size):
             self.assertFloatsAlmostEqual(wlArray[ii], wcs.pixel_to_world(ii + 1).to(astropy.units.nm).value,
-                                         atol=1.0e-4)
+                                         atol=2.0e-12)
 
 
 class TestMemory(lsst.utils.tests.MemoryTestCase):

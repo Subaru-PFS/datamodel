@@ -28,7 +28,7 @@ class WavelengthArray(np.ndarray):
     dtype : `numpy.dtype`, optional
         Data type.
     """
-    def __new__(cls, minWavelength, maxWavelength, length, dtype=np.float32):
+    def __new__(cls, minWavelength, maxWavelength, length, dtype=np.float64):
         obj = np.linspace(minWavelength, maxWavelength, length, dtype=dtype).view(cls)
         obj.minWavelength = minWavelength
         obj.maxWavelength = maxWavelength
@@ -66,7 +66,7 @@ class WavelengthArray(np.ndarray):
         return wcs.to_header()
 
     @classmethod
-    def fromFitsHeader(cls, header, length, dtype=np.float32):
+    def fromFitsHeader(cls, header, length, dtype=np.float64):
         """Construct from a FITS header
 
         Parameters
