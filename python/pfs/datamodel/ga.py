@@ -20,6 +20,7 @@ __all__ = [
     "VelocityCorrections",
     "StellarParams",
     "Abundances",
+    "MeasurementFlags",
     "StarFluxTable",
     "PfsStarNotes",
     "PfsStar",
@@ -92,6 +93,16 @@ class Abundances(PfsTable):
     ]
     fitsExtName = 'ABUND'
 
+class MeasurementFlags(PfsTable):
+    """List of measurement flags for a target, for each algorithm."""
+
+    damdVer = GA_DAMD_VER
+    schema = [
+        Column("method", str, "Measurement method", ""),
+        Column("flag", bool, "Measurement flag (true means bad)", False),
+        Column("status", str, "Measurement flags", ""),
+    ]
+    fitsExtName = 'MEASFLAG'
 
 class StarFluxTable(FluxTable):
     """Table of coadded fluxes at near-original sampling and model fits
@@ -258,6 +269,8 @@ class PfsStar(PfsFiberArray):
         Covariance matrix for stellar parameters.
     abundCovar: `numpy.ndarray` of `float`, optional
         Covariance matrix for abundance parameters.
+    measurementFlags: `pfs.datamodel.MeasurementFlags`, optional
+        Table of measurement flags for a target, for each algorithm.
     notes : `Notes`, optional
         Reduction notes.
     """
@@ -291,6 +304,7 @@ class PfsStar(PfsFiberArray):
         abundances=None,
         paramsCovar=None,
         abundCovar=None,
+        measurementFlags=None,
         notes: Notes = None,
     ):
         super().__init__(target, observations, wavelength, flux, mask, sky,
@@ -301,6 +315,7 @@ class PfsStar(PfsFiberArray):
         self.abundances = abundances
         self.paramsCovar = paramsCovar
         self.abundCovar = abundCovar
+        self.measurementFlags = measurementFlags
 
     def validate(self):
         """Validate that all the arrays are of the expected shape"""
@@ -321,6 +336,7 @@ class PfsStar(PfsFiberArray):
         data["abundances"] = Abundances.readHdu(fits)
         if cls.AbundancesFitsExtName in fits:
             data["abundCovar"] = fits[cls.AbundancesFitsExtName].data.astype(np.float32)
+        data["measurementFlags"] = MeasurementFlags.readHdu(fits)
 
         return data
 
@@ -343,6 +359,8 @@ class PfsStar(PfsFiberArray):
             fits.append(ImageHDU(self.abundCovar.astype(np.float32),
                         header=header,
                         name=self.AbundancesFitsExtName))
+        if self.measurementFlags is not None:
+            self.measurementFlags.writeHdu(fits)
 
         return header
 
@@ -357,6 +375,7 @@ class StarCatalogTable(PfsTable):
         Column("gaiaId", np.int64, "GAIA identifier", -1),
         Column("ps1Id", np.int64, "PS1 identifier", -1),
         Column("hscId", np.int64, "HSC identifier", -1),
+        Column("sdssId", np.int64, "SDSS identifier", -1),
         Column("miscId", np.int64, "Miscellaneous identifier", -1),
         Column("ra", np.float32, "Right ascension ICRS [deg]", np.nan),
         Column("dec", np.float32, "Declination ICRS [deg]", np.nan),
@@ -385,18 +404,25 @@ class StarCatalogTable(PfsTable):
 
         Column("v_los", np.float32, "Radial velocity [km/s]", np.nan),
         Column("v_losErr", np.float32, "Radial velocity error [km/s]", np.nan),
+        Column("v_losStatus", str, "Radial velocity flag", ""),
         Column("EBV", np.float32, "E(B-V) extinction", np.nan),
         Column("EBVErr", np.float32, "E(B-V) extinction error", np.nan),
+        Column("EBVStatus", str, "E(B-V) extinction flag", ""),
         Column("T_eff", np.float32, "Effective temperature [K]", np.nan),
         Column("T_effErr", np.float32, "Effective temperature error [K]", np.nan),
+        Column("T_effStatus", str, "Effective temperature flag", ""),
         Column("M_H", np.float32, "Metallicity [dex]", np.nan),
         Column("M_HErr", np.float32, "Metallicity error [dex]", np.nan),
+        Column("M_HStatus", str, "Metallicity flag", ""),
         Column("a_M", np.float32, "Alpha abundance [dex]", np.nan),
         Column("a_MErr", np.float32, "Alpha abundance error [dex]", np.nan),
+        Column("a_MStatus", str, "Alpha abundance flag", ""),
         Column("C", np.float32, "Relative carbon", np.nan),
         Column("CErr", np.float32, "Relative carbon error", np.nan),
+        Column("CStatus", str, "Relative carbon flag", ""),
         Column("log_g", np.float32, "log g", np.nan),
         Column("log_gErr", np.float32, "log g error", np.nan),
+        Column("log_gStatus", str, "log g flag", ""),
 
         Column("flag", bool, "Measurement flag (true means bad)", False),
         Column("status", str, "Measurement flags", ""),
