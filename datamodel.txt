@@ -700,7 +700,7 @@ The format will be identical to that of the pfsObject files.
 Physical parameter measurements for Galactic Archeology targets including flux-calibrated
 combined spectra and synthetic stellar template fits.
 
-    "pfsGAObject-%05d-%05d-%s-%016x-%03d-0x%016x.fits"
+    "pfsStar-%05d-%05d-%s-%016x-%03d-0x%016x.fits"
          % (catId, tract, patch, objId, nVisit % 1000, pfsVisitHash)
 
 The format is similar to pfsObject files, but with additional HDUs and a different fluxTable format.
@@ -745,7 +745,7 @@ The ABUND table lists the measured single element abundances
     flag               Measurement flag (true means bad)                  bool
     status             Flags describing the quality of the measurement    string
 
-The FLUXTABLE of pfsGAObject files is extended and includes the following additional columns:
+The FLUXTABLE of pfsStar files is extended and includes the following additional columns:
 
     model              Best fit fluxed template model                     32-bit float
     cont               Continuum model                                    32-bit float
