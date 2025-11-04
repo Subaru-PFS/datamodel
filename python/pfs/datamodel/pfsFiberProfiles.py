@@ -336,7 +336,7 @@ class PfsFiberProfiles:
             astropy.io.fits.Column("fiberId", format="J", array=fiberId),
             astropy.io.fits.Column("rows", format="D", array=rows),
             astropy.io.fits.Column("profiles", format="PD()", array=profiles),
-            astropy.io.fits.Column("masks", format="PL()", array=masks),
+            astropy.io.fits.Column("masks", format="PB()", array=[mm.astype(np.uint8) for mm in masks]),
         ], name="PROFILES")
         profilesHdu.header["INHERIT"] = True
 
