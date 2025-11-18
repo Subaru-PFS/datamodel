@@ -438,6 +438,7 @@ class PfsTargetSpectra(Mapping[Target, PfsFiberArray]):
         for spectrum in self.values():
             md = spectrum.metadata.copy()
             md.update(spectrum.flags.toFitsHeader())
+            md = {kk.removeprefix("HIERARCH "): vv for kk, vv in md.items()}  # This isn't actual FITS
             metadata.append(yaml.dump(md))
         fits.append(
             BinTableHDU.from_columns(
