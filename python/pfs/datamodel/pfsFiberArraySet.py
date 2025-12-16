@@ -93,7 +93,9 @@ class PfsFiberArraySet:
         assert self.flux.shape == (self.numSpectra, self.length)
         assert self.mask.shape == (self.numSpectra, self.length)
         assert self.sky.shape == (self.numSpectra, self.length)
-        assert self.covar.shape == (self.numSpectra, 3, self.length)
+        assert self.covar.ndim == 3
+        assert self.covar.shape[0] == self.numSpectra
+        assert self.covar.shape[2] == self.length
         assert len(self.notes) == self.numSpectra
 
     @property
@@ -384,13 +386,18 @@ class PfsFiberArraySet:
         if len(length) != 1:
             raise RuntimeError("Multiple lengths when merging spectra: %s" % (length,))
         length = length.pop()
+        numCovar = set([ss.covar.shape[1] for ss in spectraList])
+        if len(numCovar) != 1:
+            raise RuntimeError("Multiple numbers of covariance planes when merging spectra: %s" % (numCovar,))
+        numCovar = numCovar.pop()
+
         fiberId = np.empty(num, dtype=int)
         wavelength = np.empty((num, length), dtype=float)
         flux = np.empty((num, length), dtype=np.float32)
         mask = np.empty((num, length), dtype=np.int32)
         sky = np.empty((num, length), dtype=np.float32)
         norm = np.empty((num, length), dtype=np.float32)
-        covar = np.empty((num, 3, length), dtype=np.float32)
+        covar = np.empty((num, numCovar, length), dtype=np.float32)
         notes = cls.NotesClass.empty(num)
         index = 0
         for ss in spectraList:
@@ -447,7 +454,7 @@ class PfsFiberArraySet:
                         pfsConfig.targetType[jj], fiberFlux)
         obs = Observations.makeSingle(self.identity, pfsConfig, fiberId)
 
-        covar = np.zeros((3, self.length), dtype=self.covar.dtype)
+        covar = np.zeros((self.covar.shape[1], self.length), dtype=self.covar.dtype)
         with np.errstate(divide="ignore", invalid="ignore"):
             flux = self.flux[ii]/self.norm[ii]
             sky = self.sky[ii]/self.norm[ii]

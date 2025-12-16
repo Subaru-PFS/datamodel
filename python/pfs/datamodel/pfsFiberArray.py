@@ -91,7 +91,8 @@ class PfsFiberArray(PfsSimpleSpectrum):
         self.observations.validate()
         assert wraparoundNVisit(len(self.observations)) == self.nVisit
         assert self.sky.shape == (self.length,)
-        assert self.covar.shape == (3, self.length)
+        assert self.covar.ndim == 2
+        assert self.covar.shape[1] == self.length
         assert self.covar2.ndim == 2
 
     @classmethod
