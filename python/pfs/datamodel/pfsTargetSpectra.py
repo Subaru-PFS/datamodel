@@ -152,12 +152,14 @@ class PfsTargetSpectra(Mapping[Target, PfsFiberArray]):
             if isinstance(hdu, (ImageHDU, CompImageHDU)):
                 return hdu.data.astype(dtype)
             numRows = len(hdu.data.dtype)
+            if "row_0" in hdu.data.dtype.names:
+                data: List[np.ndarray] = []
+                for ii in range(len(hdu.data)):
+                    data.append(np.array([hdu.data[f"row_{jj}"][ii] for jj in range(numRows)], dtype=dtype))
+                return data
             if numRows == 1:
                 return [row["value"].astype(dtype) for row in hdu.data]
-            data: List[np.ndarray] = []
-            for ii in range(len(hdu.data)):
-                data.append(np.array([hdu.data[f"row_{jj}"][ii] for jj in range(numRows)], dtype=dtype))
-            return data
+            raise RuntimeError(f"Cannot read data from HDU {hduName}")
 
         spectra = []
         with astropy.io.fits.open(filename) as fits:
