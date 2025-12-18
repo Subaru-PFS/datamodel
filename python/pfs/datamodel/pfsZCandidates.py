@@ -47,6 +47,7 @@ class ZLError(Enum):
     These codes indicate various fatal issues that can occur during
     redshift estimation or line fitting procedures.
     """
+    NO_ERROR = 0
     INTERNAL_ERROR = 1
     EXTERNAL_LIB_ERROR = 2
     INVALID_SPECTRUM_WAVELENGTH = 3
