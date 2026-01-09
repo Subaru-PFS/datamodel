@@ -292,6 +292,13 @@ class PfsTable:
                 FITS column format string.
             """
             if issubclass(dtype, str):
+                array = getattr(self, name)
+                unique = np.unique(array)
+                if unique.size == 1:
+                    size = len(unique[0])
+                    if size == 0:
+                        return "PA()"
+                    return f"{size}A"
                 return f"PA()"
             return format[dtype]
 
