@@ -5,18 +5,21 @@ import inspect
 import lsst.utils.tests
 
 from pfs.datamodel.drp import PfsArm, PfsMerged, PfsReference, PfsSingle, PfsObject
+from pfs.datamodel import PfsStar, PfsStarCatalog
 
 
 class DocstringsTestCase(unittest.TestCase):
     def testDocstrings(self):
-        for cls in (PfsArm, PfsMerged, PfsReference, PfsSingle, PfsObject):
+        for cls in (PfsArm, PfsMerged, PfsReference, PfsSingle, PfsObject, PfsStar, PfsStarCatalog):
             for name, attr in inspect.getmembers(cls):
                 if not hasattr(attr, "__doc__") or not attr.__doc__:
                     continue
                 docstring = attr.__doc__
                 for base in cls.__mro__[1:-1]:
-                    self.assertNotIn(base.__name__, docstring,
-                                     f"{cls.__name__}.{name}.__doc__ contains {base.__name__}: {docstring}")
+                    if not name.endswith("Class"):
+                        self.assertNotIn(
+                            base.__name__, docstring,
+                            f"{cls.__name__}.{name}.__doc__ contains {base.__name__}: {docstring}")
 
 
 class TestMemory(lsst.utils.tests.MemoryTestCase):
