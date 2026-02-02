@@ -183,12 +183,15 @@ except AttributeError:
 class InstrumentStatusFlag(enum.IntFlag, **metaclassParams):
     """Bit positions for instrument status flags."""
     INSROT_MISMATCH = 1 << 0
+    CONVERGENCE_FAILED = 1 << 1
 
 
 # Separate dictionary for descriptions (must be outside the class)
 InstrumentStatusDescription = {
     InstrumentStatusFlag.INSROT_MISMATCH:
-        "INSROT at the time of convergence vs SPS exposure exceeded threshold", }
+        "INSROT at the time of convergence vs SPS exposure exceeded threshold",
+    InstrumentStatusFlag.CONVERGENCE_FAILED:
+        "PfsConfig0 was generated but convergence was reported as failed by FPS", }
 
 
 class PfsDesign:
