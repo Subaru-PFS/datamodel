@@ -157,6 +157,7 @@ class FiberStatus(DocEnum):
     NOTCONVERGED = 7, "Cobra did not converge to the target."
     BAD_PSF = 8, "Known bad PSF"
     MASKED = 9, "Excluded from convergence for this visit."
+    UNKNOWN = 10, "Cobra position is unknown for this visit."
 
 
 class CobraId(DocEnum):

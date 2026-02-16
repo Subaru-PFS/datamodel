@@ -510,6 +510,7 @@ The 'fiberStatus' in the DESIGN table is an enumerated type, with values:
     NOTCONVERGED = 7: The Cobra did not converge to the target.
     BAD_PSF = 8: The fiber is known to have a bad PSF.
     MASKED = 9: Excluded from convergence for this visit.
+    UNKNOWN = 10: Cobra position is unknown for this visit.
 
 The PHOTOMETRY table lists:
       fiberId            32-bit int
