@@ -389,6 +389,9 @@ class StarCatalogTable(PfsTable):
         Column("proposalId", str, "Proposal ID", ""),
         Column("obCode", str, "Observing Block", ""),
 
+        Column("fiberId", np.int16, "Fiber identifier", -1),
+        Column("cobraId", np.int16, "Cobra identifier", -1),
+
         Column("nVisit_b", np.int16, "Number of visits in B", -1),
         Column("nVisit_m", np.int16, "Number of visits in M", -1),
         Column("nVisit_r", np.int16, "Number of visits in R", -1),

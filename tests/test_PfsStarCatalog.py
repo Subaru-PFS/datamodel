@@ -8,6 +8,7 @@ import lsst.utils.tests
 from pfs.datamodel import TargetType, Observations
 from pfs.datamodel import PfsStarCatalog, StarCatalogTable
 
+
 class PfsStarCatalogTestCase(lsst.utils.tests.TestCase):
     """ Check the format of example datamodel files are
         consistent with that specified in the corresponding
@@ -48,6 +49,9 @@ class PfsStarCatalogTestCase(lsst.utils.tests.TestCase):
             targetType=np.array([TargetType.SCIENCE, TargetType.SCIENCE, TargetType.SCIENCE]),
             proposalId=np.array(['A', 'A', 'A']),
             obCode=np.array(['A', 'B', 'C']),
+
+            fiberId=np.array([-1, -1, -1]),
+            cobraId=np.array([-1, -1, -1]),
 
             nVisit_b=np.array([3, 3, 3]),
             nVisit_m=np.array([3, 3, 3]),
