@@ -51,7 +51,6 @@ class PfsStarCatalogTestCase(lsst.utils.tests.TestCase):
             obCode=np.array(['A', 'B', 'C']),
 
             fiberId=np.array([-1, -1, -1]),
-            cobraId=np.array([-1, -1, -1]),
 
             nVisit_b=np.array([3, 3, 3]),
             nVisit_m=np.array([3, 3, 3]),
