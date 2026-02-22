@@ -7,6 +7,7 @@ import lsst.utils.tests
 
 from pfs.datamodel import TargetType, Observations
 from pfs.datamodel import PfsStarCatalog, StarCatalogTable
+from pfs.datamodel.pfsTable import Column
 
 
 class PfsStarCatalogTestCase(lsst.utils.tests.TestCase):
@@ -39,6 +40,7 @@ class PfsStarCatalogTestCase(lsst.utils.tests.TestCase):
             gaiaId=np.array([11, 12, 13]),
             ps1Id=np.array([21, 22, 23]),
             hscId=np.array([21, 22, 23]),
+            sdssId=np.array([21, 22, 23]),
             miscId=np.array([-1, -1, 33]),
             ra=np.array([210.01, 210.02, 210.03]),
             dec=np.array([67.1, 67.2, 67.3]),
@@ -47,10 +49,13 @@ class PfsStarCatalogTestCase(lsst.utils.tests.TestCase):
             pmDec=np.array([0.0, 0.0, 0.0]),
             parallax=np.array([0.0, 0.0, 0.0]),
             targetType=np.array([TargetType.SCIENCE, TargetType.SCIENCE, TargetType.SCIENCE]),
+            targetPriority=np.array([1, 1, 1]),
             proposalId=np.array(['A', 'A', 'A']),
             obCode=np.array(['A', 'B', 'C']),
 
             fiberId=np.array([-1, -1, -1]),
+            nVisit=np.array([3, 3, 3]),
+            pfsVisitHash=np.array([81985529216486895, 81985529216486895, 81985529216486895]),
 
             nVisit_b=np.array([3, 3, 3]),
             nVisit_m=np.array([3, 3, 3]),
@@ -69,18 +74,25 @@ class PfsStarCatalogTestCase(lsst.utils.tests.TestCase):
 
             v_los=np.array([0.0, 0.0, 0.0]),
             v_losErr=np.array([0.0, 0.0, 0.0]),
+            v_losStatus=np.array(['', '', '']),
             EBV=np.array([0.0, 0.0, 0.0]),
             EBVErr=np.array([0.0, 0.0, 0.0]),
+            EBVStatus=np.array(['', '', '']),
             T_eff=np.array([0.0, 0.0, 0.0]),
             T_effErr=np.array([0.0, 0.0, 0.0]),
+            T_effStatus=np.array(['', '', '']),
             M_H=np.array([0.0, 0.0, 0.0]),
             M_HErr=np.array([0.0, 0.0, 0.0]),
+            M_HStatus=np.array(['', '', '']),
             a_M=np.array([0.0, 0.0, 0.0]),
             a_MErr=np.array([0.0, 0.0, 0.0]),
+            a_MStatus=np.array(['', '', '']),
             C=np.array([0.0, 0.0, 0.0]),
             CErr=np.array([0.0, 0.0, 0.0]),
+            CStatus=np.array(['', '', '']),
             log_g=np.array([0.0, 0.0, 0.0]),
             log_gErr=np.array([0.0, 0.0, 0.0]),
+            log_gStatus=np.array(['', '', '']),
 
             flag=np.array([False, False, False]),
             status=np.array(['', '', '']),
