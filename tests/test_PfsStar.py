@@ -177,11 +177,15 @@ class PfsStarTestCase(lsst.utils.tests.TestCase):
         if os.path.exists(filename):
             os.unlink(filename)
 
-        try:
-            pfsStar.writeFits(filename)
-            other = PfsStar.readFits(filename)
-            self.assertPfsStar(pfsStar, other)
-        except Exception as e:
-            raise e
-        finally:
-            os.unlink(filename)
+        pfsStar.writeFits(filename)
+        other = PfsStar.readFits(filename)
+        self.assertPfsStar(pfsStar, other)
+
+        # try:
+        #     pfsStar.writeFits(filename)
+        #     other = PfsStar.readFits(filename)
+        #     self.assertPfsStar(pfsStar, other)
+        # except Exception as e:
+        #     raise e
+        # finally:
+        #     os.unlink(filename)
