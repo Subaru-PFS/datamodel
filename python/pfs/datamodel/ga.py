@@ -45,6 +45,7 @@ class TempFitFlag(IntFlag):
     UNLIKELYPRIOR = 1 << 7          # "Unlikely prior"
     RVGUESSMULTIMODAL = 1 << 8      # "log L(RV) during guess is multimodal"
     RVFITMULTIMODAL = 1 << 9        # "log L(RV) around best fit is multimodal"
+    NODATA = 1 << 10                # No data to fit, possibly missing 2d output
 
 
 class VelocityCorrections(PfsTable):
@@ -285,8 +286,8 @@ class PfsStar(PfsFiberArray):
     NotesClass = PfsStarNotes
     FluxTableClass = StarFluxTable
 
-    StellarParamsFitsExtName = "STELLARCOVAR"
-    AbundancesFitsExtName = "ABUNDCOVAR"
+    StellarParamsCovarFitsExtName = "STELLARCOVAR"
+    AbundancesCovarFitsExtName = "ABUNDCOVAR"
 
     def __init__(
         self,
@@ -329,16 +330,18 @@ class PfsStar(PfsFiberArray):
     def _readImpl(cls, fits):
         data = super()._readImpl(fits)
 
-        # TODO: handle missing extensions
-
-        data["velocityCorrections"] = VelocityCorrections.readHdu(fits)
-        data["stellarParams"] = StellarParams.readHdu(fits)
-        if cls.StellarParamsFitsExtName in fits:
-            data["paramsCovar"] = fits[cls.StellarParamsFitsExtName].data.astype(np.float32)
-        data["abundances"] = Abundances.readHdu(fits)
-        if cls.AbundancesFitsExtName in fits:
-            data["abundCovar"] = fits[cls.AbundancesFitsExtName].data.astype(np.float32)
-        data["measurementFlags"] = MeasurementFlags.readHdu(fits)
+        if VelocityCorrections.fitsExtName in fits:
+            data["velocityCorrections"] = VelocityCorrections.readHdu(fits)
+        if StellarParams.fitsExtName in fits:
+            data["stellarParams"] = StellarParams.readHdu(fits)
+        if cls.StellarParamsCovarFitsExtName in fits:
+            data["paramsCovar"] = fits[cls.StellarParamsCovarFitsExtName].data.astype(np.float32)
+        if Abundances.fitsExtName in fits:
+            data["abundances"] = Abundances.readHdu(fits)
+        if cls.AbundancesCovarFitsExtName in fits:
+            data["abundCovar"] = fits[cls.AbundancesCovarFitsExtName].data.astype(np.float32)
+        if MeasurementFlags.fitsExtName in fits:
+            data["measurementFlags"] = MeasurementFlags.readHdu(fits)
 
         return data
 
@@ -354,13 +357,13 @@ class PfsStar(PfsFiberArray):
         if self.paramsCovar is not None:
             fits.append(ImageHDU(self.paramsCovar.astype(np.float32),
                         header=header,
-                        name=self.StellarParamsFitsExtName))
+                        name=self.StellarParamsCovarFitsExtName))
         if self.abundances is not None:
             self.abundances.writeHdu(fits)
         if self.abundCovar is not None:
             fits.append(ImageHDU(self.abundCovar.astype(np.float32),
                         header=header,
-                        name=self.AbundancesFitsExtName))
+                        name=self.AbundancesCovarFitsExtName))
         if self.measurementFlags is not None:
             self.measurementFlags.writeHdu(fits)
 
@@ -373,7 +376,7 @@ class StarCatalogTable(PfsTable):
     damdVer = GA_DAMD_VER
     schema = [
         Column("catId", np.int32, "PFS catalog identifier", -1),
-        Column("objId", np.int32, "Object identifier.", -1),
+        Column("objId", np.int32, "GA object identifier.", -1),
         Column("gaiaId", np.int64, "GAIA identifier", -1),
         Column("ps1Id", np.int64, "PS1 identifier", -1),
         Column("hscId", np.int64, "HSC identifier", -1),
@@ -386,10 +389,13 @@ class StarCatalogTable(PfsTable):
         Column("pmDec", np.float32, "Proper motion dec [mas/yr]", np.nan),
         Column("parallax", np.float32, "Parallax [mas]", np.nan),
         Column("targetType", np.int16, "Target type.", -1),
+        Column("targetPriority", np.int16, "Target priority.", -1),
         Column("proposalId", str, "Proposal ID", ""),
         Column("obCode", str, "Observing Block", ""),
 
         Column("fiberId", np.int16, "Fiber identifier", -1),
+        Column("nVisit", np.int16, "Number of visits", -1),
+        Column("pfsVisitHash", np.int64, "PFS visit hash", -1),
 
         Column("nVisit_b", np.int16, "Number of visits in B", -1),
         Column("nVisit_m", np.int16, "Number of visits in M", -1),
