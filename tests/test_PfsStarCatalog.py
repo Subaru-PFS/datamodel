@@ -37,11 +37,6 @@ class PfsStarCatalogTestCase(lsst.utils.tests.TestCase):
         catalog = StarCatalogTable(
             catId=np.array([10001, 10001, 10001]),
             objId=np.array([1, 2, 3]),
-            gaiaId=np.array([11, 12, 13]),
-            ps1Id=np.array([21, 22, 23]),
-            hscId=np.array([21, 22, 23]),
-            sdssId=np.array([21, 22, 23]),
-            miscId=np.array([-1, -1, 33]),
             ra=np.array([210.01, 210.02, 210.03]),
             dec=np.array([67.1, 67.2, 67.3]),
             epoch=np.array(['J2016.0', 'J2016.0', 'J2016.0']),

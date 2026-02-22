@@ -377,11 +377,6 @@ class StarCatalogTable(PfsTable):
     schema = [
         Column("catId", np.int32, "PFS catalog identifier", -1),
         Column("objId", np.int32, "GA object identifier.", -1),
-        Column("gaiaId", np.int64, "GAIA identifier", -1),
-        Column("ps1Id", np.int64, "PS1 identifier", -1),
-        Column("hscId", np.int64, "HSC identifier", -1),
-        Column("sdssId", np.int64, "SDSS identifier", -1),
-        Column("miscId", np.int64, "Miscellaneous identifier", -1),
         Column("ra", np.float32, "Right ascension ICRS [deg]", np.nan),
         Column("dec", np.float32, "Declination ICRS [deg]", np.nan),
         Column("epoch", str, "Coordinate epoch [Jyr]", ''),
