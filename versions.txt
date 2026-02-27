@@ -144,6 +144,7 @@ This class (and subclasses) is used for the arcLines product.
 
 * 1: Initial version.
 * 2: arcLines changed intensity->flux, intensityErr->fluxErr.
+* 3: arcLines changed to write string column lookups in separate HDUs
 
 
 PfsFocalPlaneFunction

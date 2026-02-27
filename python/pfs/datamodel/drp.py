@@ -4,7 +4,7 @@ from .notes import makeNotesClass
 from .pfsSimpleSpectrum import PfsSimpleSpectrum
 from .pfsFiberArray import PfsFiberArray
 from .pfsFiberArraySet import PfsFiberArraySet
-from .pfsTable import PfsTable, Column
+from .pfsTable import PfsTable, PfsTableWithSeparateStrings, Column
 from .pfsTargetSpectra import PfsTargetSpectra
 from .utils import inheritDocstrings
 
@@ -124,8 +124,7 @@ class PfsObject(PfsFiberArray):
 
 
 @inheritDocstrings
-class LineMeasurements(PfsTable):
-    damdVer = 2
+class LineMeasurements(PfsTableWithSeparateStrings):
     schema = [
         Column("fiberId", np.int32, "Fiber identifier", -1),
         Column("wavelength", np.float64, "Wavelength (nm)", np.nan),
