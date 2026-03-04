@@ -1,16 +1,19 @@
-from types import SimpleNamespace
-import warnings
-import numpy as np
+import enum
 import os
 import re
-import enum
+import warnings
 from collections import Counter
 from logging import Logger
+from types import SimpleNamespace
 from typing import Optional, TYPE_CHECKING
+
+import numpy as np
 from pfs.datamodel.utils import convertToIso8601Utc
+from pfs.datamodel.versionTable import VersionTable
 
 try:
     import astropy.io.fits as pyfits
+
     Header = pyfits.Header
 except ImportError:
     pyfits = None
@@ -18,7 +21,6 @@ except ImportError:
 
 from .guideStars import GuideStars
 from .utils import checkHeaderKeyword
-
 
 __all__ = (
     "DocEnum",
@@ -40,6 +42,7 @@ class DocEnum(enum.IntEnum):
 
     From https://stackoverflow.com/a/50473952/834250
     """
+
     def __new__(cls, value, doc):
         self = int.__new__(cls, value)
         self._value_ = value
@@ -170,10 +173,13 @@ class CobraId(DocEnum):
 try:
     def verify(*args, **kwargs):
         return enum.verify(enum.UNIQUE)(*args, **kwargs)
+
+
     metaclassParams = dict(boundary=enum.STRICT)
 except AttributeError:
     # enum.verify etc was added in python 3.11; add a no-op version for earlier versions
     metaclassParams = {}
+
 
     def verify(cls):
         """No-op version of enum.verify"""
@@ -275,8 +281,6 @@ class PfsDesign:
         pfsDesignId of the pfsDesign we are a variant of. Requires `variant`.
     obstime : `str`, optional
         Designed observation time ISO format (UTC-time).
-    pfsUtilsVer : `str`, optional
-        pfs_utils version used to create the design file.
     header : `astropy.io.fits.Header` or `dict`, optional
         Header to be written to the FITS file.
     cobraId : `numpy.ndarray` of `int32`, optional
@@ -285,7 +289,7 @@ class PfsDesign:
     # Scalar values
     _scalars = ["pfsDesignId", "designName",
                 "raBoresight", "decBoresight", "posAng", "arms", "guideStars",
-                "variant", "designId0", "obstime", "pfsUtilsVer", "header"]
+                "variant", "designId0", "obstime", "versions", "header"]
     # List of fields required, and their FITS type
     # Some elements of the code expect the following to be present:
     #     fiberId, targetType
@@ -429,7 +433,7 @@ class PfsDesign:
                  variant=0,
                  designId0=0,
                  obstime=None,
-                 pfsUtilsVer="",
+                 versions=None,
                  header=None,
                  cobraId=None
                  ):
@@ -466,7 +470,7 @@ class PfsDesign:
         self.variant = variant
         self.designId0 = designId0
         self.obstime = convertToIso8601Utc(obstime) if obstime else None
-        self.pfsUtilsVer = pfsUtilsVer
+        self.versions = dict() if versions is None else dict(versions)
         self.isSubset = False
         self.header = Header() if header is None else header
 
@@ -626,7 +630,7 @@ class PfsDesign:
                                 else ""))
 
         def nJyToAB(nJy):
-            return 8.9 - 2.5*np.log10(1e-9*nJy)
+            return 8.9 - 2.5 * np.log10(1e-9 * nJy)
 
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", category=RuntimeWarning)  # All-NaN slice encountered
@@ -704,10 +708,16 @@ class PfsDesign:
         kwargs["variant"] = header.get("VARIANT", 0)
         kwargs["designId0"] = header.get("PFDSGN0", 0)
 
-        # adding pfs_utils version
-        kwargs["pfsUtilsVer"] = header.get('W_DSGVER', "")
         # setting default for retro-compatiblity.
         kwargs["obstime"] = header.get("W_DSGOBS", None)
+
+        # Legacy DAMD_VER <= 4: W_DSGVER contains pfs_utils version.
+        damdVer = header.get("DAMD_VER", 0)
+        if damdVer <= 4:
+            old = header.get("W_DSGVER", "")
+            kwargs["versions"] = {"pfs_utils": str(old)} if old else {}
+        else:
+            kwargs["versions"] = VersionTable.read(header, "design")
 
         return kwargs
 
@@ -725,11 +735,11 @@ class PfsDesign:
         header["POSANG"] = (self.posAng, "[degree] PFI position angle")
         header["ARMS"] = (self.arms, "Exposed arms")
         header["DSGN_NAM"] = (self.designName, "Name of design")
-        header["DAMD_VER"] = (4, "PfsDesign/PfsConfig datamodel version")
+        header["DAMD_VER"] = (5, "PfsDesign/PfsConfig datamodel version")
         header["W_PFDSGN"] = (self.pfsDesignId, "Identifier for fiber configuration")
         header["VARIANT"] = (self.variant, "Which variant of PFDSGN0 we are.")
         header["PFDSGN0"] = (self.designId0, "The base design of which we are a variant")
-        header["W_DSGVER"] = (self.pfsUtilsVer, "pfs_utils version used to design positions.")
+        VersionTable.write(header, "design", self.versions)
 
         if self.obstime:
             header["W_DSGOBS"] = (self.obstime, "Designed observation time ISO format (UTC-time).")
@@ -934,7 +944,7 @@ class PfsDesign:
         fits.append(pyfits.BinTableHDU.from_columns(columns, hdr, name=self._hduName))
 
         numRows = sum(len(fFlux) for fFlux in self.fiberFlux)
-        fiberId = np.array(sum(([ii]*len(mags) for ii, mags in zip(self.fiberId, self.fiberFlux)), []))
+        fiberId = np.array(sum(([ii] * len(mags) for ii, mags in zip(self.fiberId, self.fiberFlux)), []))
         fiberFlux = np.array(sum((fFlux.tolist() for fFlux in self.fiberFlux), []))
         psfFlux = np.array(sum((pflux.tolist() for pflux in self.psfFlux), []))
         totalFlux = np.array(sum((tflux.tolist() for tflux in self.totalFlux), []))
@@ -1220,10 +1230,12 @@ class PfsDesign:
         identity : single or `list` of `dict`
             Keword-value pairs identifying the target(s).
         """
+
         def impl(index):
             """Implementation: get identity given index"""
             return dict(catId=self.catId[index], tract=self.tract[index], patch=self.patch[index],
                         objId=self.objId[index])
+
         try:
             return [impl(ii) for ii in index]
         except TypeError:  # index is not iterable
@@ -1260,6 +1272,22 @@ class PfsDesign:
         """
         index = np.nonzero(np.isin(self.fiberId, fiberId))[0]
         return self.pfiNominal[index]
+
+    def getVersion(self, packageName):
+        """Return version string for a given package.
+
+        Parameters
+        ----------
+        packageName : `str`
+            Name of the package whose version should be returned.
+
+        Returns
+        -------
+        version : `str` or `None`
+            Version string associated with the package, or `None`
+            if no version information is recorded.
+        """
+        return self.versions.get(packageName, None)
 
 
 class PfsConfig(PfsDesign):
@@ -1346,12 +1374,8 @@ class PfsConfig(PfsDesign):
         Counter of which variant of `designId0` we are. Requires `designId0`.
     obstime : `str`, optional
         Observation time ISO format (UTC-time).
-    pfsUtilsVer : `str`, optional
-         pfs_utils version used to create the config file
     obstimeDesign : `str`, optional
         Designed observation time ISO format (UTC-time).
-    pfsUtilsVerDesign : `str`, optional
-         pfs_utils version used to create the design file.
     header : `astropy.io.fits.Header` or `dict`, optional
         Header to be written to the FITS file.
     designId0 : `int`, optional
@@ -1372,7 +1396,8 @@ class PfsConfig(PfsDesign):
     # Scalar values
     _scalars = ["pfsDesignId", "designName",
                 "visit", "raBoresight", "decBoresight", "posAng", "arms", "guideStars",
-                "variant", "designId0", "obstime", "pfsUtilsVer", "obstimeDesign", "pfsUtilsVerDesign",
+                "variant", "designId0", "obstime", "obstimeDesign",
+                "versionsDesign", "versions0", "versions",
                 "header", "camMask", "instStatusFlag", "visit0"]
 
     # List of fields required, and their FITS type
@@ -1431,9 +1456,10 @@ class PfsConfig(PfsDesign):
                  variant=0,
                  designId0=0,
                  obstime=None,
-                 pfsUtilsVer="",
                  obstimeDesign=None,
-                 pfsUtilsVerDesign="",
+                 versionsDesign=None,
+                 versions0=None,
+                 versions=None,
                  header=None,
                  camMask=0,
                  instStatusFlag=0,
@@ -1446,7 +1472,7 @@ class PfsConfig(PfsDesign):
             cobraTheta = np.full(len(fiberId), np.nan, dtype=np.float32)
         if cobraPhi is None:
             cobraPhi = np.full(len(fiberId), np.nan, dtype=np.float32)
-            
+
         self.visit = visit
         self.pfiCenter = np.array(pfiCenter)
         self.cobraTheta = np.asarray(cobraTheta, dtype=np.float32)
@@ -1454,8 +1480,10 @@ class PfsConfig(PfsDesign):
         self.camMask = camMask
         self.instStatusFlag = instStatusFlag
         self.obstimeDesign = convertToIso8601Utc(obstimeDesign) if obstimeDesign else None
-        self.pfsUtilsVerDesign = pfsUtilsVerDesign
         self.visit0 = visit0
+        versionsDesign = dict() if versionsDesign is None else dict(versionsDesign)
+        versions0 = dict() if versions0 is None else dict(versions0)
+        versions = dict() if versions is None else dict(versions)
         super().__init__(pfsDesignId, raBoresight, decBoresight,
                          posAng,
                          arms,
@@ -1475,9 +1503,11 @@ class PfsConfig(PfsDesign):
                          variant=variant,
                          designId0=designId0,
                          obstime=obstime,
-                         pfsUtilsVer=pfsUtilsVer,
+                         versions=versions,
                          header=header,
                          cobraId=cobraId)
+        self.versionsDesign = versionsDesign
+        self.versions0 = versions0
 
     def __str__(self):
         """String representation"""
@@ -1490,7 +1520,7 @@ class PfsConfig(PfsDesign):
 
     @classmethod
     def fromPfsDesign(cls, pfsDesign, visit, pfiCenter, header=None, camMask=0, instStatusFlag=0,
-                      visit0=None, cobraTheta=None, cobraPhi=None):
+                      visit0=None, cobraTheta=None, cobraPhi=None, versions=None, versions0=None):
         """Construct from a ``PfsDesign``
 
         Parameters
@@ -1530,10 +1560,14 @@ class PfsConfig(PfsDesign):
         kwargs["camMask"] = camMask
         kwargs["instStatusFlag"] = instStatusFlag
         kwargs["obstimeDesign"] = pfsDesign.obstime
-        kwargs["pfsUtilsVerDesign"] = pfsDesign.pfsUtilsVer
         kwargs["visit0"] = visit0
         kwargs["cobraTheta"] = cobraTheta
         kwargs["cobraPhi"] = cobraPhi
+        kwargs["versionsDesign"] = dict(pfsDesign.versions)
+        versions = dict() if versions is None else dict(versions)
+        versions0 = dict() if versions0 is None else dict(versions0)
+        kwargs["versions"] = versions
+        kwargs["versions0"] = versions0
 
         return PfsConfig(**kwargs)
 
@@ -1559,10 +1593,9 @@ class PfsConfig(PfsDesign):
         # Now we look for it in the W_VISIT header, but need to allow for the possibility that it's
         # not present.
         visit = header.get("W_VISIT", None)
-        kwargs['visit0'] = header.get("W_VISIT0", None)
+        kwargs["visit0"] = header.get("W_VISIT0", None)
         kwargs["camMask"] = header.get("W_CAMMSK", 0)
         kwargs["instStatusFlag"] = header.get("W_INSMSK", 0)
-        kwargs["pfsUtilsVerDesign"] = header.get("W_DSVER0", "")
         kwargs["obstimeDesign"] = header.get("W_DSOBS0", None)
 
         if visit is not None:
@@ -1571,6 +1604,20 @@ class PfsConfig(PfsDesign):
             kwargs["visit"] = visit
         elif "visit" not in kwargs:
             raise RuntimeError("Unable to determine visit")
+
+        # Legacy DAMD_VER <= 4: W_DSGVER contains pfsConfig pfs_utils version
+        # W_DSVER0 contains pfsDesign pfs_utils version.
+        damdVer = header.get("DAMD_VER", 0)
+        if damdVer <= 4:
+            oldCfg = header.get("W_DSGVER", "")
+            oldDsg = header.get("W_DSVER0", "")
+            kwargs["versions"] = {"pfs_utils": str(oldCfg)} if oldCfg else {}
+            kwargs["versionsDesign"] = {"pfs_utils": str(oldDsg)} if oldDsg else {}
+            kwargs["versions0"] = {}
+        else:
+            kwargs["versionsDesign"] = VersionTable.read(header, "design")
+            kwargs["versions0"] = VersionTable.read(header, "config0")
+            kwargs["versions"] = VersionTable.read(header, "config")
 
         return kwargs
 
@@ -1587,7 +1634,10 @@ class PfsConfig(PfsDesign):
         header["W_CAMMSK"] = (self.camMask, "Bitmask describing which camera was used for this visit.")
         header["W_INSMSK"] = (self.instStatusFlag,
                               "Bitmask indicating instrument-related status flags for this visit.")
-        header["W_DSVER0"] = (self.pfsUtilsVerDesign, "pfs_utils version used to design original positions.")
+
+        VersionTable.write(header, "design", self.versionsDesign)
+        VersionTable.write(header, "config0", self.versions0)
+        VersionTable.write(header, "config", self.versions)
 
         if self.obstimeDesign:
             header["W_DSOBS0"] = (self.obstimeDesign,
@@ -1635,7 +1685,13 @@ class PfsConfig(PfsDesign):
             Copied pfsConfig.
         """
         keywords = PfsConfig._keywords + PfsConfig._scalars + ['fiberStatus']
-        return PfsConfig(**{key: kwargs.get(key, getattr(self, key)) for key in keywords})
+        inputs = {key: kwargs.get(key, getattr(self, key)) for key in keywords}
+
+        # Just make sure to get a new copy.
+        for name in ("versionsDesign", "versions0", "versions"):
+            inputs[name] = dict(inputs[name])
+
+        return PfsConfig(**inputs)
 
     def extractCenters(self, fiberId):
         """Extract centers for fibers
@@ -1689,7 +1745,7 @@ class PfsConfig(PfsDesign):
                 cameraList.append(cam)
         return cameraList
 
-    def updateTargetPosition(self, ra, dec, pfiNominal, obstime, pfsUtilsVer, guide_ra, guide_dec,
+    def updateTargetPosition(self, ra, dec, pfiNominal, obstime, guide_ra, guide_dec,
                              guide_x_pix, guide_y_pix):
         """Update the target position with tweaked values.
 
@@ -1703,8 +1759,6 @@ class PfsConfig(PfsDesign):
             Updated intended target position (2-vector) of each fiber on the PFI, millimeters.
         obstime : `str`
             Observation time in ISO format (UTC-time).
-        pfsUtilsVer : `str`, optional
-            pfs_utils version used to update the positions.
         guide_ra : numpy.ndarray of float64
             Guide-star Right Ascension in degrees, shape (N,).
         guide_dec : numpy.ndarray of float64
@@ -1718,7 +1772,6 @@ class PfsConfig(PfsDesign):
         self.dec = dec
         self.pfiNominal = pfiNominal
         self.obstime = convertToIso8601Utc(obstime)
-        self.pfsUtilsVer = pfsUtilsVer
         self.guideStars.updateObjectPositions(guide_ra, guide_dec, guide_x_pix, guide_y_pix)
 
     def setInstrumentStatusFlag(self, flag: InstrumentStatusFlag):
@@ -1756,6 +1809,38 @@ class PfsConfig(PfsDesign):
             List of descriptions for active flags.
         """
         return InstrumentStatusDescription.get(flag)
+
+    def getVersion0(self, packageName):
+        """Return convergence-time version string for a given package.
+
+        Parameters
+        ----------
+        packageName : `str`
+            Name of the package whose version should be returned.
+
+        Returns
+        -------
+        version : `str` or `None`
+            Version string associated with the package during cobra
+            convergence (pfsConfig0), or `None` if not recorded.
+        """
+        return self.versions0.get(packageName, None)
+
+    def getVersionDesign(self, packageName):
+        """Return design-time version string for a given package.
+
+        Parameters
+        ----------
+        packageName : `str`
+            Name of the package whose version should be returned.
+
+        Returns
+        -------
+        version : `str` or `None`
+            Version string associated with the package at design time,
+            or `None` if no version information is recorded.
+        """
+        return self.versionsDesign.get(packageName, None)
 
 
 PFSCONFIG_FILENAME_REGEX: str = r"^pfsConfig-(0x[0-9a-f]+)-([0-9]+)\.fits.*"
