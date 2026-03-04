@@ -1,20 +1,18 @@
-import os
 import datetime
-import astropy.io.fits as pyfits
+import os
 import sys
 import unittest
 
-import numpy as np
+import astropy.io.fits as pyfits
 import astropy.units as u
-
-import lsst.utils.tests
 import lsst.geom
-
+import lsst.utils.tests
+import numpy as np
 from pfs.datamodel.pfsConfig import (
     PfsConfig, TargetType, FiberStatus, PfsDesign, GuideStars, InstrumentStatusFlag,
     InstrumentStatusDescription)
-
 from pfs.datamodel.utils import convertToIso8601Utc
+
 display = None
 
 
@@ -45,8 +43,8 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
         self.decBoresight = 30.0  # degrees
         self.posAng = 0.0  # degrees
         self.arms = 'brn'
-        self.fov = 1.5*lsst.geom.degrees
-        self.pfiScale = 800.0/self.fov.asDegrees()  # millimeters/degree
+        self.fov = 1.5 * lsst.geom.degrees
+        self.pfiScale = 800.0 / self.fov.asDegrees()  # millimeters/degree
         self.pfiErrors = 0.01  # millimeters
 
         self.pfsDesignId = 12345
@@ -58,35 +56,35 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
         self.patch = ["%d,%d" % tuple(xy.tolist()) for
                       xy in rng.uniform(high=15, size=(self.numFibers, 2)).astype(int)]
 
-        boresight = lsst.geom.SpherePoint(self.raBoresight*lsst.geom.degrees,
-                                          self.decBoresight*lsst.geom.degrees)
-        radius = np.sqrt(rng.uniform(size=self.numFibers))*0.5*self.fov.asDegrees()  # degrees
-        theta = rng.uniform(size=self.numFibers)*2*np.pi  # radians
-        coords = [boresight.offset(tt*lsst.geom.radians, rr*lsst.geom.degrees) for
+        boresight = lsst.geom.SpherePoint(self.raBoresight * lsst.geom.degrees,
+                                          self.decBoresight * lsst.geom.degrees)
+        radius = np.sqrt(rng.uniform(size=self.numFibers)) * 0.5 * self.fov.asDegrees()  # degrees
+        theta = rng.uniform(size=self.numFibers) * 2 * np.pi  # radians
+        coords = [boresight.offset(tt * lsst.geom.radians, rr * lsst.geom.degrees) for
                   rr, tt in zip(radius, theta)]
         self.ra = np.array([cc.getRa().asDegrees() for cc in coords])
         self.dec = np.array([cc.getDec().asDegrees() for cc in coords])
-        self.pfiNominal = (self.pfiScale*np.array([(rr*np.cos(tt), rr*np.sin(tt)) for
-                                                   rr, tt in zip(radius, theta)])).astype(np.float32)
+        self.pfiNominal = (self.pfiScale * np.array([(rr * np.cos(tt), rr * np.sin(tt)) for
+                                                     rr, tt in zip(radius, theta)])).astype(np.float32)
         self.pfiCenter = (self.pfiNominal +
                           rng.normal(scale=self.pfiErrors, size=(self.numFibers, 2))).astype(np.float32)
 
         self.catId = rng.uniform(high=23, size=self.numFibers).astype(int)
-        self.objId = rng.uniform(high=2**63, size=self.numFibers).astype(int)
+        self.objId = rng.uniform(high=2 ** 63, size=self.numFibers).astype(int)
 
-        self.targetType = np.array([int(TargetType.SKY)]*self.numSky +
-                                   [int(TargetType.FLUXSTD)]*self.numFluxStd +
-                                   [int(TargetType.SCIENCE)]*self.numObject +
-                                   [int(TargetType.UNASSIGNED)]*self.numUnassigned +
-                                   [int(TargetType.ENGINEERING)]*self.numEngineering +
-                                   [int(TargetType.SUNSS_DIFFUSE)]*self.numSuNSS_Diffuse +
-                                   [int(TargetType.SUNSS_IMAGING)]*self.numSuNSS_Imaging)
+        self.targetType = np.array([int(TargetType.SKY)] * self.numSky +
+                                   [int(TargetType.FLUXSTD)] * self.numFluxStd +
+                                   [int(TargetType.SCIENCE)] * self.numObject +
+                                   [int(TargetType.UNASSIGNED)] * self.numUnassigned +
+                                   [int(TargetType.ENGINEERING)] * self.numEngineering +
+                                   [int(TargetType.SUNSS_DIFFUSE)] * self.numSuNSS_Diffuse +
+                                   [int(TargetType.SUNSS_IMAGING)] * self.numSuNSS_Imaging)
         rng.shuffle(self.targetType)
-        self.fiberStatus = np.array([int(FiberStatus.BROKENFIBER)]*self.numBroken +
-                                    [int(FiberStatus.BLOCKED)]*self.numBlocked +
-                                    [int(FiberStatus.BLACKSPOT)]*self.numBlackSpot +
-                                    [int(FiberStatus.UNILLUMINATED)]*self.numUnilluminated +
-                                    [int(FiberStatus.GOOD)]*self.numGood)
+        self.fiberStatus = np.array([int(FiberStatus.BROKENFIBER)] * self.numBroken +
+                                    [int(FiberStatus.BLOCKED)] * self.numBlocked +
+                                    [int(FiberStatus.BLACKSPOT)] * self.numBlackSpot +
+                                    [int(FiberStatus.UNILLUMINATED)] * self.numUnilluminated +
+                                    [int(FiberStatus.GOOD)] * self.numGood)
         rng.shuffle(self.fiberStatus)
 
         self.epoch = np.full(self.numFibers, "J2000.0")
@@ -132,7 +130,9 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
 
         self.obstime = convertToIso8601Utc(datetime.datetime.now(datetime.timezone.utc).isoformat())
         self.obstimeDesign = convertToIso8601Utc(datetime.datetime.now(datetime.timezone.utc).isoformat())
-        self.pfsUtilsVer = self.pfsUtilsVerDesign = "w.2025.06"
+        self.versions = dict(ics_iicActor="2.7.17", pfs_utils="w.2026.09", datamodel="w.2026.09")
+        self.versions0 = dict(ics_fpsActor="1.8.10", pfs_utils="w.2026.09", datamodel="w.2026.09")
+        self.versionsDesign = dict(pfs_utils="w.2026.09", datamodel="w.2026.09")
 
         self.visit0 = 67889
         self.cobraTheta = np.full(len(self.fiberId), 0.0)
@@ -176,6 +176,7 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
         pfsDesign : `PfsDesign`
             Constructed pfsConfig.
         """
+        kwargs.setdefault("versions", self.versionsDesign)
         return self._makeInstance(PfsDesign, **kwargs)
 
     def makePfsConfig(self, **kwargs):
@@ -214,10 +215,14 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
                                                  err_msg="fiberFlux[%d]" % (ii,))
             self.assertListEqual(lhs.filterNames[ii], rhs.filterNames[ii], "filterNames[%d]" % (ii,))
         self.assertEqual(lhs.designName, rhs.designName)
+        self.assertEqual(lhs.versions, rhs.versions)
 
     def assertPfsConfig(self, lhs, rhs):
         self.assertEqual(lhs.visit, rhs.visit)
         np.testing.assert_array_equal(lhs.pfiCenter, rhs.pfiCenter)
+        self.assertEqual(lhs.versionsDesign, rhs.versionsDesign)
+        self.assertEqual(lhs.versions0, rhs.versions0)
+        self.assertEqual(lhs.versions, rhs.versions)
 
     def testBasic(self):
         """Test basic operation of PfsConfig"""
@@ -242,6 +247,7 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
 
     def testBadCtor(self):
         """Test bad constructor calls"""
+
         def extendArray(array):
             """Double the length of the array"""
             return np.concatenate((array, array))
@@ -259,17 +265,17 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
 
         # Arrays with bad enums
         targetType = self.targetType.copy()
-        targetType[self.numFibers//2] = -1
+        targetType[self.numFibers // 2] = -1
         with self.assertRaises(ValueError):
             self.makePfsConfig(targetType=targetType)
         fiberStatus = self.fiberStatus.copy()
-        fiberStatus[self.numFibers//2] = -1
+        fiberStatus[self.numFibers // 2] = -1
         with self.assertRaises(ValueError):
             self.makePfsConfig(fiberStatus=fiberStatus)
 
         # Fluxes
         for name in ("fiberFlux", "psfFlux", "totalFlux", "fiberFluxErr", "psfFluxErr", "totalFluxErr"):
-            array = [extendArray(mag) if ii == self.numFibers//2 else mag
+            array = [extendArray(mag) if ii == self.numFibers // 2 else mag
                      for ii, mag in enumerate(getattr(self, name))]
             with self.assertRaises(RuntimeError):
                 self.makePfsConfig(**{name: array})
@@ -314,7 +320,10 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
         """Test PfsConfig.fromPfsDesign"""
         design = self.makePfsDesign()
         config = self.makePfsConfig()
-        self.assertPfsConfig(PfsConfig.fromPfsDesign(design, self.visit, self.pfiCenter), config)
+        built = PfsConfig.fromPfsDesign(design, self.visit, self.pfiCenter,
+                                        versions=self.versions,
+                                        versions0=self.versions0)
+        self.assertPfsConfig(built, config)
 
     def testDesignName(self):
         """Test creation of design name"""
@@ -388,6 +397,10 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
 
         for field in ['fiberId', 'fiberStatus', 'targetType', 'pfiNominal', 'pfiCenter']:
             np.testing.assert_array_equal(getattr(configCopy, field), getattr(config, field))
+
+        self.assertIsNot(configCopy.versions, config.versions)
+        self.assertIsNot(configCopy.versions0, config.versions0)
+        self.assertIsNot(configCopy.versionsDesign, config.versionsDesign)
 
     def testAdditionalHeaderCards(self):
         """Test that the provided additional header cards are indeed written to the primary hdu."""
@@ -546,7 +559,7 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
         self.assertEqual(len(sub), self.numBroken)
         self.assertFloatsEqual(sub.fiberStatus, fiberStatus)
 
-        index = 2*self.numFibers//3
+        index = 2 * self.numFibers // 3
         sub = pfsConfig.select(catId=pfsConfig.catId[index], tract=pfsConfig.tract[index],
                                patch=pfsConfig.patch[index], objId=pfsConfig.objId[index])
         self.assertEqual(len(sub), 1)
@@ -704,6 +717,7 @@ def setup_module(module):
 if __name__ == "__main__":
     setup_module(sys.modules["__main__"])
     from argparse import ArgumentParser
+
     parser = ArgumentParser(__file__)
     parser.add_argument("--display", help="Display backend")
     args, argv = parser.parse_known_args()
