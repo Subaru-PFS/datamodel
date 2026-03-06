@@ -389,6 +389,7 @@ class StarCatalogTable(PfsTable):
         Column("obCode", str, "Observing Block", ""),
 
         Column("fiberId", np.int16, "Fiber identifier", -1),
+        Column("spectrograph", np.int16, "Spectrograph identifier", -1),
         Column("nVisit", np.int16, "Number of visits", -1),
         Column("pfsVisitHash", np.int64, "PFS visit hash", -1),
 
@@ -429,8 +430,8 @@ class StarCatalogTable(PfsTable):
         Column("log_gErr", np.float32, "log g error", np.nan),
         Column("log_gStatus", str, "log g flag", ""),
 
-        Column("flag", bool, "Measurement flag (true means bad)", False),
-        Column("status", str, "Measurement flags", ""),
+        Column("tempfitflag", bool, "Measurement flag (true means bad)", False),
+        Column("tempfitstatus", str, "Measurement flags", ""),
     ]
     fitsExtName = 'STARCATALOG'
 
