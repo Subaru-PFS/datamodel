@@ -714,26 +714,37 @@ written to separate files:
     "lineCentroids-%06d-%1s%1d.fits" % (visit, arm, spectrograph)
     "linePhotometry-%06d-%1s%1d.fits" % (visit, arm, spectrograph)
 
-These FITS files will include a single table HDU (in addition to the mandatory empty PHDU) with columns:
+These FITS files will include a principal table HDU (in addition to the
+mandatory empty PHDU) with columns:
 
-    fiberId         32-bit int
-    wavelength      64-bit float (nm)
-    x               32-bit float (pixels)
-    y               32-bit float (pixels)
-    xErr            32-bit float (pixels)
-    yErr            32-bit float (pixels)
-    xx              32-bit float (pixels^2)
-    yy              32-bit float (pixels^2)
-    xy              32-bit float (pixels^2)
-    flux            32-bit float (arbitrary units)
-    fluxErr         32-bit float (arbitrary units)
-    fluxNorm        32-bit float (arbitrary units)
-    norm            32-bit float (arbitrary units)
+    fiberId         32-bit int; fiber identifier
+    wavelength      64-bit float (nm); line wavelength
+    x               32-bit float (pixels); centroid position in x
+    y               32-bit float (pixels); centroid position in y
+    xErr            32-bit float (pixels); error in centroid position in x
+    yErr            32-bit float (pixels); error in centroid position in y
+    xx              32-bit float (pixels^2); second moment in xx
+    yy              32-bit float (pixels^2); second moment in yy
+    xy              32-bit float (pixels^2); second moment in xy
+    flux            32-bit float (arbitrary units); flux measurement
+    fluxErr         32-bit float (arbitrary units); error in flux measurement
+    fluxNorm        32-bit float (arbitrary units); normalization for flux
     flag            boolean; indicates whether the measurement is bad
-    status          32-bit int; bitmask
-    description     string
-    transition      string; indicates line transition if appropriate
-    source          32-bit int; bitmask
+    status          32-bit int; bitmask indicating quality of the line or measurement
+    description     32-bit int; index into HDU ARCLINES_DESCRIPTION
+    transition      32-bit int; index into HDU ARCLINES_TRANSITION
+    source          32-bit int; bitmask indicating where values come from
+
+Both 'description' (typically the species name, e.g., "OH" or "Hg II") and
+'transition' (the quantum levels involved) values in the principal table are
+indices into separate HDUs. This allows significant space savings (since the
+strings can be long and are frequently repeated), with corresponding I/O
+efficiency.
+
+Both the ARCLINES_DESCRIPTION and ARCLINES_TRANSITION HDUs have the same format:
+
+    number          32-bit int: index
+    string          string: content for appropriate column in the principal table
 
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 

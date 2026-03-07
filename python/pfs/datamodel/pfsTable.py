@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Dict, Iterable, Type, TypeVar, Union
+from typing import TYPE_CHECKING, Dict, Iterable, Tuple, Type, TypeVar, Union
 
 import astropy.io.fits
 import numpy as np
@@ -73,7 +73,7 @@ class PfsTable:
     fitsExtName: str
     """FITS extension name (`str`)"""
 
-    damdVer: int = 1
+    damdVer: int = 3
     """Datamodel version number"""
 
     aliases: Dict[str, Iterable[str]] = {}
@@ -394,3 +394,173 @@ class EmptyTable(PfsTable):
             Constructed object.
         """
         return EmptyTable(length)
+
+
+class PfsTableWithSeparateStrings(PfsTable):
+    """A table with string columns moved to separate HDUs
+
+    Reading a ``PA()`` string column can be very slow. This class moves the
+    values of the string columns to separate HDUs so values can be read only
+    once. This provides substantial I/O speedup when the strings are duplicated.
+    """
+
+    @classmethod
+    def readHdu(cls: Type[SubTable], fits: astropy.io.fits.HDUList) -> SubTable:
+        """Read from FITS file
+
+        Parameters
+        ----------
+        fits : `astropy.io.fits.HDUList`
+            FITS file from which to read.
+
+        Returns
+        -------
+        self : cls
+            Constructed object from reading file.
+        """
+        hdu = fits[cls.fitsExtName]
+        columns: Dict[str, np.ndarray] = {}
+        available = set(hdu.data.columns.names)
+        for col in cls.schema:
+            if col.name in available:
+                array = hdu.data[col.name]
+            else:
+                aliases = cls.aliases.get(col.name, {})
+                for nn in aliases:
+                    if nn in available:
+                        array = hdu.data[nn]
+                        break
+                else:
+                    array = np.full(len(hdu.data), col.default, dtype=col.dtype)
+            if issubclass(col.dtype, str):
+                if array.dtype == np.object_:
+                    array = np.array(["".join(arr.astype(str)) for arr in array])
+                elif np.issubdtype(array.dtype, np.str_):
+                    array = array.astype(col.dtype)
+                elif np.issubdtype(array.dtype, np.integer):
+                    lookupHduName = f"{cls.fitsExtName}_{col.name.upper()}"
+                    if lookupHduName not in fits:
+                        raise RuntimeError(f"Missing string lookup HDU: {lookupHduName}")
+                    lookupHdu = fits[lookupHduName]
+                    number = lookupHdu.data["number"]
+                    string = np.array(["".join(arr.astype(str)) for arr in lookupHdu.data["string"]])
+                    indices = np.argsort(number)
+                    # "array" keys into "number" which keys into "string". For example:
+                    # array: 1, 3, 2, 0  (stored in the main table)
+                    # number: 2, 1, 3, 0  (stored in the lookup table)
+                    # string: "three", "one", "two", "four"  (stored in the lookup table)
+                    # indices: 3, 1, 0, 2  (calculated here)
+                    # --> indices[array]: 1, 2, 0, 3
+                    # --> string[indices[array]]: "one", "two", "three", "four"
+                    array = string[indices[array]]
+                else:
+                    raise RuntimeError(f"Unexpected array dtype for string column: {array.dtype}")
+            else:
+                array = array.astype(col.dtype)
+            columns[col.name] = array
+        return cls(**columns)
+
+    def writeHdu(self, fits: astropy.io.fits.HDUList):
+        """Write to FITS HDU
+
+        Parameters
+        ----------
+        hdu : `astropy.io.fits.HDUList`
+            FITS file to which to write.
+        """
+        # NOTE: When making any changes to this method that modify the output
+        # format, increment the damdVer class attribute.
+        format = {
+            int: "K",
+            float: "D",
+            np.int32: "J",
+            np.float32: "E",
+            bool: "L",
+            np.bool_: "L",
+            np.uint8: "B",
+            np.int16: "I",
+            np.int64: "K",
+            np.float64: "D",
+        }
+
+        # String HDUs that we need to write, indexed by column name.
+        # For each string HDU, we store a mapping from string value to integer
+        # code.
+        stringLookups: Dict[str, Dict[str, int]] = {}
+
+        def getArray(name: str, dtype: type) -> np.ndarray:
+            """Get the array to write
+
+            This is a simple operation except for string types.
+
+            For string types, we record the unique values and assign each a
+            code. We return an array with those codes.
+
+            Parameters
+            ----------
+            name : `str`
+                Column name, so we can get the data if we need to inspect it.
+            dtype : `type`
+                Data type.
+
+            Returns
+            -------
+            format : `str`
+                FITS column format string.
+            array : `numpy.ndarray`
+                Array of values.
+            """
+            array = getattr(self, name)
+            if not issubclass(dtype, str):
+                return array.astype(dtype)
+            unique = np.unique(array)
+            stringLookups[name] = dict(zip(unique, range(len(unique))))
+            mapped = np.zeros_like(array, dtype=np.int32)
+            for value, number in stringLookups[name].items():
+                mapped[array == value] = number
+            return mapped
+
+        columnArrays = {col.name: getArray(col.name, col.dtype) for col in self.schema}
+        columns = [
+            astropy.io.fits.Column(
+                name=name,
+                format=format[arr.dtype.type],
+                array=arr,
+            ) for name, arr in columnArrays.items()
+        ]
+
+        header = astropy.io.fits.Header()
+        header["DAMD_VER"] = (
+            self.damdVer,
+            f"{self.__class__.__name__} datamodel version",
+        )
+        header["INHERIT"] = True
+        for ii, col in enumerate(self.schema):
+            # TDOCn is not a FITS standard keyword, but we want to write the column doc for our users and
+            # there is no standard for that. The name comes from lsst.afw.table.
+            header[f"TDOC{ii + 1}"] = col.doc
+
+        fits.append(
+            astropy.io.fits.BinTableHDU.from_columns(
+                columns, name=self.fitsExtName, header=header
+            )
+        )
+        for name, lookup in stringLookups.items():
+            strings = lookup.keys()
+            numbers = lookup.values()
+            fits.append(astropy.io.fits.BinTableHDU.from_columns(
+                [
+                    astropy.io.fits.Column(
+                        name="number",
+                        format="J",
+                        array=np.array(list(numbers), dtype=np.int32),
+                    ),
+                    astropy.io.fits.Column(
+                        name="string",
+                        format="PA()",
+                        array=list(strings),
+                    ),
+                ],
+                name=f"{self.fitsExtName}_{name.upper()}",
+            ))
+
