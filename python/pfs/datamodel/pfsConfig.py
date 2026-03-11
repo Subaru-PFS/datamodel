@@ -191,6 +191,7 @@ class InstrumentStatusFlag(enum.IntFlag, **metaclassParams):
     """Bit positions for instrument status flags."""
     INSROT_MISMATCH = 1 << 0
     CONVERGENCE_FAILED = 1 << 1
+    CONVERGENCE_SKIPPED = 1 << 2
 
 
 # Separate dictionary for descriptions (must be outside the class)
@@ -198,7 +199,10 @@ InstrumentStatusDescription = {
     InstrumentStatusFlag.INSROT_MISMATCH:
         "INSROT at the time of convergence vs SPS exposure exceeded threshold",
     InstrumentStatusFlag.CONVERGENCE_FAILED:
-        "PfsConfig0 was generated but convergence was reported as failed by FPS", }
+        "PfsConfig0 was generated but convergence was reported as failed by FPS",
+    InstrumentStatusFlag.CONVERGENCE_SKIPPED:
+        "PfsConfig0 was generated but convergence was not actually performed by FPS",
+}
 
 
 class PfsDesign:
@@ -1672,7 +1676,10 @@ class PfsConfig(PfsDesign):
         return cls._readImpl(filename, pfsDesignId=pfsDesignId, visit=visit)
 
     def copy(self, **kwargs):
-        """Copy pfsConfig, optionally changing entries
+        """Copy pfsConfig, optionally changing entries.
+
+        If ``camMask`` is provided, ``arms`` is derived from it automatically
+        via `toCameraList`.
 
         Parameters
         -----------
@@ -1686,6 +1693,10 @@ class PfsConfig(PfsDesign):
         """
         keywords = PfsConfig._keywords + PfsConfig._scalars + ['fiberStatus']
         inputs = {key: kwargs.get(key, getattr(self, key)) for key in keywords}
+
+        # Derive arms from camMask if provided.
+        if 'camMask' in kwargs:
+            inputs['arms'] = ''.join({cam[0] for cam in PfsConfig.toCameraList(kwargs['camMask'])})
 
         # Just make sure to get a new copy.
         for name in ("versionsDesign", "versions0", "versions"):
@@ -1710,7 +1721,7 @@ class PfsConfig(PfsDesign):
         return self.pfiCenter[index]
 
     @staticmethod
-    def getCameraMask(cameraList):
+    def toCameraMask(cameraList):
         """Return bit mask for selected cameras.
 
         Parameters
@@ -1731,7 +1742,8 @@ class PfsConfig(PfsDesign):
                 raise ValueError(f'{cam} is not a valid camera : {",".join(PfsConfig._allCams)}')
         return mask
 
-    def getCameraList(self):
+    @staticmethod
+    def toCameraList(camMask):
         """Return a list of cameras from camMask.
 
         Returns
@@ -1741,9 +1753,19 @@ class PfsConfig(PfsDesign):
         """
         cameraList = []
         for i, cam in enumerate(PfsConfig._allCams):
-            if self.camMask & (1 << i):
+            if camMask & (1 << i):
                 cameraList.append(cam)
         return cameraList
+
+    def getCameraList(self):
+        """Return a list of cameras from this config's camMask.
+
+        Returns
+        -------
+        cameraList : `list` of `str`
+            List of selected camera names.
+        """
+        return PfsConfig.toCameraList(self.camMask)
 
     def updateTargetPosition(self, ra, dec, pfiNominal, obstime, guide_ra, guide_dec,
                              guide_x_pix, guide_y_pix):

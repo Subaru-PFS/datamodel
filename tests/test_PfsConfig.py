@@ -400,6 +400,13 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
 
         self.assertIsNot(configCopy.versions, config.versions)
         self.assertIsNot(configCopy.versions0, config.versions0)
+
+        # copying with camMask should automatically derive arms.
+        allCams = PfsConfig._allCams
+        camMask = (1 << 0) | (1 << 1)
+        configCopy = config.copy(visit=newVisit, camMask=camMask)
+        expectedArms = ''.join({cam[0] for cam in PfsConfig.toCameraList(camMask)})
+        self.assertEqual(set(configCopy.arms), set(expectedArms))
         self.assertIsNot(configCopy.versionsDesign, config.versionsDesign)
 
     def testAdditionalHeaderCards(self):
@@ -629,47 +636,36 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
             self.assertEqual(len(indices), select.sum())
             self.assertFloatsEqual(pfsConfig.fiberId[indices], pfsConfig.fiberId[select[::-1]])
 
-    def testGetCameraMask(self):
-        """Test getCameraMask method."""
-        allCams = PfsConfig._allCams  # Retrieve the full list of cameras
+    def testToCameraMask(self):
+        """Test toCameraMask static method."""
+        allCams = PfsConfig._allCams
 
-        # Test with an empty list
-        self.assertEqual(PfsConfig.getCameraMask([]), 0)
+        self.assertEqual(PfsConfig.toCameraMask([]), 0)
+        self.assertEqual(PfsConfig.toCameraMask([allCams[0]]), 1 << 0)
+        self.assertEqual(PfsConfig.toCameraMask([allCams[0], allCams[1]]), (1 << 0) | (1 << 1))
 
-        # Test with a single camera
-        self.assertEqual(PfsConfig.getCameraMask([allCams[0]]), 1 << 0)
-
-        # Test with multiple cameras
-        self.assertEqual(PfsConfig.getCameraMask([allCams[0], allCams[1]]), (1 << 0) | (1 << 1))
-
-        # Test with all cameras
         expectedMask = sum(1 << i for i in range(len(allCams)))
-        self.assertEqual(PfsConfig.getCameraMask(allCams), expectedMask)
+        self.assertEqual(PfsConfig.toCameraMask(allCams), expectedMask)
 
-        # Test with an invalid camera
         with self.assertRaises(ValueError):
-            PfsConfig.getCameraMask(["invalidCam"])
+            PfsConfig.toCameraMask(["invalidCam"])
 
-    def testGetCameraList(self):
-        """Test getCameraList method."""
-        allCams = PfsConfig._allCams  # Retrieve the full list of cameras
+    def testToCameraList(self):
+        """Test toCameraList static method and getCameraList instance wrapper."""
+        allCams = PfsConfig._allCams
         config = self.makePfsConfig()
 
         # Test with an empty mask
-        config.camMask = 0
-        self.assertEqual(config.getCameraList(), [])
-
+        self.assertEqual(PfsConfig.toCameraList(0), [])
         # Test with a single camera
-        config.camMask = 1 << 0
-        self.assertEqual(config.getCameraList(), [allCams[0]])
-
+        self.assertEqual(PfsConfig.toCameraList(1 << 0), [allCams[0]])
         # Test with multiple cameras
-        config.camMask = (1 << 0) | (1 << 1)
-        self.assertEqual(config.getCameraList(), [allCams[0], allCams[1]])
-
+        self.assertEqual(PfsConfig.toCameraList((1 << 0) | (1 << 1)), [allCams[0], allCams[1]])
         # Test with all cameras
-        config.camMask = sum(1 << i for i in range(len(allCams)))
-        self.assertEqual(config.getCameraList(), allCams)
+        self.assertEqual(PfsConfig.toCameraList(sum(1 << i for i in range(len(allCams)))), allCams)
+        # Test getCameraList()
+        config.camMask = (1 << 0) | (1 << 1)
+        self.assertEqual(config.getCameraList(), PfsConfig.toCameraList(config.camMask))
 
     def testSetInstrumentStatusFlag(self):
         """Test setting instrument status mask with valid and invalid flags."""
