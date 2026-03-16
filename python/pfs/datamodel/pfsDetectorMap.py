@@ -5,6 +5,7 @@ from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional, Type
 import warnings
 
+from matplotlib.pyplot import box
 import numpy as np
 import astropy.io.fits
 from scipy.interpolate import CubicSpline
@@ -30,6 +31,7 @@ __all__ = (
     "DoubleRotScaleDistortion",
     "MultipleDistortionsDetectorMap",
     "LayeredDetectorMap",
+    "OpticalModelDetectorMap",
 )
 
 
@@ -288,7 +290,7 @@ class PfsDetectorMap(ABC):
 
         Returns
         -------
-        self : `SplinedDetectorMap`
+        self : `DetectorMap`
             DetectorMap read from FITS file.
         """
         subclasses = {ss.__name__: ss for ss in cls.__subclasses__()}  # ignores sub-sub-classes
@@ -1805,5 +1807,283 @@ class LayeredDetectorMap(PfsDetectorMap):
         fits.append(table)
         for ii, distortion in enumerate(self.distortions):
             distortion.writeFits(fits, ii)
+
+        return fits
+
+
+class OpticalModelDetectorMap(PfsDetectorMap):
+    """DetectorMap based on an optical model
+
+    This implementation handles I/O only. For a fully-functional implementation
+    that includes evaluation of the mappings, see the drp_stella package.
+
+    Parameters
+    ----------
+    identity : `pfs.datamodel.CalibIdentity`
+        Identity of the data of interest.
+    fiberId : `np.ndarray` of `int`
+        Fiber identifiers.
+    fiberPitch : `float`
+        Fiber pitch in pixels.
+    wavelengthDispersion : `float`
+        Wavelength dispersion in nm/pixel.
+    spatialOffsets, spectralOffsets : `np.ndarray` of `float`
+        Spatial and spectral slit offsets for each fiber.
+    slitDistortions : `list` of `pfs.datamodel.Distortion`
+        Distortions to apply to the slit.
+    spatialOptics, spectralOptics, xOptics, yOptics : `np.ndarray` of `float`
+        Optics grid. Each is a 2D array.
+    opticsDistortions : `list` of `pfs.datamodel.Distortion`
+        Distortions to apply to the optics.
+    box : `Box`
+        Bounding box for detector.
+    dividedDetector : `bool`
+        Is the detector divided into two halves?
+    rightCcd : `numpy.ndarray` of `float`, shape ``(6,)`
+        Coefficients for the upper-fiberId CCD.
+    detectorDistortions : `list` of `pfs.datamodel.Distortion`
+        Distortions to apply to the detector.
+    metadata : `dict`
+        Keyword-value pairs to put in the header.
+    """
+    def __init__(
+        self,
+        identity: CalibIdentity,
+        fiberId: np.ndarray,
+        fiberPitch: float,
+        wavelengthDispersion: float,
+        spatialOffsets: np.ndarray,
+        spectralOffsets: np.ndarray,
+        slitDistortions: List[PfsDistortion],
+        spatialOptics: np.ndarray,
+        spectralOptics: np.ndarray,
+        xOptics: np.ndarray,
+        yOptics: np.ndarray,
+        opticsDistortions: List[PfsDistortion],
+        box: Box,
+        dividedDetector: bool,
+        rightCcd: np.ndarray,
+        detectorDistortions: List[PfsDistortion],
+        metadata: Optional[Dict[str, Any]] = None
+    ):
+        self.identity = identity
+        self.fiberId = fiberId
+        self.fiberPitch = fiberPitch
+        self.wavelengthDispersion = wavelengthDispersion
+        self.spatialOffsets = spatialOffsets
+        self.spectralOffsets = spectralOffsets
+        self.slitDistortions = slitDistortions
+        self.spatialOptics = spatialOptics
+        self.spectralOptics = spectralOptics
+        self.xOptics = xOptics
+        self.yOptics = yOptics
+        self.opticsDistortions = opticsDistortions
+        self.box = box
+        self.dividedDetector = dividedDetector
+        self.rightCcd = rightCcd
+        self.detectorDistortions = detectorDistortions
+        self.metadata = metadata if metadata else {}
+        self.validate()
+
+    def validate(self):
+        """Ensure that array lengths are as expected
+
+        Raises
+        ------
+        AssertionError
+            When an array length doesn't match that expected.
+        """
+        numFibers = self.fiberId.size
+        assert self.spatialOffsets.shape == (numFibers,)
+        assert self.spectralOffsets.shape == (numFibers,)
+        opticsShape = self.spatialOptics.shape
+        assert self.spectralOptics.shape == opticsShape
+        assert self.xOptics.shape == opticsShape
+        assert self.yOptics.shape == opticsShape
+        assert self.rightCcd.shape == (6,)
+        pass
+
+    def __len__(self) -> int:
+        """Number of fibers"""
+        return len(self.fiberId)
+
+    @classmethod
+    def _readDistortions(cls, fits: astropy.io.fits.HDUList, extName: str) -> List[PfsDistortion]:
+        """Read distortions from FITS file
+
+        Parameters
+        ----------
+        fits : `astropy.io.fits.HDUList`
+            FITS file in memory.
+        extName : `str`
+            Extension name for distortion table.
+
+        Returns
+        -------
+        distortions : `list` of `pfs.datamodel.Distortion`
+            Distortions read from FITS file.
+        """
+        table = fits[extName]
+        indices = table.data["index"].astype(int)
+        names = ("".join(nn.tolist()) for nn in table.data["name"])
+        classes = (PfsDistortion.getDistortion(nn) for nn in names)
+        return [DistortionClass.readFits(fits, ii) for ii, DistortionClass in zip(indices, classes)]
+
+    @classmethod
+    def _readImpl(
+        cls, fits: astropy.io.fits.HDUList, identity: CalibIdentity
+    ) -> "OpticalModelDetectorMap":
+        """Implementation of reading from a FITS file in memory
+
+        Parameters
+        ----------
+        fits : `astropy.io.fits.HDUList`
+            FITS file in memory.
+        identity : `pfs.datamodel.CalibIdentity`
+            Identity of the calib data.
+
+        Returns
+        -------
+        self : `LayeredDetectorMap`
+            DetectorMap read from FITS file.
+        """
+        header = astropyHeaderToDict(fits[0].header)
+
+        fiberId = fits["FIBERID"].data.astype(int)
+        fiberPitch = header["pfs_fiberPitch"]
+        wavelengthDispersion = header["pfs_wavelengthDispersion"]
+        spatialOffsets = fits["SLITOFF"].data[0].astype(float)
+        spectralOffsets = fits["SLITOFF"].data[1].astype(float)
+        slitDistortions = cls._readDistortions(fits, "SLIT_DISTORTIONS")
+
+        spatialOptics = fits["OPTICS"].data[0].astype(float)
+        spectralOptics = fits["OPTICS"].data[1].astype(float)
+        xOptics = fits["OPTICS"].data[2].astype(float)
+        yOptics = fits["OPTICS"].data[3].astype(float)
+        opticsDistortions = cls._readDistortions(fits, "OPTICS_DISTORTIONS")
+
+        box = Box(*fits["DETECTOR"].data["box"][0].astype(int).tolist())
+        dividedDetector = fits["DETECTOR"].data["dividedDetector"][0]
+        rightCcd = fits["DETECTOR"].data["rightCcd"][0].astype(float)
+        detectorDistortions = cls._readDistortions(fits, "DETECTOR_DISTORTIONS")
+
+        return cls(
+            identity,
+            fiberId, fiberPitch, wavelengthDispersion, spatialOffsets, spectralOffsets, slitDistortions,
+            spatialOptics, spectralOptics, xOptics, yOptics, opticsDistortions,
+            box, dividedDetector, rightCcd, detectorDistortions,
+            header
+        )
+
+    def _writeDistortions(
+        self,
+        fits: astropy.io.fits.HDUList,
+        distortions: List[PfsDistortion],
+        indexStart: int,
+        extName: str,
+    ) -> int:
+        """Write distortions to FITS file
+
+        Parameters
+        ----------
+        fits : `astropy.io.fits.HDUList`
+            FITS file in memory; modified.
+        distortions : `list` of `pfs.datamodel.Distortion`
+            Distortions to write.
+        indexStart : `int`
+            Starting index for distortion extensions.
+        extName : `str`
+            Extension name for distortion table.
+
+        Returns
+        -------
+        indexEnd : `int`
+            Ending index for distortion extensions (i.e. index of next extension to write).
+        """
+        tableHeader = astropy.io.fits.Header()
+        tableHeader["INHERIT"] = True
+        indices = np.arange(len(distortions)) + indexStart
+        names = [distortion.getName() for distortion in distortions]
+        table = astropy.io.fits.BinTableHDU.from_columns([
+            astropy.io.fits.Column("index", format="J", array=indices),
+            astropy.io.fits.Column("name", format="PA()", array=names),
+        ], header=tableHeader, name=extName)
+        fits.append(table)
+        for ii, distortion in zip(indices, distortions):
+            distortion.writeFits(fits, ii)
+        return indexStart + len(distortions)
+
+    def _writeImpl(self):
+        """Implementation of writing to FITS file
+
+        Returns
+        -------
+        fits : `astropy.io.fits.HDUList`
+            FITS file representation.
+        """
+        # NOTE: When making any changes to this method that modify the output
+        # format, increment the DAMD_VER header value below, and record the
+        # change in the versions.txt file.
+
+        distortionStart = 0
+        tableHeader = astropy.io.fits.Header()
+        tableHeader["INHERIT"] = True
+
+        numFibers = len(self)
+        header = self.metadata.copy()
+        if "pfs_detectorMap_class" in header:
+            del header["pfs_detectorMap_class"]
+
+        header = astropyHeaderFromDict(header)
+        header["OBSTYPE"] = "detectorMap"
+        header["HIERARCH pfs_detectorMap_class"] = "OpticalModelDetectorMap"
+        header["DAMD_VER"] = (1, "OpticalModelDetectorMap datamodel version")
+
+        header["HIERARCH pfs_fiberPitch"] = self.fiberPitch
+        header["HIERARCH pfs_wavelengthDispersion"] = self.wavelengthDispersion
+
+        fits = astropy.io.fits.HDUList()
+
+        phu = astropy.io.fits.PrimaryHDU(header=header)
+        fits.append(phu)
+
+        hdu = astropy.io.fits.ImageHDU(self.fiberId, name="FIBERID")
+        hdu.header["INHERIT"] = True
+        fits.append(hdu)
+
+        slitOffsets = np.zeros((2, numFibers))
+        slitOffsets[0] = self.spatialOffsets
+        slitOffsets[1] = self.spectralOffsets
+
+        hdu = astropy.io.fits.ImageHDU(slitOffsets, name="SLITOFF")
+        hdu.header["INHERIT"] = True
+        fits.append(hdu)
+
+        distortionStart = self._writeDistortions(
+            fits, self.slitDistortions, distortionStart, "SLIT_DISTORTIONS"
+        )
+
+        optics = np.vstack(
+            (self.spatialOptics[None], self.spectralOptics[None], self.xOptics[None], self.yOptics[None])
+        )
+        hdu = astropy.io.fits.ImageHDU(optics, name="OPTICS")
+        hdu.header["INHERIT"] = True
+        fits.append(hdu)
+
+        distortionStart = self._writeDistortions(
+            fits, self.opticsDistortions, distortionStart, "OPTICS_DISTORTIONS"
+        )
+
+        box = [self.box.xMin, self.box.yMin, self.box.xMax, self.box.yMax]
+        table = astropy.io.fits.BinTableHDU.from_columns([
+            astropy.io.fits.Column(name="box", format="4I", array=[box]),
+            astropy.io.fits.Column(name="dividedDetector", format="L", array=[self.dividedDetector]),
+            astropy.io.fits.Column(name="rightCcd", format="PD()", array=[self.rightCcd]),
+        ], header=tableHeader, name="DETECTOR")
+        fits.append(table)
+
+        distortionStart = self._writeDistortions(
+            fits, self.detectorDistortions, distortionStart, "DETECTOR_DISTORTIONS"
+        )
 
         return fits
