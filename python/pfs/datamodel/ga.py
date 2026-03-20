@@ -25,6 +25,7 @@ __all__ = [
     "PfsStarNotes",
     "PfsStar",
     "StarCatalogTable",
+    "StarPhotometryTable",
     "PfsStarCatalogNotes",
     "PfsStarCatalog",
 ]
@@ -442,6 +443,22 @@ PfsStarCatalogNotes = makeNotesClass(
 )
 
 
+class StarPhotometryTable(PfsTable):
+    """Catalog of photometry for stellar objects."""
+
+    damdVer = GA_DAMD_VER
+    schema = [
+        Column("catId", np.int32, "PFS catalog identifier", -1),
+        Column("objId", np.int32, "GA object identifier.", -1),
+        Column("filterName", str, "Filter name", ""),
+        Column("flux", np.float32, "Flux", np.nan),
+        Column("fluxErr", np.float32, "Flux error", np.nan),
+        Column("mag", np.float32, "Magnitude", np.nan),
+        Column("magErr", np.float32, "Magnitude error", np.nan),
+    ]
+    fitsExtName = 'STARPHOTOMETRY'
+
+
 class PfsStarCatalog():
     filenameFormat = ("pfsStarCatalog-%(catId)05d-%(nVisit)03d-0x%(pfsVisitHash)016x.fits")
     filenameRegex = r"^pfsStarCatalog-(\d{5})-([0-9]{3})-0x([0-9a-f]{16})\.fits.*$"
@@ -454,6 +471,7 @@ class PfsStarCatalog():
             catId,
             observations: Observations,
             catalog: StarCatalogTable,
+            photometry: StarPhotometryTable,
             metadata=None,
             notes: Notes = None):
 
@@ -462,6 +480,7 @@ class PfsStarCatalog():
         self.nVisit = wraparoundNVisit(len(observations.visit))
         self.pfsVisitHash = calculatePfsVisitHash(observations.visit)
         self.catalog = catalog
+        self.photometry = photometry
         self.metadata = metadata if metadata is not None else {}
         self.notes = notes if notes is not None else self.NotesClass()
         self.length = len(catalog)
@@ -521,6 +540,15 @@ class PfsStarCatalog():
             if not exc.args[0].startswith("Extension"):
                 raise
             data['catalog'] = None
+
+        try:
+            photometry = StarPhotometryTable.readHdu(fits)
+            data['photometry'] = photometry
+        except KeyError as exc:
+            # Only want to catch "Extension XXX not found."
+            if not exc.args[0].startswith("Extension"):
+                raise
+            data['photometry'] = None
 
         return data
 
@@ -593,10 +621,16 @@ class PfsStarCatalog():
             # Override catId from class
             self.observations.catId = np.array(self.observations.num * [self.catId])
             self.observations.toFits(fits)
+
         if self.catalog is not None:
             self.catalog.writeHdu(fits)
+
+        if self.photometry is not None:
+            self.photometry.writeHdu(fits)
+
         if self.metadata is not None:
             header.extend(astropyHeaderFromDict(self.metadata))
+            
         if self.notes is not None:
             self.notes.writeFits(fits)
 

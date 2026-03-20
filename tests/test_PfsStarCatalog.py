@@ -6,7 +6,7 @@ import numpy as np
 import lsst.utils.tests
 
 from pfs.datamodel import TargetType, Observations
-from pfs.datamodel import PfsStarCatalog, StarCatalogTable
+from pfs.datamodel import PfsStarCatalog, StarCatalogTable, StarPhotometryTable
 from pfs.datamodel.pfsTable import Column
 
 
@@ -49,6 +49,7 @@ class PfsStarCatalogTestCase(lsst.utils.tests.TestCase):
             obCode=np.array(['A', 'B', 'C']),
 
             fiberId=np.array([-1, -1, -1]),
+            spectrograph=np.array([-1, -1, -1]),
             nVisit=np.array([3, 3, 3]),
             pfsVisitHash=np.array([81985529216486895, 81985529216486895, 81985529216486895]),
 
@@ -89,12 +90,22 @@ class PfsStarCatalogTestCase(lsst.utils.tests.TestCase):
             log_gErr=np.array([0.0, 0.0, 0.0]),
             log_gStatus=np.array(['', '', '']),
 
-            flag=np.array([False, False, False]),
-            status=np.array(['', '', '']),
+            tempfitflag=np.array([False, False, False]),
+            tempfitstatus=np.array(['', '', '']),
+        )
+
+        photometry = StarPhotometryTable(
+            catId=np.array([10001, 10001, 10001, 10001, 10001, 10001]),
+            objId=np.array([1, 1, 2, 2, 3, 3]),
+            filterName=np.array(['g_hsc', 'r_hsc', 'g_hsc', 'r_hsc', 'g_hsc', 'r_hsc']),
+            flux=np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
+            fluxErr=np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
+            mag=np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
+            magErr=np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
         )
 
         return PfsStarCatalog(
-            catId, observations, catalog, metadata=None, notes=None
+            catId, observations, catalog, photometry, metadata=None, notes=None
         )
 
     def assertPfsStarCatalog(self, lhs, rhs):
