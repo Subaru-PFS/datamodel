@@ -377,7 +377,7 @@ class StarCatalogTable(PfsTable):
     damdVer = GA_DAMD_VER
     schema = [
         Column("catId", np.int32, "PFS catalog identifier", -1),
-        Column("objId", np.int32, "GA object identifier.", -1),
+        Column("objId", np.int64, "GA object identifier.", -1),
         Column("ra", np.float32, "Right ascension ICRS [deg]", np.nan),
         Column("dec", np.float32, "Declination ICRS [deg]", np.nan),
         Column("epoch", str, "Coordinate epoch [Jyr]", ''),
@@ -449,7 +449,7 @@ class StarPhotometryTable(PfsTable):
     damdVer = GA_DAMD_VER
     schema = [
         Column("catId", np.int32, "PFS catalog identifier", -1),
-        Column("objId", np.int32, "GA object identifier.", -1),
+        Column("objId", np.int64, "GA object identifier.", -1),
         Column("filterName", str, "Filter name", ""),
         Column("flux", np.float32, "Flux", np.nan),
         Column("fluxErr", np.float32, "Flux error", np.nan),
