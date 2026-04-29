@@ -1341,6 +1341,9 @@ HDU #2 WARNINGS     Warning flags for each solver     [FITS BINARY TABLE] NOBJEC
         The lineMeas velocity fit range does not include the input velocity
         (comming from either the previous redhiftSolver stage, input lineMeas catalog).
         The range is thus extended to contain this velocity.
+    
+    **TOO_LITTLE_PIXELS = 22**
+        Some computations were skipped because there are not enough pixels. Currently used if there are not enough pixels to compute fit quality.
 
 HDU #3 ERRORS     Error code and message for each solver     [FITS BINARY TABLE] NOBJECT
     Columns:
@@ -1372,26 +1375,18 @@ INVALID_NOISE : 5,
 INVALID_WAVELENGTH_RANGE : 6,
 NEGATIVE_CONTINUUMFIT : 7,
 BAD_CONTINUUMFIT : 8,
-DEPRECATED__NULL_AMPLITUDES : 9,
 PDF_PEAK_NOT_FOUND : 10,
-DEPRECATED__MAX_AT_BORDER_PDF : 11,
 MISSING_PARAMETER : 12,
-DEPRECATED__BAD_PARAMETER_VALUE : 13,
 UNKNOWN_ATTRIBUTE : 14,
-DEPRECATED__BAD_LINECATALOG : 15,
-DEPRECATED__BAD_LOGSAMPLEDSPECTRUM : 16,
-DEPRECATED__BAD_COUNTMATCH : 17,
 BAD_TEMPLATECATALOG : 18,
 INVALID_SPECTRUM : 19,
 TEMPLATE_OVERLAP_TOO_SMALL : 20,
 IE_DZ_NOT_COMPUTABLE : 21,
-DEPRECATED__INCOHERENT_INPUTPARAMETERS : 22,
 BAD_CALZETTICORR : 23,
 IE_CRANGE_VALUE_OUTSIDERANGE : 24,
 IE_CRANGE_VECTBORDERS_OUTSIDERANGE : 25,
 IE_CRANGE_NO_INTERSECTION : 26,
 INVALID_MERIT_VALUES : 27,
-DEPRECATED__TPL_NAME_EMPTY : 28,
 IE_EMPTY_LIST : 29,
 LESS_OBSERVED_SAMPLES_THAN_AMPLITUDES_TO_FIT : 30,
 SPECTRUM_CORRECTION_ERROR : 31,
@@ -1407,7 +1402,6 @@ IE_MULTIOBS_WITH_PHOTOMETRY_NOTIMPLEMENTED : 40,
 MISSING_PHOTOMETRIC_DATA : 41,
 MISSING_PHOTOMETRIC_TRANSMISSION : 42,
 PDF_NORMALIZATION_FAILED : 43,
-DEPRECATED__INSUFFICIENT_TEMPLATE_COVERAGE : 44,
 INSUFFICIENT_LSF_COVERAGE : 45,
 INVALID_LSF : 46,
 SPECTRUM_NOT_LOADED : 47,
@@ -1422,11 +1416,9 @@ BAD_FILEFORMAT : 55,
 INCOHERENT_CONFIG_OPTIONS : 56,
 ATTRIBUTE_NOT_SUPPORTED : 57,
 INCOMPATIBLE_PDF_MODELSHAPES : 58,
-DEPRECATED__UNKNOWN_RESULT_TYPE : 59,
 RELIABILITY_NEEDS_TENSORFLOW : 60,
 OUTPUT_READER_ERROR : 61,
 PYTHON_API_ERROR : 62,
-DEPRECATED__INVALID_NAME : 63,
 IE_INVALID_FILTER_INSTRUCTION : 64,
 IE_INVALID_FILTER_KEY : 65,
 NO_CLASSIFICATION : 66,
@@ -1441,6 +1433,8 @@ IMPORT_ERROR : 74,
 LINE_CATALOG_ERROR : 75,
 LINEMEAS_CATALOG_ERROR : 76,
 IE_UNSUPPORTED_OPERATION : 77
+RELIABILITY_MISSING_ATTRIBUTE : 78
+INCONSISTENT_MODEL_ATTRIBUTE : 79
 
 Possible error codes list and their meaning:
 
@@ -1618,12 +1612,12 @@ HDU #5 GALAXY_CANDIDATES               [FITS BINARY TABLE]     NGALAXY_CANDIDATE
         cRank [32-bit INT]: Rank of galaxy candidate (best=0)
         redshift [32-bit FLOAT]:  Redshift
         redshiftError [32-bit FLOAT]: Redshift error
-        redshiftProba [32-bit FLOAT: Area of the PDF peak (dz=+/-3.e-3)
+        redshiftProba [32-bit FLOAT]: Integral of the PDF peak (dz = +/- 3*redshiftError )
         subClass [STRING]: Subclassifications
         continuumFile [STRING]: Continuum template file name
         lineCatalogRatioFile [STRING]: Linecatalog ratio template file name
-        emissionVelocity [32-bit FLOAT]: Velocity for emission lines
-        absorptionVelocity [32-bit FLOAT]: Velocity for absorption lines
+        emissionVelocity [32-bit FLOAT]: Internal velocity dispersion for emission lines (unit: km/s)
+        absorptionVelocity [32-bit FLOAT]: Internal velocity dispersion for absorption lines (unit: km/s)
         continuumReducedLeastSquare [32-bit FLOAT]: Continuum reduced least square
         continuumPValue [32-bit FLOAT]: Continuum P Value
         continuumResidualsMean [32-bit FLOAT]: Continuum residuals mean
@@ -1665,10 +1659,10 @@ HDU #9 GALAXY_LINES              Binary table            [FITS BINARY TABLE]    
         lineZError [32-bit FLOAT]: Redshift error
         lineSigma [32-bit FLOAT]: Gaussian width (unit: nm)
         lineSigmaError [32-bit FLOAT]: Error in gaussian width (unit: nm)
-        lineVelocity [32-bit FLOAT]: Velocity (unit: km/sec)
-        lineVelocityError [32-bit FLOAT]: Error in velocity  (unit: km/sec)
-        lineFlux [32-bit FLOAT]: Area in gaussian fit (unit: 10-35W/m2)
-        lineFluxError [32-bit FLOAT]: Flux error (unit: 10-35W/m2)
+        lineVelocity [32-bit FLOAT]: Internal velocity dispersion (unit: km/s)
+        lineVelocityError [32-bit FLOAT]: Error in internal velocity dispersion  (unit: km/s)
+        lineFlux [32-bit FLOAT]: Integral of the fitted gaussian profile (unit: W/m2)
+        lineFluxError [32-bit FLOAT]: Flux error (unit: W/m2)
         lineEW [32-bit FLOAT]: Equivalent width (unit: nm)
         lineEWError [32-bit FLOAT]: Equivalent width error (unit: nm)
         lineContinuumLevel [32-bit FLOAT]: Continuum level at line center (unit: nJy)
@@ -1680,11 +1674,11 @@ HDU #10 QSO_CANDIDATES            Binary table            [FITS BINARY TABLE]   
         cRank [32-bit INT]: Rank of QSO candidate (best=0)
         redshift [32-bit FLOAT]:  Redshift
         redshiftError [32-bit FLOAT]: Redshift error
-        redshiftProba [32-bit FLOAT: Area of the PDF peak (dz=+/-3.e-3)
+        redshiftProba [32-bit FLOAT]: Integral of the PDF peak (dz = +/- 3*redshiftError )
         subClass [STRING]: Subclassifications
         continuumFile [STRING]: Continuum template file name
-        emissionVelocity [32-bit FLOAT]: Velocity for emission lines
-        absorptionVelocity [32-bit FLOAT]: Velocity for absorption lines
+        emissionVelocity [32-bit FLOAT]: Internal velocity dispersion for emission lines (unit: km/s)
+        absorptionVelocity [32-bit FLOAT]: Internal velocity dispersion for absorption lines (unit: km/s)
         lineCatalogRatioFile [STRING]: Linecatalog ratio template file name
         continuumReducedLeastSquare [32-bit FLOAT]: Continuum reduced least square
         continuumPValue [32-bit FLOAT]: Continuum P Value
@@ -1725,10 +1719,10 @@ HDU #14 QSO_LINES                 Binary table            [FITS BINARY TABLE]   
         lineZError [32-bit FLOAT]: Redshift error
         lineSigma [32-bit FLOAT]: Gaussian width (unit: nm)
         lineSigmaError [32-bit FLOAT]: Error in gaussian width (unit: nm)
-        lineVelocity [32-bit FLOAT]: Velocity (unit: km/sec)
-        lineVelocityError [32-bit FLOAT]: Error in velocity  (unit: km/sec)
-        lineFlux [32-bit FLOAT]: Area in gaussian fit (unit: nJy)
-        lineFluxError [32-bit FLOAT]: Flux error (unit: nJy)
+        lineVelocity [32-bit FLOAT]: Internal velocity dispersion (unit: km/s)
+        lineVelocityError [32-bit FLOAT]: Error in internal velocity dispersion (unit: km/s)
+        lineFlux [32-bit FLOAT]: Integral of the fitted gaussian profile (unit: W/m2)
+        lineFluxError [32-bit FLOAT]: Flux error (unit: W/m2)
         lineEW [32-bit FLOAT]: Equivalent width (unit: nm)
         lineEWError [32-bit FLOAT]: Equivalent width error (unit: nm)
         lineContinuumLevel [32-bit FLOAT]: Continuum level at line center (unit: nJy)
@@ -1738,9 +1732,9 @@ HDU #15 STAR_CANDIDATES            Binary table            [FITS BINARY TABLE]  
     Columns for :
         targetId [16-bit INT]: Target identifier, links to TARGET HDU
         cRank [32-bit INT]: Rank of star candidate (best=0)
-        velocity [32-bit FLOAT]:  Radial velocity [km/s]
-        velocityError [32-bit FLOAT]: Velocity error
-        templateProba [32-bit FLOAT: Area of the PDF peak (dv=+/-3.e-3 km/s)
+        velocity [32-bit FLOAT]:  Radial velocity (unit: km/s)
+        velocityError [32-bit FLOAT]: Velocity error (unit: km/s)
+        velocityProba [32-bit FLOAT: Integral of the PDF peak (dv = +/-3*velocityError)
         subClass [STRING]: Subclassifications
         templateFile [STRING]: Continuum template file name
         reducedLeastSquare [32-bit FLOAT]: Full model reduced least square
@@ -1759,7 +1753,7 @@ HDU #16 STAR_MODELS    Spectrum model fluxes (nJy), as an image or table [32-bit
 
 HDU #17 STAR_VELOCITY_GRID                Binary table            [FITS BINARY TABLE]       VELOCITY_SAMPLES
     Colums:
-        velocity [32-bit FLOAT]: Radial velocity grid
+        velocity [32-bit FLOAT]: Radial velocity grid (unit: km/s)
 
 HDU #18 STAR_LN_PDF ln(Probability) marginalised over all models [32-bit FLOAT]            VELOCITY_SAMPLES*NOBJECT
 
