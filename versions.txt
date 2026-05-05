@@ -176,3 +176,12 @@ ObjectGroupMap
 This class is used for determining the objGroup from catId,objId.
 
 * 1: Initial version.
+
+
+PfsFiberKernel
+--------------
+
+This class is used for the convolution kernels applied to fibers and images.
+
+* 1: Initial version.
+

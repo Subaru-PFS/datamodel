@@ -283,6 +283,22 @@ I.e. if only visit 5830 were used, the r1 file would have ARM='r', SPECTROGRAPH=
 
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
+Convolution kernels applied to fiber traces and images:
+
+HDU #0 PHDU             Metadata
+HDU #1 FIBERKERNEL      Convolution kernel data             [BINARY FITS TABLE]
+
+The FIBERKERNEL table contains a single row with the following columns:
+    imageWidth      32-bit int          Width of the image to which kernel may be applied
+    imageHeight     32-bit int          Height of the image to which kernel may be applied
+    halfWidth       32-bit int          Half-width of the kernel
+    xNumBlocks      32-bit int          Number of blocks in x
+    yNumBlocks      32-bit int          Number of blocks in y
+    values          64-bit float array  Kernel values, length (2*halfWidth+1)*xNumBlocks*yNumBlocks
+
+
+-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
 The mapping of fiberId,wavelength to x,y on the detector:
 
   "pfsDetectorMap-%06d-%s%1d.fits" % (visit0, arm, spectrograph)
