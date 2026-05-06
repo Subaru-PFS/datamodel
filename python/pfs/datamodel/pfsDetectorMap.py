@@ -1957,11 +1957,19 @@ class OpticalModelDetectorMap(PfsDetectorMap):
         """
         header = astropyHeaderToDict(fits[0].header)
 
+        def readAndStrip(key: str) -> Any:
+            """Read value and strip from the header"""
+            value = header[key]
+            del header[key]
+            return value
+
         fiberId = fits["FIBERID"].data.astype(int)
-        fiberPitch = header["pfs_fiberPitch"]
-        fiberMin = header["pfs_fiberMin"]
-        wavelengthDispersion = header["pfs_wavelengthDispersion"]
-        wavelengthMin = header["pfs_wavelengthMin"]
+        # Strip these from the header on read, because they can get converted to upper-case keywords
+        # later, and cause trouble
+        fiberPitch = readAndStrip("pfs_fiberPitch")
+        fiberMin = readAndStrip("pfs_fiberMin")
+        wavelengthDispersion = readAndStrip("pfs_wavelengthDispersion")
+        wavelengthMin = readAndStrip("pfs_wavelengthMin")
         spatialOffsets = fits["SLITOFF"].data[0].astype(float)
         spectralOffsets = fits["SLITOFF"].data[1].astype(float)
         slitDistortions = cls._readDistortions(fits, "SLIT_DISTORTIONS")
