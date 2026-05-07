@@ -34,6 +34,7 @@ class TempFitFlag(IntFlag):
     """Flags for template and RV fitting."""
 
     # NOTE: Keep this consistent with the flags in pfs.ga.pfsspec.tempfit.TempFitFlag
+    #       It is a copy to avoid circular dependencies
     
     OK = 0                          # No flags
     BADINIT = 1 << 0                # "Bad initial values"
@@ -47,6 +48,7 @@ class TempFitFlag(IntFlag):
     RVGUESSMULTIMODAL = 1 << 8      # "log L(RV) during guess is multimodal"
     RVFITMULTIMODAL = 1 << 9        # "log L(RV) around best fit is multimodal"
     NODATA = 1 << 10                # No data to fit, possibly missing 2d output
+    NORVPOLISH = 1 << 11            # RV polishing step failed or not performed
 
 
 class VelocityCorrections(PfsTable):
