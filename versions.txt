@@ -33,10 +33,14 @@ DoubleDetectorMap are strongly coupled to the SplinedDetectorMap, so their
 versions are incremented together.
 
 
-SplinedDetectorMap, DifferentialDetectorMap, DistortedDetectorMap and
-DoubleDetectorMap:
+SplinedDetectorMap, DifferentialDetectorMap, DistortedDetectorMap,
+DoubleDetectorMap and LayeredDetectorMap:
 * 1: Initial version.
 * 2: MODEL_FIBERID extension for DifferentialDetectorMap removed.
+
+
+OpticalModelDetectorMap:
+* 1: Initial version.
 
 
 PfsSimpleSpectrum and PfsFiberArray
@@ -172,3 +176,12 @@ ObjectGroupMap
 This class is used for determining the objGroup from catId,objId.
 
 * 1: Initial version.
+
+
+PfsFiberKernel
+--------------
+
+This class is used for the convolution kernels applied to fibers and images.
+
+* 1: Initial version.
+
