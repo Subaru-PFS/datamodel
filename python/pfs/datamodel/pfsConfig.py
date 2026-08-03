@@ -9,6 +9,7 @@ from typing import Optional, TYPE_CHECKING
 
 import numpy as np
 from pfs.datamodel.utils import convertToIso8601Utc
+from pfs.datamodel.convergenceParams import ConvergenceParams
 from pfs.datamodel.versionTable import VersionTable
 
 try:
@@ -34,6 +35,10 @@ __all__ = (
     "checkPfsConfigHeader",
     "InstrumentStatusFlag",
     "InstrumentStatusDescription",
+    "TargetValidation",
+    "TargetValidationDescription",
+    "CobraCommand",
+    "CobraCommandDescription",
 )
 
 
@@ -192,6 +197,82 @@ class InstrumentStatusFlag(enum.IntFlag, **metaclassParams):
     INSROT_MISMATCH = 1 << 0
     CONVERGENCE_FAILED = 1 << 1
     CONVERGENCE_SKIPPED = 1 << 2
+
+
+@verify
+class TargetValidation(enum.IntFlag, **metaclassParams):
+    """Bit positions for why FPS refused to send a cobra to its design target.
+
+    Set only where there was a target to validate, i.e. ``targetType`` in
+    (SCIENCE, SKY, FLUXSTD); zero elsewhere.  Every bit is geometric, so a non-zero
+    value means "this cobra was designed to converge, and FPS refused it", and
+    ``count(targetValidationMask != 0)`` is the number of science targets lost to
+    instrument geometry.  What FPS did with the cobra afterwards is `CobraCommand`.
+
+    A rejected target is never sent to its nominal position, so it can never be
+    within convergence tolerance: ``fiberStatus == GOOD`` implies a zero mask.
+    The field is therefore purely diagnostic and no existing selection changes.
+
+    NOT_SET marks a pfsConfig written before DAMD_VER 6, where the verdict was
+    never recorded.  It is distinct from zero on purpose -- zero asserts that
+    every target was accepted, which such a file cannot claim.
+    """
+    NOT_FINITE = 1 << 0
+    TOO_CLOSE_TO_CENTER = 1 << 1
+    TOO_FAR_FROM_CENTER = 1 << 2
+    FIDUCIAL_INTERFERENCE = 1 << 3
+    NOT_SET = 1 << 15
+
+
+# Separate dictionary for descriptions (must be outside the class)
+TargetValidationDescription = {
+    TargetValidation.NOT_FINITE:
+        "the design gave no position for a target that was meant to be observed",
+    TargetValidation.TOO_CLOSE_TO_CENTER:
+        "target lies inside the cobra's minimum reach",
+    TargetValidation.TOO_FAR_FROM_CENTER:
+        "target lies beyond the cobra's maximum reach",
+    TargetValidation.FIDUCIAL_INTERFERENCE:
+        "the cobra arm would interfere with a fiducial fiber",
+    TargetValidation.NOT_SET:
+        "no target validation was recorded; the file predates DAMD_VER 6",
+}
+
+
+class CobraCommand(enum.IntEnum, **metaclassParams):
+    """What FPS did with a cobra for this visit.
+
+    Exclusive and exhaustive over the cobras: every one is driven to its design
+    target, driven home, parked on its black dot, or left alone.  Separate from
+    `TargetValidation`, which judges the target rather than recording the action, so
+    a cobra can carry a clean validation and still not have been commanded.
+
+    NOT_COMMANDED is zero: FPS did not move this cobra, whether because the operator
+    excluded it, because it is broken, or because the fiber has no cobra at all.  So
+    a non-zero value means exactly "FPS commanded this cobra, and here is where to".
+
+    NOT_SET is only for a pfsConfig written before DAMD_VER 6, which cannot claim that
+    nothing was commanded.  It is never written for a new file.
+    """
+    NOT_COMMANDED = 0
+    CONVERGE = 1
+    HOME = 2
+    BLACK_DOT = 3
+    NOT_SET = 4
+
+
+CobraCommandDescription = {
+    CobraCommand.NOT_COMMANDED:
+        "left where it was: excluded by the operator, broken, or not a cobra at all",
+    CobraCommand.CONVERGE:
+        "driven to its design target",
+    CobraCommand.HOME:
+        "driven to its hard stop",
+    CobraCommand.BLACK_DOT:
+        "parked on its black dot",
+    CobraCommand.NOT_SET:
+        "no command was recorded; the file predates DAMD_VER 6",
+}
 
 
 # Separate dictionary for descriptions (must be outside the class)
@@ -502,9 +583,9 @@ class PfsDesign:
 
         Parameters
         ----------
-        logical : `numpy.ndarray` of `bool`
-            Boolean array (of same length as ``self``) indicating which fibers
-            to select.
+        logical : `numpy.ndarray` of `bool` or `int`
+            Boolean array (of same length as ``self``) indicating which fibers to
+            select, or an array of indices, which also sets the order of the result.
 
         Returns
         -------
@@ -512,14 +593,15 @@ class PfsDesign:
             A new ``PfsDesign`` or ``PfsConfig`` containing only the selected
             fibers.
         """
-        numOriginal = len(self)
+        logical = np.asarray(logical)
+        indices = np.flatnonzero(logical) if logical.dtype == bool else logical
         kwargs = {name: getattr(self, name) for name in self._scalars}
         for name in self._keywords + ["fiberStatus"]:
             array = getattr(self, name)
             if isinstance(array, np.ndarray):
-                subArray = array[logical]
+                subArray = array[indices]
             else:
-                subArray = [array[ii] for ii in range(numOriginal) if logical[ii]]
+                subArray = [array[ii] for ii in indices]
             kwargs[name] = subArray
         new = type(self)(**kwargs)
         new.isSubset = True
@@ -739,7 +821,7 @@ class PfsDesign:
         header["POSANG"] = (self.posAng, "[degree] PFI position angle")
         header["ARMS"] = (self.arms, "Exposed arms")
         header["DSGN_NAM"] = (self.designName, "Name of design")
-        header["DAMD_VER"] = (5, "PfsDesign/PfsConfig datamodel version")
+        header["DAMD_VER"] = (6, "PfsDesign/PfsConfig datamodel version")
         header["W_PFDSGN"] = (self.pfsDesignId, "Identifier for fiber configuration")
         header["VARIANT"] = (self.variant, "Which variant of PFDSGN0 we are.")
         header["PFDSGN0"] = (self.designId0, "The base design of which we are a variant")
@@ -807,7 +889,9 @@ class PfsDesign:
                 # skip astrometry and operation keywords as they have already been set
                 if (nn not in cls._astrometry) and (nn not in cls._operation):
                     assert nn not in kwargs
-                    if nn in ['cobraId', 'cobraTheta', 'cobraPhi'] and nn not in data.columns.names:
+                    if (nn in ['cobraId', 'cobraTheta', 'cobraPhi', 'targetValidationMask',
+                               'cobraCommand']
+                            and nn not in data.columns.names):
                         kwargs[nn] = None
                     else:
                         kwargs[nn] = data[nn]
@@ -1390,19 +1474,31 @@ class PfsConfig(PfsDesign):
         Bitmask indicating instrument-related status flags for this visit.
     visit0 : `int`, optional
         visitId used for the convergence.
+    convergenceParams : `dict`, optional
+        Parameters the convergence ran under, so the per-fiber columns can be
+        reproduced rather than merely read.  See `ConvergenceParams` for the keys.
     cobraId : `numpy.ndarray` of `int32`, optional
         Cobra identifier for each fiber.
     cobraTheta : `numpy.ndarray` of `float32`
         Theta angle for each cobra, degrees.
     cobraPhi : `numpy.ndarray` of `float32`
         Phi angle for each cobra, degrees.
+    targetValidationMask : `numpy.ndarray` of `int32`, optional
+        `TargetValidation` bitmask per fiber: why FPS refused to send the cobra
+        to its design target, or zero if it was accepted.  Defaults to
+        `TargetValidation.NOT_SET` when unknown, which is how a pfsConfig
+        written before DAMD_VER 6 reads.
+    cobraCommand : `numpy.ndarray` of `int32`, optional
+        `CobraCommand` per fiber: what FPS did with the cobra.  Defaults to
+        `CobraCommand.NOT_SET`, which is how a fiber with no cobra reads, and how a
+        pfsConfig written before DAMD_VER 6 reads throughout.
     """
     # Scalar values
     _scalars = ["pfsDesignId", "designName",
                 "visit", "raBoresight", "decBoresight", "posAng", "arms", "guideStars",
                 "variant", "designId0", "obstime", "obstimeDesign",
                 "versionsDesign", "versions0", "versions",
-                "header", "camMask", "instStatusFlag", "visit0"]
+                "header", "camMask", "instStatusFlag", "visit0", "convergenceParams"]
 
     # List of fields required, and their FITS type
     # Some elements of the code expect the following to be present:
@@ -1427,6 +1523,8 @@ class PfsConfig(PfsDesign):
                "pfiCenter": "2E",
                "cobraTheta": "E",
                "cobraPhi": "E",
+               "targetValidationMask": "J",
+               "cobraCommand": "J",
                }
     _pointFields = ["pfiNominal", "pfiCenter"]  # List of point fields; should be in _fields too
     _photometry = ["fiberFlux",
@@ -1470,8 +1568,15 @@ class PfsConfig(PfsDesign):
                  visit0=None,
                  cobraId=None,
                  cobraTheta=None,
-                 cobraPhi=None):
+                 cobraPhi=None,
+                 targetValidationMask=None,
+                 cobraCommand=None,
+                 convergenceParams=None):
 
+        if targetValidationMask is None:
+            targetValidationMask = np.full(len(fiberId), int(TargetValidation.NOT_SET), dtype=np.int32)
+        if cobraCommand is None:
+            cobraCommand = np.full(len(fiberId), int(CobraCommand.NOT_SET), dtype=np.int32)
         if cobraTheta is None:
             cobraTheta = np.full(len(fiberId), np.nan, dtype=np.float32)
         if cobraPhi is None:
@@ -1481,8 +1586,11 @@ class PfsConfig(PfsDesign):
         self.pfiCenter = np.array(pfiCenter)
         self.cobraTheta = np.asarray(cobraTheta, dtype=np.float32)
         self.cobraPhi = np.asarray(cobraPhi, dtype=np.float32)
+        self.targetValidationMask = np.asarray(targetValidationMask, dtype=np.int32)
+        self.cobraCommand = np.asarray(cobraCommand, dtype=np.int32)
         self.camMask = camMask
         self.instStatusFlag = instStatusFlag
+        self.convergenceParams = dict() if convergenceParams is None else dict(convergenceParams)
         self.obstimeDesign = convertToIso8601Utc(obstimeDesign) if obstimeDesign else None
         self.visit0 = visit0
         versionsDesign = dict() if versionsDesign is None else dict(versionsDesign)
@@ -1522,9 +1630,37 @@ class PfsConfig(PfsDesign):
         """Usual filename"""
         return self.fileNameFormat % (self.pfsDesignId, self.visit)
 
+    def cobraConfig(self, sortBy="cobraId"):
+        """Return the subset of fibers that a cobra positions.
+
+        cobraTheta, cobraPhi, targetValidationMask and cobraCommand describe a cobra,
+        so on a fiber that has none they can only say "not applicable".  Selecting the
+        cobras first removes that case instead of asking every column to encode it, and
+        leaves each of them meaningful for every row.
+
+        Parameters
+        ----------
+        sortBy : `str`, optional
+            Column to order the result by.  "cobraId" makes row i cobra i + 1, lining
+            the result up with anything indexed by cobra; "fiberId" keeps the ordering
+            the rest of the file uses.
+
+        Returns
+        -------
+        `PfsConfig`
+            Containing only the fibers a cobra positions, i.e. every targetType but
+            ENGINEERING.
+        """
+        if sortBy not in ("cobraId", "fiberId"):
+            raise ValueError(f"sortBy must be 'cobraId' or 'fiberId', got {sortBy!r}")
+
+        onCobra = np.flatnonzero(self.targetType != TargetType.ENGINEERING)
+        return self[onCobra[np.argsort(getattr(self, sortBy)[onCobra])]]
+
     @classmethod
     def fromPfsDesign(cls, pfsDesign, visit, pfiCenter, header=None, camMask=0, instStatusFlag=0,
-                      visit0=None, cobraTheta=None, cobraPhi=None, versions=None, versions0=None):
+                      visit0=None, cobraTheta=None, cobraPhi=None, versions=None, versions0=None,
+                      targetValidationMask=None, cobraCommand=None, convergenceParams=None):
         """Construct from a ``PfsDesign``
 
         Parameters
@@ -1547,6 +1683,16 @@ class PfsConfig(PfsDesign):
             Theta angle for each cobra, degrees.
         cobraPhi : `numpy.ndarray` of `float32`, optional
             Phi angle for each cobra, degrees.
+        targetValidationMask : `numpy.ndarray` of `int32`, optional
+            `TargetValidation` bitmask per fiber.  A design carries no verdict, so
+            omitting it leaves every fiber `TargetValidation.NOT_SET` until FPS
+            validates the targets at move time.
+        cobraCommand : `numpy.ndarray` of `int32`, optional
+            `CobraCommand` per fiber.  A design commands nothing, so omitting it leaves
+            every fiber `CobraCommand.NOT_SET`.
+        convergenceParams : `dict`, optional
+            How the visit was converged, keyed as in `ConvergenceParams`.  Empty until
+            the convergence has run, since it records the outcome as well as the policy.
 
         Returns
         -------
@@ -1567,11 +1713,14 @@ class PfsConfig(PfsDesign):
         kwargs["visit0"] = visit0
         kwargs["cobraTheta"] = cobraTheta
         kwargs["cobraPhi"] = cobraPhi
+        kwargs["targetValidationMask"] = targetValidationMask
+        kwargs["cobraCommand"] = cobraCommand
         kwargs["versionsDesign"] = dict(pfsDesign.versions)
         versions = dict() if versions is None else dict(versions)
         versions0 = dict() if versions0 is None else dict(versions0)
         kwargs["versions"] = versions
         kwargs["versions0"] = versions0
+        kwargs["convergenceParams"] = dict() if convergenceParams is None else dict(convergenceParams)
 
         return PfsConfig(**kwargs)
 
@@ -1601,6 +1750,7 @@ class PfsConfig(PfsDesign):
         kwargs["camMask"] = header.get("W_CAMMSK", 0)
         kwargs["instStatusFlag"] = header.get("W_INSMSK", 0)
         kwargs["obstimeDesign"] = header.get("W_DSOBS0", None)
+        kwargs["convergenceParams"] = ConvergenceParams.read(header)
 
         if visit is not None:
             if "visit" in kwargs and kwargs["visit"] != visit:
@@ -1636,6 +1786,7 @@ class PfsConfig(PfsDesign):
         super()._writeHeader(header)
         header["W_VISIT"] = (self.visit, "Visit number")
         header["W_CAMMSK"] = (self.camMask, "Bitmask describing which camera was used for this visit.")
+        ConvergenceParams.write(header, self.convergenceParams)
         header["W_INSMSK"] = (self.instStatusFlag,
                               "Bitmask indicating instrument-related status flags for this visit.")
 

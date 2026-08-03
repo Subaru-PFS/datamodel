@@ -1,6 +1,7 @@
 import datetime
 import os
 import sys
+import tempfile
 import unittest
 
 import astropy.io.fits as pyfits
@@ -10,7 +11,7 @@ import lsst.utils.tests
 import numpy as np
 from pfs.datamodel.pfsConfig import (
     PfsConfig, TargetType, FiberStatus, PfsDesign, GuideStars, InstrumentStatusFlag,
-    InstrumentStatusDescription)
+    InstrumentStatusDescription, TargetValidation, CobraCommand)
 from pfs.datamodel.utils import convertToIso8601Utc
 
 display = None
@@ -130,6 +131,16 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
 
         self.obstime = convertToIso8601Utc(datetime.datetime.now(datetime.timezone.utc).isoformat())
         self.obstimeDesign = convertToIso8601Utc(datetime.datetime.now(datetime.timezone.utc).isoformat())
+        self.cobraCommand = np.full(self.numFibers, int(CobraCommand.CONVERGE))
+        self.cobraCommand[::37] = int(CobraCommand.NOT_COMMANDED)
+        self.cobraCommand[::53] = int(CobraCommand.BLACK_DOT)
+        self.convergenceParams = dict(targetFallbackInvalid="BLACKSPOT",
+                                      targetFallbackUnassigned="BLACKSPOT",
+                                      distanceTolerance=0.05,
+                                      fiducialCheckSkipped=False,
+                                      numIterations=8,
+                                      elapsedTime=79.55,
+                                      requestedTolerance=0.01)
         self.versions = dict(ics_iicActor="2.7.17", pfs_utils="w.2026.09", datamodel="w.2026.09")
         self.versions0 = dict(ics_fpsActor="1.8.10", pfs_utils="w.2026.09", datamodel="w.2026.09")
         self.versionsDesign = dict(pfs_utils="w.2026.09", datamodel="w.2026.09")
@@ -137,6 +148,13 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
         self.visit0 = 67889
         self.cobraTheta = np.full(len(self.fiberId), 0.0)
         self.cobraPhi = np.full(len(self.fiberId), 0.0)
+
+        self.targetValidationMask = np.zeros(len(self.fiberId), dtype=np.int32)
+        self.targetValidationMask[1] = TargetValidation.FIDUCIAL_INTERFERENCE
+        self.targetValidationMask[2] = TargetValidation.NOT_FINITE
+        # co-occurring reasons must survive as a bitmask, not collapse to one
+        self.targetValidationMask[3] = (TargetValidation.TOO_FAR_FROM_CENTER
+                                        | TargetValidation.FIDUCIAL_INTERFERENCE)
 
     def _makeInstance(self, Class, **kwargs):
         """Construct a PfsDesign or PfsConfig using default values
@@ -220,6 +238,9 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
     def assertPfsConfig(self, lhs, rhs):
         self.assertEqual(lhs.visit, rhs.visit)
         np.testing.assert_array_equal(lhs.pfiCenter, rhs.pfiCenter)
+        np.testing.assert_array_equal(lhs.targetValidationMask, rhs.targetValidationMask)
+        np.testing.assert_array_equal(lhs.cobraCommand, rhs.cobraCommand)
+        self.assertEqual(lhs.convergenceParams, rhs.convergenceParams)
         self.assertEqual(lhs.versionsDesign, rhs.versionsDesign)
         self.assertEqual(lhs.versions0, rhs.versions0)
         self.assertEqual(lhs.versions, rhs.versions)
@@ -244,6 +265,94 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
             raise  # Leave file for manual inspection
         else:
             os.unlink(filename)
+
+    def testTargetValidationMask(self):
+        """Test targetValidationMask, including files written before it existed"""
+        config = self.makePfsConfig()
+        self.assertEqual(config.targetValidationMask.dtype, np.int32)
+        # setUp supplies a mask, so nothing may read as "never recorded"
+        self.assertTrue(np.all(config.targetValidationMask != TargetValidation.NOT_SET))
+
+        # Self-contained: this test shares a filename with the others, so writing into
+        # the common directory races with them when the suite runs in parallel.
+        with tempfile.TemporaryDirectory() as dirName:
+            config.write(dirName=dirName)
+            filename = os.path.join(dirName, config.filename)
+
+            other = PfsConfig.read(self.pfsDesignId, self.visit, dirName=dirName)
+            np.testing.assert_array_equal(other.targetValidationMask, self.targetValidationMask)
+
+            # Strip the column, as a pfsConfig written before DAMD_VER 6.  Reading it must
+            # not raise, and must report NOT_SET rather than zero -- zero would assert that
+            # every target was accepted, which such a file cannot claim.  The stripped copy
+            # goes to its own directory: writing over a file that is still open truncates it.
+            with tempfile.TemporaryDirectory() as legacyDir:
+                with pyfits.open(filename) as fd:
+                    columns = [col for col in fd["CONFIG"].columns
+                               if col.name != "targetValidationMask"]
+                    hdus = pyfits.HDUList(
+                        [pyfits.BinTableHDU.from_columns(columns, fd["CONFIG"].header, name="CONFIG")
+                         if hdu.name == "CONFIG" else hdu.copy() for hdu in fd])
+                    hdus[0].header["DAMD_VER"] = 5
+                hdus.writeto(os.path.join(legacyDir, config.filename))
+
+                old = PfsConfig.read(self.pfsDesignId, self.visit, dirName=legacyDir)
+                self.assertTrue(np.all(old.targetValidationMask == TargetValidation.NOT_SET))
+                os.unlink(os.path.join(legacyDir, config.filename))
+                old.write(dirName=legacyDir)  # and remains writable
+
+    def testCobraCommand(self):
+        """Test cobraCommand and the cobraConfig subset"""
+        config = self.makePfsConfig()
+        self.assertEqual(config.cobraCommand.dtype, np.int32)
+        # setUp supplies a command, so nothing may read as "never recorded"
+        self.assertTrue(np.all(config.cobraCommand != CobraCommand.NOT_SET))
+
+        with tempfile.TemporaryDirectory() as dirName:
+            config.write(dirName=dirName)
+            filename = os.path.join(dirName, config.filename)
+
+            other = PfsConfig.read(self.pfsDesignId, self.visit, dirName=dirName)
+            np.testing.assert_array_equal(other.cobraCommand, self.cobraCommand)
+
+            # As a pfsConfig written before DAMD_VER 6: NOT_SET rather than zero, since
+            # zero is NOT_COMMANDED and would assert that fps moved nothing.
+            with tempfile.TemporaryDirectory() as legacyDir:
+                with pyfits.open(filename) as fd:
+                    columns = [col for col in fd["CONFIG"].columns if col.name != "cobraCommand"]
+                    hdus = pyfits.HDUList(
+                        [pyfits.BinTableHDU.from_columns(columns, fd["CONFIG"].header, name="CONFIG")
+                         if hdu.name == "CONFIG" else hdu.copy() for hdu in fd])
+                    hdus[0].header["DAMD_VER"] = 5
+                hdus.writeto(os.path.join(legacyDir, config.filename))
+
+                old = PfsConfig.read(self.pfsDesignId, self.visit, dirName=legacyDir)
+                self.assertTrue(np.all(old.cobraCommand == CobraCommand.NOT_SET))
+
+    def testCobraConfig(self):
+        """Test the cobraConfig subset and its ordering"""
+        config = self.makePfsConfig()
+        onCobra = config.targetType != TargetType.ENGINEERING
+
+        for sortBy, column in (("cobraId", "cobraId"), ("fiberId", "fiberId")):
+            sub = config.cobraConfig(sortBy=sortBy)
+            self.assertEqual(len(sub), int(onCobra.sum()))
+            self.assertTrue(np.all(sub.targetType != TargetType.ENGINEERING))
+            # ordering is the point of the argument
+            self.assertTrue(np.all(np.diff(getattr(sub, column)) > 0))
+            # every fiber survives, whichever order it comes back in
+            self.assertEqual(set(sub.fiberId.tolist()), set(config.fiberId[onCobra].tolist()))
+
+        # the reorder must carry the list-valued columns too, not just the arrays
+        sub = config.cobraConfig()
+        order = np.flatnonzero(onCobra)
+        order = order[np.argsort(config.cobraId[order])]
+        np.testing.assert_array_equal(sub.fiberId, config.fiberId[order])
+        np.testing.assert_array_equal(np.asarray(sub.patch),
+                                      np.asarray([config.patch[ii] for ii in order]))
+
+        with self.assertRaises(ValueError):
+            config.cobraConfig(sortBy="nonsense")
 
     def testBadCtor(self):
         """Test bad constructor calls"""
@@ -322,8 +431,18 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
         config = self.makePfsConfig()
         built = PfsConfig.fromPfsDesign(design, self.visit, self.pfiCenter,
                                         versions=self.versions,
-                                        versions0=self.versions0)
+                                        versions0=self.versions0,
+                                        targetValidationMask=self.targetValidationMask,
+                                        cobraCommand=self.cobraCommand,
+                                        convergenceParams=self.convergenceParams)
         self.assertPfsConfig(built, config)
+
+        # A design carries no verdict, so omitting the mask must leave it unrecorded
+        # rather than claiming every target was accepted.
+        unvalidated = PfsConfig.fromPfsDesign(design, self.visit, self.pfiCenter,
+                                              versions=self.versions,
+                                              versions0=self.versions0)
+        self.assertTrue(np.all(unvalidated.targetValidationMask == TargetValidation.NOT_SET))
 
     def testDesignName(self):
         """Test creation of design name"""
