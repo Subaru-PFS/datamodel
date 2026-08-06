@@ -20,6 +20,10 @@ PfsDesign, and so their versions are incremented together.
 * 1: Initial version.
 * 2: Additional HDU added for guide star information, provided by ETS shuffle.
 * 3: Write pfsDesignId and visit0 in header.
+* 6: targetValidationMask and cobraCommand columns added to PfsConfig, recording
+     why FPS refused to send a cobra to its design target and what it did with the
+     cobra instead. Absent in earlier files, which read back as
+     TargetValidation.NOT_SET and CobraCommand.NOT_SET.
 
 
 PfsDetectorMap
