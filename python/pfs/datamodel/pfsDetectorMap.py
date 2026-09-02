@@ -1173,8 +1173,8 @@ class PolynomialDistortion(PfsDistortion):
 
     Parameters
     ----------
-    xOrder, yOrder : `int`
-        Orders of the polynomials.
+    order : `int`
+        Order of the polynomials.
     box : `Box`
         Range of the polynomials.
     xCoefficients : `numpy.ndarray` of `float`
@@ -1184,14 +1184,12 @@ class PolynomialDistortion(PfsDistortion):
     """
     def __init__(
         self,
-        xOrder: int,
-        yOrder: int,
+        order: int,
         box: Box,
         xCoefficients: np.ndarray,
         yCoefficients: np.ndarray,
     ):
-        self.xOrder = xOrder
-        self.yOrder = yOrder
+        self.order = order
         self.box = box
         self.xCoefficients = xCoefficients
         self.yCoefficients = yCoefficients
@@ -1224,18 +1222,11 @@ class PolynomialDistortion(PfsDistortion):
             Constructed distortion, from FITS file.
         """
         hdu = fits[cls.getExtName(index)]
-        if "XORDER" in hdu.header and "YORDER" in hdu.header:
-            xOrder = hdu.header["XORDER"]
-            yOrder = hdu.header["YORDER"]
-        elif "ORDER" in hdu.header:
-            xOrder = hdu.header["ORDER"]
-            yOrder = hdu.header["ORDER"]
-        else:
-            raise RuntimeError("FITS header missing polynomial order")
+        order = hdu.header["ORDER"]
         box = Box.fromFitsHeader(hdu.header)
         xCoefficients = hdu.data["xCoefficients"].astype(float)
         yCoefficients = hdu.data["yCoefficients"].astype(float)
-        return cls(xOrder, yOrder, box, xCoefficients, yCoefficients)
+        return cls(order, box, xCoefficients, yCoefficients)
 
     def writeFits(self, fits: astropy.io.fits.HDUList, index: int):
         """Write to a FITS file
@@ -1248,8 +1239,7 @@ class PolynomialDistortion(PfsDistortion):
             Index of distortion to write.
         """
         header = astropy.io.fits.Header()
-        header["XORDER"] = self.xOrder
-        header["YORDER"] = self.yOrder
+        header["ORDER"] = self.order
         header["INHERIT"] = True
         header.update(self.box.toFitsHeader())
 
@@ -1359,8 +1349,8 @@ class MosaicPolynomialDistortion(PfsDistortion):
 
     Parameters
     ----------
-    xOrder, yOrder : `int`
-        Orders of the polynomials.
+    order : `int`
+        Order of the polynomials.
     box : `Box`
         Range of the polynomials.
     coefficients : `numpy.ndarray` of `float`
@@ -1368,13 +1358,11 @@ class MosaicPolynomialDistortion(PfsDistortion):
     """
     def __init__(
         self,
-        xOrder: int,
-        yOrder: int,
+        order: int,
         box: Box,
         coefficients: np.ndarray,
     ):
-        self.xOrder = xOrder
-        self.yOrder = yOrder
+        self.order = order
         self.box = box
         self.coefficients = coefficients
 
@@ -1406,17 +1394,10 @@ class MosaicPolynomialDistortion(PfsDistortion):
             Constructed distortion, from FITS file.
         """
         hdu = fits[cls.getExtName(index)]
-        if "XORDER" in hdu.header and "YORDER" in hdu.header:
-            xOrder = hdu.header["XORDER"]
-            yOrder = hdu.header["YORDER"]
-        elif "ORDER" in hdu.header:
-            xOrder = hdu.header["ORDER"]
-            yOrder = hdu.header["ORDER"]
-        else:
-            raise RuntimeError("FITS header missing polynomial order")
+        order = hdu.header["ORDER"]
         box = Box.fromFitsHeader(hdu.header)
         coefficients = hdu.data.astype(float)
-        return cls(xOrder=xOrder, yOrder=yOrder, box=box, coefficients=coefficients)
+        return cls(order, box, coefficients)
 
     def writeFits(self, fits: astropy.io.fits.HDUList, index: int):
         """Write to a FITS file
@@ -1429,8 +1410,7 @@ class MosaicPolynomialDistortion(PfsDistortion):
             Index of distortion to write.
         """
         header = astropy.io.fits.Header()
-        header["XORDER"] = self.xOrder
-        header["YORDER"] = self.yOrder
+        header["ORDER"] = self.order
         header["INHERIT"] = True
         header.update(self.box.toFitsHeader())
 
