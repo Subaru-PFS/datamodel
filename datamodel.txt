@@ -101,6 +101,17 @@ catId
      1002 | Sky positions from PS1
      1003 | Sky positions from Gaia
      1004 | Sky positions for regions without PS1 data
+     1006 | Sky positions from Gaia version 20230209
+     1007 | Sky positions from PS1 version 20230209
+     3000 | F-type star candidates version 1.0 for flux calibration
+     3001 | F-type star candidates version 2.0 for flux calibration
+     3002 | F-type star candidates version 2.1 for flux calibration
+     3003 | F-type star candidates version 3.0 for flux calibration
+     3004 | F-type star candidates version 3.1 for flux calibration
+     3005 | F-type star candidates version 3.2 for flux calibration
+     3006 | F-type star candidates version 3.3 for flux calibration
+     3011 | F-type star candidates version 3.4 (QSO candidates removed)
+     3012 | F-type star candidates version 3.5 (QSO candidates and star clusters removed)
     90001 | Messier 15 stars for the engineering observation
     90002 | NGC1904 for the engineering run in November 2022
     90003 | NGC2419 for the engineering run in November 2022
