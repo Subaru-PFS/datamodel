@@ -22,3 +22,4 @@ from .pfsFocalPlaneFunction import *
 from .pfsFiberNorms import *
 from .pfsZCandidates import *
 from .pfsCoZCandidates import *
+from .ga import *
