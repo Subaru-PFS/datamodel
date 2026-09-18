@@ -17,6 +17,7 @@ GA_DAMD_VER = 2
 
 __all__ = [
     "TempFitFlag",
+    "ChemFitFlag",
     "VelocityCorrections",
     "StellarParams",
     "Abundances",
@@ -51,6 +52,14 @@ class TempFitFlag(IntFlag):
     NORVPOLISH = 1 << 11            # RV polishing step failed or not performed
 
 
+class ChemFitFlag(IntFlag):
+    """Flags for chemical abundance fitting"""
+
+    OK = 0                          # No flags
+    PARAMEDGE = 1 << 4              # "Template parameters at the bounds"
+    BADERROR = 1 << 5               # "Errors could not be calculated"
+
+
 class VelocityCorrections(PfsTable):
     """A table of velocity corrections applied to the individual visits."""
 
@@ -69,7 +78,7 @@ class StellarParams(PfsTable):
 
     damdVer = GA_DAMD_VER
     schema = [
-        Column("method", str, "Line-of-sight velocity measurement method", ""),
+        Column("method", str, "Stellar parameter measurement method", ""),
         Column("frame", str, "Reference frame of velocity: helio, bary", ""),
         Column("param", str, "Stellar parameter: v_los, M_H, T_eff, log_g, a_M", ""),
         Column("covarId", np.uint8, "Param position within covariance matrix", -1),
