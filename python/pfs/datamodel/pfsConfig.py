@@ -821,7 +821,7 @@ class PfsDesign:
         header["POSANG"] = (self.posAng, "[degree] PFI position angle")
         header["ARMS"] = (self.arms, "Exposed arms")
         header["DSGN_NAM"] = (self.designName, "Name of design")
-        header["DAMD_VER"] = (6, "PfsDesign/PfsConfig datamodel version")
+        header["DAMD_VER"] = (7, "PfsDesign/PfsConfig datamodel version")
         header["W_PFDSGN"] = (self.pfsDesignId, "Identifier for fiber configuration")
         header["VARIANT"] = (self.variant, "Which variant of PFDSGN0 we are.")
         header["PFDSGN0"] = (self.designId0, "The base design of which we are a variant")
@@ -1461,9 +1461,12 @@ class PfsConfig(PfsDesign):
     variant : `int`, optional
         Counter of which variant of `designId0` we are. Requires `designId0`.
     obstime : `str`, optional
-        Observation time ISO format (UTC-time).
+        Mid-exposure time of this visit ISO format (UTC-time).
     obstimeDesign : `str`, optional
         Designed observation time ISO format (UTC-time).
+    obstime0 : `str`, optional
+        Observation time ISO format (UTC-time) that ``ra``, ``dec`` and
+        ``pfiNominal`` are computed for: the convergence of ``visit0``.
     header : `astropy.io.fits.Header` or `dict`, optional
         Header to be written to the FITS file.
     designId0 : `int`, optional
@@ -1496,7 +1499,7 @@ class PfsConfig(PfsDesign):
     # Scalar values
     _scalars = ["pfsDesignId", "designName",
                 "visit", "raBoresight", "decBoresight", "posAng", "arms", "guideStars",
-                "variant", "designId0", "obstime", "obstimeDesign",
+                "variant", "designId0", "obstime", "obstimeDesign", "obstime0",
                 "versionsDesign", "versions0", "versions",
                 "header", "camMask", "instStatusFlag", "visit0", "convergenceParams"]
 
@@ -1559,6 +1562,7 @@ class PfsConfig(PfsDesign):
                  designId0=0,
                  obstime=None,
                  obstimeDesign=None,
+                 obstime0=None,
                  versionsDesign=None,
                  versions0=None,
                  versions=None,
@@ -1592,6 +1596,7 @@ class PfsConfig(PfsDesign):
         self.instStatusFlag = instStatusFlag
         self.convergenceParams = dict() if convergenceParams is None else dict(convergenceParams)
         self.obstimeDesign = convertToIso8601Utc(obstimeDesign) if obstimeDesign else None
+        self.obstime0 = convertToIso8601Utc(obstime0) if obstime0 else None
         self.visit0 = visit0
         versionsDesign = dict() if versionsDesign is None else dict(versionsDesign)
         versions0 = dict() if versions0 is None else dict(versions0)
@@ -1710,6 +1715,7 @@ class PfsConfig(PfsDesign):
         kwargs["camMask"] = camMask
         kwargs["instStatusFlag"] = instStatusFlag
         kwargs["obstimeDesign"] = pfsDesign.obstime
+        kwargs["obstime0"] = pfsDesign.obstime
         kwargs["visit0"] = visit0
         kwargs["cobraTheta"] = cobraTheta
         kwargs["cobraPhi"] = cobraPhi
@@ -1750,6 +1756,11 @@ class PfsConfig(PfsDesign):
         kwargs["camMask"] = header.get("W_CAMMSK", 0)
         kwargs["instStatusFlag"] = header.get("W_INSMSK", 0)
         kwargs["obstimeDesign"] = header.get("W_DSOBS0", None)
+        # Up to DAMD_VER 6, obstime was also the time the positions were computed for.
+        if header.get("DAMD_VER", 0) <= 6:
+            kwargs["obstime0"] = kwargs["obstime"]
+        else:
+            kwargs["obstime0"] = header.get("W_CVGOBS", None)
         kwargs["convergenceParams"] = ConvergenceParams.read(header)
 
         if visit is not None:
@@ -1794,9 +1805,13 @@ class PfsConfig(PfsDesign):
         VersionTable.write(header, "config0", self.versions0)
         VersionTable.write(header, "config", self.versions)
 
+        if self.obstime:
+            header["W_DSGOBS"] = (self.obstime, "Mid-exposure time of this visit, UTC")
         if self.obstimeDesign:
             header["W_DSOBS0"] = (self.obstimeDesign,
                                   "Original designed observation time ISO format (UTC-time).")
+        if self.obstime0:
+            header["W_CVGOBS"] = (self.obstime0, "Observation time of the positions, UTC")
         if self.visit0:
             header["W_VISIT0"] = (self.visit0, "Visit number used for the convergence.")
 
@@ -1931,7 +1946,8 @@ class PfsConfig(PfsDesign):
         pfiNominal : `numpy.ndarray` of `float`
             Updated intended target position (2-vector) of each fiber on the PFI, millimeters.
         obstime : `str`
-            Observation time in ISO format (UTC-time).
+            Observation time in ISO format (UTC-time) the positions are computed
+            for; sets both ``obstime`` and ``obstime0``.
         guide_ra : numpy.ndarray of float64
             Guide-star Right Ascension in degrees, shape (N,).
         guide_dec : numpy.ndarray of float64
@@ -1945,6 +1961,7 @@ class PfsConfig(PfsDesign):
         self.dec = dec
         self.pfiNominal = pfiNominal
         self.obstime = convertToIso8601Utc(obstime)
+        self.obstime0 = self.obstime
         self.guideStars.updateObjectPositions(guide_ra, guide_dec, guide_x_pix, guide_y_pix)
 
     def setInstrumentStatusFlag(self, flag: InstrumentStatusFlag):

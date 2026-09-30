@@ -24,6 +24,9 @@ PfsDesign, and so their versions are incremented together.
      why FPS refused to send a cobra to its design target and what it did with the
      cobra instead. Absent in earlier files, which read back as
      TargetValidation.NOT_SET and CobraCommand.NOT_SET.
+* 7: obstime0 added to PfsConfig (W_CVGOBS), the time ra, dec and pfiNominal are
+     computed for; obstime (W_DSGOBS) becomes the mid-exposure time of the visit.
+     Earlier files read back with obstime0 equal to obstime.
 
 
 PfsDetectorMap
