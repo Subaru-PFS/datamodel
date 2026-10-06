@@ -1,3 +1,32 @@
+MAX_VALUE_LENGTH = 80
+"""Longest header value the STARS archive accepts (its database limit, not a FITS one)."""
+
+
+def _shorten(value, comment):
+    """Fit a header value within `MAX_VALUE_LENGTH`.
+
+    An over-long value keeps its tail behind a "..." prefix, since for a path the
+    filename is the informative part, and its comment is marked TRUNCATED.
+
+    Parameters
+    ----------
+    value : `str`
+        Header value.
+    comment : `str`
+        Header comment.
+
+    Returns
+    -------
+    value : `str`
+        Value of at most `MAX_VALUE_LENGTH` characters.
+    comment : `str`
+        Comment, ending with "TRUNCATED" if the value was shortened.
+    """
+    if len(value) <= MAX_VALUE_LENGTH:
+        return value, comment
+    return "..." + value[-(MAX_VALUE_LENGTH - 3):], f"{comment} TRUNCATED"
+
+
 class VersionTable:
     """Fixed mapping between version keys and FITS header cards."""
 
@@ -41,7 +70,8 @@ class VersionTable:
         """Write a versions dict to header using a registered table.
 
         This clears all cards in the table first to avoid stale values persisting
-        across multiple writes.
+        across multiple writes. A value longer than `MAX_VALUE_LENGTH` is truncated
+        from the front and its comment marked TRUNCATED.
         """
         table = cls._getTable(name)
 
@@ -52,7 +82,7 @@ class VersionTable:
         for keyName, card, comment in table:
             value = versions.get(keyName, None)
             if value:
-                header[card] = (str(value), comment)
+                header[card] = _shorten(str(value), comment)
 
 
 tableDesign = (
