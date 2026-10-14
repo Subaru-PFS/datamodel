@@ -19,6 +19,7 @@ __all__ = [
     "PfsObjectNotes",
     "PfsObject",
     "LineMeasurements",
+    "LsfLineMeasurements",
     "PfsCalibrated",
     "PfsCoadd",
 ]
@@ -146,6 +147,56 @@ class LineMeasurements(PfsTableWithSeparateStrings):
     ]
     fitsExtName = "ARCLINES"
     aliases = dict(flux=("intensity",), fluxErr=("intensityErr"),)
+
+
+class LsfLineMeasurements(PfsTableWithSeparateStrings):
+    """Per-line fits of the line-spread function to arc lines
+
+    Each row is one arc line in one fibre of one exposure, fit with the
+    disk (x) Edgeworth LSF model (the fibre face, a disk of radius ``radius``,
+    blurred by a kernel of rms ``blur`` with standardised cumulants ``S``,
+    ``K``, ``lam5``, ``lam6``, optionally convolved with a Lorentzian of FWHM
+    ``lorentz``; NaN if not fit).
+    """
+    schema = [
+        Column("visit", np.int32, "Exposure identifier", -1),
+        Column("fiberId", np.int32, "Fiber identifier", -1),
+        Column("wavelength", np.float64, "Reference (catalogue) wavelength (nm)", np.nan),
+        Column("status", np.int32, "Reference line status bitmask", -1),
+        Column("description", str, "Reference line description", "UNKNOWN"),
+        Column("transition", str, "Reference line transition", "UNKNOWN"),
+        Column("x", np.float32, "x position on the detector (pixels)", np.nan),
+        Column("y", np.float32, "y position on the detector (pixels)", np.nan),
+        Column("pixel", np.float64, "Fitted line centre (first moment) in the spectrum (pixels)", np.nan),
+        Column("pixelErr", np.float32, "Error in pixel (pixels)", np.nan),
+        Column("refPixel", np.float64, "Position of the reference wavelength in the spectrum (pixels)", np.nan),
+        Column("dispersion", np.float32, "Dispersion at the line (nm/pixel)", np.nan),
+        Column("dataCentroid", np.float32, "First moment of the data about pixel, in a window (pixels)", np.nan),
+        Column("modelCentroid", np.float32, "First moment of the model about pixel, same window (pixels)",
+               np.nan),
+        Column("radius", np.float32, "Fibre disk radius (pixels)", np.nan),
+        Column("radiusErr", np.float32, "Error in radius (pixels)", np.nan),
+        Column("blur", np.float32, "RMS of the blur kernel (pixels)", np.nan),
+        Column("blurErr", np.float32, "Error in blur (pixels)", np.nan),
+        Column("S", np.float32, "Skewness of the blur kernel", np.nan),
+        Column("SErr", np.float32, "Error in S", np.nan),
+        Column("K", np.float32, "Excess kurtosis of the blur kernel", np.nan),
+        Column("KErr", np.float32, "Error in K", np.nan),
+        Column("lam5", np.float32, "Fifth standardised cumulant of the blur kernel", np.nan),
+        Column("lam5Err", np.float32, "Error in lam5", np.nan),
+        Column("lam6", np.float32, "Sixth standardised cumulant of the blur kernel", np.nan),
+        Column("lam6Err", np.float32, "Error in lam6", np.nan),
+        Column("lorentz", np.float32, "FWHM of the Lorentzian convolved with the profile (pixels)", np.nan),
+        Column("lorentzErr", np.float32, "Error in lorentz (pixels)", np.nan),
+        Column("flux", np.float32, "Line flux", np.nan),
+        Column("fluxErr", np.float32, "Error in flux", np.nan),
+        Column("peak", np.float32, "Peak flux of the line's model", np.nan),
+        Column("chi2", np.float32, "chi^2 of the fit", np.nan),
+        Column("ndof", np.int32, "Degrees of freedom of the fit", 0),
+        Column("nBadCore", np.int32, "Number of masked pixels in the line's core", 0),
+        Column("flag", np.int32, "Bitmask: how the line was used (see datamodel.txt)", 0),
+    ]
+    fitsExtName = "LSFLINES"
 
 
 class PfsCalibratedNotesTable(PfsTable):
