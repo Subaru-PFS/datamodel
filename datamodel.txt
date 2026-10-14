@@ -816,6 +816,74 @@ Both the ARCLINES_DESCRIPTION and ARCLINES_TRANSITION HDUs have the same format:
 
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
+LSF line measurements
+
+The line-spread function of each detector is fit from arc lines in the pfsArms of
+arc exposures. Each arc line in each fibre of each exposure is fit with a model of
+the extracted fibre image: a disk of radius 'radius' (the fibre face) blurred by a
+kernel of rms 'blur', expanded as an Edgeworth series in the kernel's standardised
+cumulants (skewness 'S', excess kurtosis 'K', and 'lam5', 'lam6'), optionally
+convolved with a Lorentzian of FWHM 'lorentz', and integrated over pixels. The per-line fits for a detector are written as
+
+    "lsfLines-%1s%1d.fits" % (arm, spectrograph)
+
+with a principal table HDU (in addition to the mandatory empty PHDU), LSFLINES,
+with columns:
+
+    visit           32-bit int; exposure identifier
+    fiberId         32-bit int; fiber identifier
+    wavelength      64-bit float (nm); reference (catalogue) wavelength
+    status          32-bit int; reference line status bitmask
+    description     32-bit int; index into HDU LSFLINES_DESCRIPTION
+    transition      32-bit int; index into HDU LSFLINES_TRANSITION
+    x               32-bit float (pixels); position on the detector in x
+    y               32-bit float (pixels); position on the detector in y
+    pixel           64-bit float (pixels); fitted line centre (= first moment) in the spectrum
+    pixelErr        32-bit float (pixels); error in pixel
+    refPixel        64-bit float (pixels); position of 'wavelength' in the spectrum
+    dispersion      32-bit float (nm/pixel); dispersion at the line
+    dataCentroid    32-bit float (pixels); first moment of the data about 'pixel', in a window
+    modelCentroid   32-bit float (pixels); first moment of the model about 'pixel', same window
+    radius          32-bit float (pixels); radius of the fibre disk
+    radiusErr       32-bit float (pixels); error in radius
+    blur            32-bit float (pixels); rms of the blur kernel
+    blurErr         32-bit float (pixels); error in blur
+    S               32-bit float; skewness of the blur kernel
+    SErr            32-bit float; error in S
+    K               32-bit float; excess kurtosis of the blur kernel
+    KErr            32-bit float; error in K
+    lam5            32-bit float; fifth standardised cumulant of the blur kernel (NaN if not fit)
+    lam5Err         32-bit float; error in lam5
+    lam6            32-bit float; sixth standardised cumulant of the blur kernel (NaN if not fit)
+    lam6Err         32-bit float; error in lam6
+    lorentz         32-bit float (pixels); FWHM of a Lorentzian convolved with the profile (NaN if not fit)
+    lorentzErr      32-bit float (pixels); error in lorentz
+    flux            32-bit float (arbitrary units); line flux
+    fluxErr         32-bit float (arbitrary units); error in flux
+    peak            32-bit float (arbitrary units); peak flux of the line's model
+    chi2            32-bit float; chi^2 of the fit
+    ndof            32-bit int; degrees of freedom of the fit
+    nBadCore        32-bit int; number of masked pixels in the line's core
+    flag            32-bit int; bitmask describing how the line was used:
+                        0x001 SATURATED: the line's core is saturated in this fibre (not fit)
+                        0x002 SATURATED_ELSEWHERE: saturated in too many fibres (not used)
+                        0x004 EXCLUDED_STATUS: the catalogue status is excluded (not used)
+                        0x008 BROAD: intrinsically broader than the LSF, measured or per the catalogue (not used)
+                        0x010 PINNED: the centre was held fixed (free fit + centroid zero point)
+                        0x020 REJECTED_CENTROID: clipped by the smooth fit of the centroid
+                        0x040 REJECTED_RADIUS: ... of radius
+                        0x080 REJECTED_BLUR: ... of blur
+                        0x100 REJECTED_S: ... of S
+                        0x200 REJECTED_K: ... of K
+                        0x400 REJECTED_LAM5: ... of lam5
+                        0x800 REJECTED_LAM6: ... of lam6
+                        0x1000 REJECTED_LORENTZ: ... of lorentz
+
+The LSFLINES_DESCRIPTION and LSFLINES_TRANSITION HDUs have the same format as
+ARCLINES_DESCRIPTION.
+
+-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
 2D spectral calibrations
 
 The 2D pipeline measures and applies multiple calibrations to the spectra as part of the reduction process.
