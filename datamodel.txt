@@ -878,6 +878,7 @@ with columns:
                         0x400 REJECTED_LAM5: ... of lam5
                         0x800 REJECTED_LAM6: ... of lam6
                         0x1000 REJECTED_LORENTZ: ... of lorentz
+                        0x2000 LOW_SN: the line's median S/N over the fibres is too low (not used)
 
 The LSFLINES_DESCRIPTION and LSFLINES_TRANSITION HDUs have the same format as
 ARCLINES_DESCRIPTION.
