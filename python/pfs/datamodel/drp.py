@@ -154,7 +154,7 @@ class LsfLineMeasurements(PfsTableWithSeparateStrings):
 
     Each row is one arc line in one fibre of one exposure, fit with the
     disk (x) Edgeworth LSF model (the fibre face, a disk of radius ``radius``,
-    blurred by a kernel of rms ``blur`` with standardised cumulants ``S``,
+    blurred by a kernel of rms ``rms`` with standardised cumulants ``S``,
     ``K``, ``lam5``, ``lam6``, optionally convolved with a Lorentzian of FWHM
     ``lorentz``; NaN if not fit).
     """
@@ -176,8 +176,8 @@ class LsfLineMeasurements(PfsTableWithSeparateStrings):
                np.nan),
         Column("radius", np.float32, "Fibre disk radius (pixels)", np.nan),
         Column("radiusErr", np.float32, "Error in radius (pixels)", np.nan),
-        Column("blur", np.float32, "RMS of the blur kernel (pixels)", np.nan),
-        Column("blurErr", np.float32, "Error in blur (pixels)", np.nan),
+        Column("rms", np.float32, "RMS of the blur kernel (pixels)", np.nan),
+        Column("rmsErr", np.float32, "Error in rms (pixels)", np.nan),
         Column("S", np.float32, "Skewness of the blur kernel", np.nan),
         Column("SErr", np.float32, "Error in S", np.nan),
         Column("K", np.float32, "Excess kurtosis of the blur kernel", np.nan),

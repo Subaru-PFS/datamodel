@@ -821,7 +821,7 @@ LSF line measurements
 The line-spread function of each detector is fit from arc lines in the pfsArms of
 arc exposures. Each arc line in each fibre of each exposure is fit with a model of
 the extracted fibre image: a disk of radius 'radius' (the fibre face) blurred by a
-kernel of rms 'blur', expanded as an Edgeworth series in the kernel's standardised
+kernel of rms 'rms', expanded as an Edgeworth series in the kernel's standardised
 cumulants (skewness 'S', excess kurtosis 'K', and 'lam5', 'lam6'), optionally
 convolved with a Lorentzian of FWHM 'lorentz', and integrated over pixels. The per-line fits for a detector are written as
 
@@ -846,8 +846,8 @@ with columns:
     modelCentroid   32-bit float (pixels); first moment of the model about 'pixel', same window
     radius          32-bit float (pixels); radius of the fibre disk
     radiusErr       32-bit float (pixels); error in radius
-    blur            32-bit float (pixels); rms of the blur kernel
-    blurErr         32-bit float (pixels); error in blur
+    rms             32-bit float (pixels); rms of the blur kernel
+    rmsErr          32-bit float (pixels); error in rms
     S               32-bit float; skewness of the blur kernel
     SErr            32-bit float; error in S
     K               32-bit float; excess kurtosis of the blur kernel
@@ -872,7 +872,7 @@ with columns:
                         0x010 PINNED: the centre was held fixed (free fit + centroid zero point)
                         0x020 REJECTED_CENTROID: clipped by the smooth fit of the centroid
                         0x040 REJECTED_RADIUS: ... of radius
-                        0x080 REJECTED_BLUR: ... of blur
+                        0x080 REJECTED_RMS: ... of rms
                         0x100 REJECTED_S: ... of S
                         0x200 REJECTED_K: ... of K
                         0x400 REJECTED_LAM5: ... of lam5
