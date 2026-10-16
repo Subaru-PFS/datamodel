@@ -858,6 +858,10 @@ with columns:
     lam6Err         32-bit float; error in lam6
     lorentz         32-bit float (pixels); FWHM of a Lorentzian convolved with the profile (NaN if not fit)
     lorentzErr      32-bit float (pixels); error in lorentz
+    haloFrac        32-bit float; fraction of the light in a halo (the disk blurred by a broad Gaussian; NaN if not fit)
+    haloFracErr     32-bit float; error in haloFrac
+    haloWidth       32-bit float (pixels); rms of the halo's Gaussian blur (NaN if not fit)
+    haloWidthErr    32-bit float (pixels); error in haloWidth
     flux            32-bit float (arbitrary units); line flux
     fluxErr         32-bit float (arbitrary units); error in flux
     peak            32-bit float (arbitrary units); peak flux of the line's model
@@ -879,6 +883,8 @@ with columns:
                         0x800 REJECTED_LAM6: ... of lam6
                         0x1000 REJECTED_LORENTZ: ... of lorentz
                         0x2000 LOW_SN: the line's median S/N over the fibres is too low (not used)
+                        0x4000 REJECTED_HALOFRAC: clipped by the smooth fit of haloFrac
+                        0x8000 REJECTED_HALOWIDTH: clipped by the smooth fit of haloWidth
 
 The LSFLINES_DESCRIPTION and LSFLINES_TRANSITION HDUs have the same format as
 ARCLINES_DESCRIPTION.
