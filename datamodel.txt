@@ -885,6 +885,9 @@ with columns:
                         0x2000 LOW_SN: the line's median S/N over the fibres is too low (not used)
                         0x4000 REJECTED_HALOFRAC: clipped by the smooth fit of haloFrac
                         0x8000 REJECTED_HALOWIDTH: clipped by the smooth fit of haloWidth
+                        0x10000 IIS: an engineering (IIS) fibre's line, fit with the science fibres'
+                                blur kernel (rms, S, K, halo) held fixed; only its disk radius is measured
+                        0x20000 REJECTED_IIS: clipped by the smooth fit of the IIS radius scale
 
 The LSFLINES_DESCRIPTION and LSFLINES_TRANSITION HDUs have the same format as
 ARCLINES_DESCRIPTION.
