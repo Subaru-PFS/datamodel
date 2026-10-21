@@ -1039,6 +1039,36 @@ values. The format is not specified here, and varies according to the model.
 
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
+Sky normalizations
+
+The sky normalizations ("skyNorms") measure the relative throughput of each fiber from the sky
+emission in an exposure of the sky:  how much more (or less) sky each fiber sees than is expected.
+They're measured for each exposure of the sky (an observation_type of "science", with no lamps, and
+the PFI as the light source), and may be combined over many exposures into a calibration:
+
+    "skyNorms-%06d.fits" % (visit,)
+    "skyNorms_calib-%s.fits" % (calibDate,)
+
+Both are PfsConstantPerFiber focal-plane functions (see "2D spectral calibrations"), i.e. a "value"
+and an "rms" for each fiberId.
+
+For each spectrograph the sky spectrum is modelled from the SKY fibers, using all of the spectrograph's
+arms.  The continuum is subtracted from both the data and the model, so the measurement is dominated by
+the sky lines.  Each fiber's normalization is the factor by which the model must be multiplied to fit
+that fiber's spectra, and "rms" is the robust rms of the residuals from that fit.
+
+"value" is the deviation of that factor from unity, i.e. (data/model) - 1.  By default a 2nd-order
+polynomial over the focal plane is fitted to each exposure's values and subtracted, in which case
+"value" is the deviation from that polynomial.  The skyNorms are raw:  relative only to the fiber
+normalizations (pfsFiberNorms) applied to the pfsArm spectra.  Any later correction applied to the
+pfsArm (the "pfiCorrection" column of its NOTES HDU records the total, c, applied as NORM *= 1 + c)
+is first removed.
+
+skyNorms_calib is a combination of skyNorms measured from many exposures.
+
+
+-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
 Reference model
 
 The reference model set is a product from `calculateReferenceFlux` and is stored in the pfsFluxReference file.
