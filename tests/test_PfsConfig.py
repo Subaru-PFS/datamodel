@@ -129,8 +129,10 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
         self.camMask = 0
         self.instStatusFlag = 0
 
-        self.obstime = convertToIso8601Utc(datetime.datetime.now(datetime.timezone.utc).isoformat())
-        self.obstimeDesign = convertToIso8601Utc(datetime.datetime.now(datetime.timezone.utc).isoformat())
+        now = datetime.datetime.now(datetime.timezone.utc)
+        self.obstime = convertToIso8601Utc(now.isoformat())
+        self.obstimeDesign = convertToIso8601Utc((now - datetime.timedelta(days=2)).isoformat())
+        self.obstime0 = convertToIso8601Utc((now - datetime.timedelta(minutes=20)).isoformat())
         self.cobraCommand = np.full(self.numFibers, int(CobraCommand.CONVERGE))
         self.cobraCommand[::37] = int(CobraCommand.NOT_COMMANDED)
         self.cobraCommand[::53] = int(CobraCommand.BLACK_DOT)
@@ -241,6 +243,9 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
         np.testing.assert_array_equal(lhs.targetValidationMask, rhs.targetValidationMask)
         np.testing.assert_array_equal(lhs.cobraCommand, rhs.cobraCommand)
         self.assertEqual(lhs.convergenceParams, rhs.convergenceParams)
+        self.assertEqual(lhs.obstime, rhs.obstime)
+        self.assertEqual(lhs.obstime0, rhs.obstime0)
+        self.assertEqual(lhs.obstimeDesign, rhs.obstimeDesign)
         self.assertEqual(lhs.versionsDesign, rhs.versionsDesign)
         self.assertEqual(lhs.versions0, rhs.versions0)
         self.assertEqual(lhs.versions, rhs.versions)
@@ -328,6 +333,43 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
 
                 old = PfsConfig.read(self.pfsDesignId, self.visit, dirName=legacyDir)
                 self.assertTrue(np.all(old.cobraCommand == CobraCommand.NOT_SET))
+
+    def testObstime0(self):
+        """Test obstime0, including files written before it existed"""
+        config = self.makePfsConfig()
+
+        # Updating the positions dates them: obstime and obstime0 move together.
+        converged = convertToIso8601Utc("2026-09-25T08:00:00+00:00")
+        guideStars = config.guideStars
+        config.updateTargetPosition(config.ra, config.dec, config.pfiNominal, converged,
+                                    guideStars.ra, guideStars.dec, guideStars.agX, guideStars.agY)
+        self.assertEqual(config.obstime, converged)
+        self.assertEqual(config.obstime0, converged)
+
+        # A later visit gets its own obstime, and keeps the time of the positions.
+        exposed = convertToIso8601Utc("2026-09-25T08:30:00+00:00")
+        visitConfig = config.copy(visit=self.visit + 1, obstime=exposed)
+        self.assertEqual(visitConfig.obstime, exposed)
+        self.assertEqual(visitConfig.obstime0, converged)
+
+        with tempfile.TemporaryDirectory() as dirName:
+            visitConfig.write(dirName=dirName)
+            filename = os.path.join(dirName, visitConfig.filename)
+
+            other = PfsConfig.read(self.pfsDesignId, self.visit + 1, dirName=dirName)
+            self.assertEqual(other.obstime, exposed)
+            self.assertEqual(other.obstime0, converged)
+
+            # As a pfsConfig written before DAMD_VER 7: obstime was the time of the positions.
+            with tempfile.TemporaryDirectory() as legacyDir:
+                with pyfits.open(filename) as fd:
+                    hdus = pyfits.HDUList([hdu.copy() for hdu in fd])
+                del hdus[0].header["W_CVGOBS"]
+                hdus[0].header["DAMD_VER"] = 6
+                hdus.writeto(os.path.join(legacyDir, visitConfig.filename))
+
+                old = PfsConfig.read(self.pfsDesignId, self.visit + 1, dirName=legacyDir)
+                self.assertEqual(old.obstime0, old.obstime)
 
     def testCobraConfig(self):
         """Test the cobraConfig subset and its ordering"""
@@ -428,7 +470,8 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
     def testFromPfsDesign(self):
         """Test PfsConfig.fromPfsDesign"""
         design = self.makePfsDesign()
-        config = self.makePfsConfig()
+        # Until the positions are updated, they hold for the design's obstime.
+        config = self.makePfsConfig(obstimeDesign=self.obstime, obstime0=self.obstime)
         built = PfsConfig.fromPfsDesign(design, self.visit, self.pfiCenter,
                                         versions=self.versions,
                                         versions0=self.versions0,
