@@ -32,6 +32,8 @@ class ConvergenceParams:
          "[s] elapsed time of the convergence"),
         ("requestedTolerance", "W_CVRTL", float,
          "[mm] tolerance for the convergence loop"),
+        ("blindMoveCalibId", "W_CVBMC", int,
+         "blind-move calibration aiming the dot cobras"),
     )
 
     @classmethod
