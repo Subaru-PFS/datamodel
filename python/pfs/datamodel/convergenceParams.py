@@ -34,6 +34,10 @@ class ConvergenceParams:
          "[mm] tolerance for the convergence loop"),
         ("blindMoveCalibId", "W_CVBMC", int,
          "blind-move calibration aiming the dot cobras"),
+        ("dotLanding", "W_CVDLD", float,
+         "dot fraction the ramp lands the dot cobras at"),
+        ("dotTarget", "W_CVDTG", float,
+         "dot fraction the dot cobras should end at"),
     )
 
     @classmethod
