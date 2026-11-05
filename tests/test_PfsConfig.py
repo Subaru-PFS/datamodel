@@ -143,7 +143,9 @@ class PfsConfigTestCase(lsst.utils.tests.TestCase):
                                       numIterations=8,
                                       elapsedTime=79.55,
                                       requestedTolerance=0.01,
-                                      blindMoveCalibId=1)
+                                      blindMoveCalibId=1,
+                                      dotLanding=0.1,
+                                      dotTarget=0.5)
         self.versions = dict(ics_iicActor="2.7.17", pfs_utils="w.2026.09", datamodel="w.2026.09")
         self.versions0 = dict(ics_fpsActor="1.8.10", pfs_utils="w.2026.09", datamodel="w.2026.09")
         self.versionsDesign = dict(pfs_utils="w.2026.09", datamodel="w.2026.09")
