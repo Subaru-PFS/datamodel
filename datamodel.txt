@@ -24,6 +24,11 @@ NCOARSE     Number of wavelengths used in computing the coarse
 The values of NCOLUMN and NROW may be different in the optical and IR arms, and will differ for
 raw and reduced data.  Possible values are given in the section, "Parameters"
 
+All wavelengths in these files are vacuum wavelengths, in nm. Air wavelengths are
+shorter (by about 0.18 nm at 650 nm), and nothing in the numbers says which they
+are, so HDUs named WAVELENGTH have the header keyword VACUUM = T (in the FITS WCS
+standard's terms, they are WAVE, not AWAV).
+
 In various places I refer to a SHA-1, which is a strong 160-bit hash, as used by e.g. git
 (https://en.wikipedia.org/wiki/SHA-1).  We truncate these hashes to 63bits (so as to fit
 in standard 64-bit signed integers). Sixty-three bits would produce up to 2^63 ~ 9e18 values.
@@ -337,7 +342,7 @@ HDU #0 PDU
 HDU #1 FIBERID      Identifier of each fiber                [32-bit INT]            NFIBER
 HDU #2 SLITOFF      Slit offsets in x,y,z                   [32-bit FLOAT]          3*NFIBER
 HDU #3 CENTER       Spline for column with trace center     [BINARY FITS TABLE]     NFIBER
-HDU #4 WAVELENGTH   Spline for wavelength (nm)              [BINARY FITS TABLE]     NFIBER
+HDU #4 WAVELENGTH   Spline for wavelength (nm, vacuum)              [BINARY FITS TABLE]     NFIBER
 
 The primary header records the dimensions of the detector in the MINX,MINY,MAXX,MAXY keywords,
 and the polynomial order of the distortion field in the ORDER keyword.
@@ -354,7 +359,7 @@ HDU #0 PDU
 HDU #1 FIBERID          Identifier of each fiber                [32-bit INT]            NFIBER
 HDU #2 SLITOFF          Slit offsets in x,y,z                   [32-bit FLOAT]          3*NFIBER
 HDU #3 CENTER           Spline for column with trace center     [BINARY FITS TABLE]     NFIBER
-HDU #4 WAVELENGTH       Spline for wavelength (nm)              [BINARY FITS TABLE]     NFIBER
+HDU #4 WAVELENGTH       Spline for wavelength (nm, vacuum)              [BINARY FITS TABLE]     NFIBER
 HDU #5 DISTORTIONS      Distortion names                        [BINARY FITS TABLE]     NDISTORTION
 HDU #6...
 
@@ -380,7 +385,7 @@ HDU #0 PDU
 HDU #1 FIBERID          Identifier of each fiber                [32-bit INT]            NFIBER
 HDU #2 SLITOFF          Slit offsets in x,y,z                   [32-bit FLOAT]          3*NFIBER
 HDU #3 CENTER           Spline for column with trace center     [BINARY FITS TABLE]     NFIBER
-HDU #4 WAVELENGTH       Spline for wavelength (nm)              [BINARY FITS TABLE]     NFIBER
+HDU #4 WAVELENGTH       Spline for wavelength (nm, vacuum)              [BINARY FITS TABLE]     NFIBER
 HDU #5 COEFFICIENTS     Distortion coefficients                 [BINARY FITS TABLE]     NCOEFF
 
 The primary header records the dimensions of the detector in the MINX,MINY,MAXX,MAXY keywords.
@@ -393,7 +398,7 @@ HDU #0 PDU
 HDU #1 FIBERID          Identifier of each fiber                [32-bit INT]            NFIBER
 HDU #2 SLITOFF          Slit offsets in x,y,z                   [32-bit FLOAT]          3*NFIBER
 HDU #3 CENTER           Spline for column with trace center     [BINARY FITS TABLE]     NFIBER
-HDU #4 WAVELENGTH       Spline for wavelength (nm)              [BINARY FITS TABLE]     NFIBER
+HDU #4 WAVELENGTH       Spline for wavelength (nm, vacuum)              [BINARY FITS TABLE]     NFIBER
 HDU #5 COEFFICIENTS     Distortion coefficients                 [BINARY FITS TABLE]     NCOEFF
 HDU #6 HIGHCCD          Coefficients for high-fiberId CCD       [BINARY FITS TABLE]     6
 
@@ -423,7 +428,7 @@ HDU #0 PDU
 HDU #1 FIBERID          Identifier of each fiber                [32-bit INT]            NFIBER
 HDU #2 SLITOFF          Slit offsets in x,y,z                   [32-bit FLOAT]          3*NFIBER
 HDU #3 CENTER           Spline for column with trace center     [BINARY FITS TABLE]     NFIBER
-HDU #4 WAVELENGTH       Spline for wavelength (nm)              [BINARY FITS TABLE]     NFIBER
+HDU #4 WAVELENGTH       Spline for wavelength (nm, vacuum)              [BINARY FITS TABLE]     NFIBER
 HDU #5 COEFFICIENTS     Distortion coefficients                 [BINARY FITS TABLE]     NCOEFF
 HDU #6 RIGHTCCD         Coefficients for right CCD              [BINARY FITS TABLE]     6
 
@@ -445,7 +450,7 @@ HDU #0 PDU
 HDU #1 FIBERID      Identifier of each fiber                [32-bit INT]            NFIBER
 HDU #2 SLITOFF      Slit offsets in x,y,z                   [32-bit FLOAT]          3*NFIBER
 HDU #3 CENTER       Spline for column with trace center     [BINARY FITS TABLE]     NFIBER
-HDU #4 WAVELENGTH   Spline for wavelength (nm)              [BINARY FITS TABLE]     NFIBER
+HDU #4 WAVELENGTH   Spline for wavelength (nm, vacuum)              [BINARY FITS TABLE]     NFIBER
 HDU #5 LAYERS       Slit offsets, CCD transform             [BINARY FITS TABLE]
 HDU #6 DISTORTIONS  Distortion list                         [BINARY FITS TABLE]
 HDUs ...
@@ -786,7 +791,7 @@ These FITS files will include a principal table HDU (in addition to the
 mandatory empty PHDU) with columns:
 
     fiberId         32-bit int; fiber identifier
-    wavelength      64-bit float (nm); line wavelength
+    wavelength      64-bit float (nm, vacuum); line wavelength
     x               32-bit float (pixels); centroid position in x
     y               32-bit float (pixels); centroid position in y
     xErr            32-bit float (pixels); error in centroid position in x
@@ -1008,7 +1013,7 @@ The file contains multiple image HDUs:
 
 HDU #0 PDU
 HDU #1 FIBERID      Fiber identifiers       [32-bit INT]        NFIBER
-HUD #2 WAVELENGTH   Wavelength (nm)         [64-bit FLOAT]      NFIBER*NROW
+HUD #2 WAVELENGTH   Wavelength (nm, vacuum) [64-bit FLOAT]      NFIBER*NROW
 HDU #3 VALUES       Normalization values    [64-bit FLOAT]      NFIBER*NROW
 HDU #4 MODEL        Model details
 
@@ -1185,7 +1190,7 @@ HDU #3 OBSERVATIONS     PFS observations of target                  [FITS BINARY
         pfiCenter [2 * 64-bit FLOAT]: Actual measured fiber position on the focal plane
         obsTime [STRING]: Time of observation
         expTime [32-bit FLOAT]: Exposure time (sec)
-HDU #4 WAVELENGTH       Wavelengths, as an image, array or table    [64-bit FLOAT]      NWAVELENGTH*NOBJECT?
+HDU #4 WAVELENGTH       Vacuum wavelengths, as an image, array or table [64-bit FLOAT]  NWAVELENGTH*NOBJECT?
 HDU #5 FLUX             Fluxes (nJy), as an image or table          [32-bit FLOAT]      NWAVELENGTH*NOBJECT
 HDU #6 MASK             Quality bitmask, as an image or table       [32-bit INT]        NWAVELENGTH*NOBJECT
 HDU #7 SKY              Coadded sky spectra, as an image or table   [32-bit FLOAT]      NWAVELENGTH*NOBJECT

@@ -4,7 +4,7 @@ from typing import Type
 
 import numpy as np
 
-from .utils import astropyHeaderToDict, astropyHeaderFromDict, inheritDocstrings
+from .utils import astropyHeaderToDict, astropyHeaderFromDict, inheritDocstrings, markVacuumWavelengths
 from .masks import MaskHelper
 from .target import Target
 from .observations import Observations
@@ -327,7 +327,8 @@ class PfsFiberArraySet:
         wavelength = self.wavelength[0]
         if not all(np.all(wl == wavelength) for wl in self.wavelength[1:]):
             wavelength = self.wavelength
-        fits.append(astropy.io.fits.ImageHDU(data=wavelength.astype(np.float64), name="WAVELENGTH"))
+        fits.append(markVacuumWavelengths(astropy.io.fits.ImageHDU(data=wavelength.astype(np.float64),
+                                                                    name="WAVELENGTH")))
 
         for attr, dtype in (
             ("flux", np.float32),
