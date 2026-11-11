@@ -161,7 +161,7 @@ class LsfLineMeasurements(PfsTableWithSeparateStrings):
     schema = [
         Column("visit", np.int32, "Exposure identifier", -1),
         Column("fiberId", np.int32, "Fiber identifier", -1),
-        Column("wavelength", np.float64, "Reference (catalogue) wavelength (nm)", np.nan),
+        Column("wavelength", np.float64, "Reference (catalogue) vacuum wavelength (nm)", np.nan),
         Column("status", np.int32, "Reference line status bitmask", -1),
         Column("description", str, "Reference line description", "UNKNOWN"),
         Column("transition", str, "Reference line transition", "UNKNOWN"),
