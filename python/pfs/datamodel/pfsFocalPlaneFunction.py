@@ -6,7 +6,7 @@ from typing import Dict
 import astropy.io.fits
 import numpy as np
 
-from .utils import subclasses
+from .utils import markVacuumWavelengths, subclasses
 
 __all__ = (
     "PfsFocalPlaneFunction",
@@ -174,7 +174,7 @@ class PfsConstantFocalPlaneFunction(PfsFocalPlaneFunction):
         """
         return astropy.io.fits.HDUList(
             hdus=[
-                astropy.io.fits.ImageHDU(self.wavelength, name="WAVELENGTH"),
+                markVacuumWavelengths(astropy.io.fits.ImageHDU(self.wavelength, name="WAVELENGTH")),
                 astropy.io.fits.ImageHDU(self.value.astype(np.float32), name="VALUE"),
                 astropy.io.fits.ImageHDU(self.mask.astype(np.uint8), name="MASK"),
                 astropy.io.fits.ImageHDU(self.variance.astype(np.float32), name="VARIANCE"),

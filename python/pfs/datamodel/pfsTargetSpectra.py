@@ -13,7 +13,7 @@ from .pfsTable import PfsTable
 from .target import Target
 from .fluxTable import FluxTable
 from .pfsFiberArray import PfsFiberArray
-from .utils import astropyHeaderFromDict, astropyHeaderToDict
+from .utils import astropyHeaderFromDict, astropyHeaderToDict, markVacuumWavelengths
 
 __all__ = ["PfsTargetSpectra",]
 
@@ -423,6 +423,7 @@ class PfsTargetSpectra(Mapping[Target, PfsFiberArray]):
             fits.append(ImageHDU(data=wavelength[0], name="WAVELENGTH"))
         else:
             writeComponent("wavelength", "WAVELENGTH", np.float64)
+        markVacuumWavelengths(fits[-1])
 
         writeComponent("flux", "FLUX", np.float32)
         writeComponent("mask", "MASK", np.int32)

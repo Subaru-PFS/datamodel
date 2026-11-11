@@ -12,7 +12,8 @@ import numpy as np
 import astropy.io.fits
 
 __all__ = ("calculatePfsVisitHash", "createHash", "astropyHeaderToDict", "astropyHeaderFromDict",
-           "wraparoundNVisit", "inheritDocstrings", "checkHeaderKeyword", "convertToIso8601Utc")
+           "wraparoundNVisit", "inheritDocstrings", "checkHeaderKeyword", "convertToIso8601Utc",
+           "markVacuumWavelengths")
 
 
 def calculatePfsVisitHash(visits):
@@ -126,6 +127,28 @@ def makeFullCovariance(covar):
         C[i[:-j], i[j:]] = covar[j][0:-j]         # below the diagonal
 
     return C
+
+
+def markVacuumWavelengths(hdu):
+    """Record in an HDU's header that its wavelengths are vacuum wavelengths
+
+    All PFS wavelengths are in vacuum, but nothing in the numbers says so (air
+    wavelengths are ~0.18 nm shorter at 650 nm). The FITS WCS standard
+    (Greisen et al. 2006) calls vacuum wavelengths WAVE and air wavelengths
+    AWAV.
+
+    Parameters
+    ----------
+    hdu : `astropy.io.fits.ImageHDU` or `astropy.io.fits.BinTableHDU`
+        HDU containing wavelengths; its header is modified.
+
+    Returns
+    -------
+    hdu : `astropy.io.fits.ImageHDU` or `astropy.io.fits.BinTableHDU`
+        The same HDU, for convenience.
+    """
+    hdu.header["VACUUM"] = (True, "Vacuum wavelengths (FITS WCS WAVE, not AWAV)")
+    return hdu
 
 
 def astropyHeaderToDict(header):
