@@ -832,7 +832,7 @@ with columns:
 
     visit           32-bit int; exposure identifier
     fiberId         32-bit int; fiber identifier
-    wavelength      64-bit float (nm); reference (catalogue) wavelength
+    wavelength      64-bit float (nm, vacuum); reference (catalogue) wavelength
     status          32-bit int; reference line status bitmask
     description     32-bit int; index into HDU LSFLINES_DESCRIPTION
     transition      32-bit int; index into HDU LSFLINES_TRANSITION
