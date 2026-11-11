@@ -372,6 +372,17 @@ The distortions are in separate HDUs, with formats peculiar to their type (speci
 * DoubleRotScaleDistortion: HDU DoubleRotScaleDistortion_<index> contains the distortion range in the header
   (MINX,MINY,MAXX,MAXY) and the distortion parameters as pixels in a one-dimensional image.
    This is no longer used, and has been removed.
+* BSplineDistortion: HDU BSplineDistortion_<index> contains tensor-product B-splines for the distortion
+  in x and y, for each of a set of regions in x (e.g., the two CCDs of a divided detector). The header
+  contains the number of region boundaries in x (NBOUND) and the boundaries (BOUND0, BOUND1, ...).
+  The HDU is a table with a row for each spline, with columns:
+    * axis (int): 0 for the distortion in x, 1 for the distortion in y
+    * region (int): index of the region in x
+    * order (int): order of the spline (3 for cubic)
+    * numX, numY (int): number of coefficients in x and y (both zero for an empty spline, which
+      evaluates to zero)
+    * xKnots, yKnots (variable-length 64-bit float arrays): full knot vectors in x and y
+    * coefficients (variable-length 64-bit float array): coefficients, numX*numY with y varying fastest
 
 
 DoubleDetectorMap format:
@@ -491,6 +502,9 @@ The DETECTOR HDU contains the following columns:
     * dividedDetector (boolean): is the detector divided into two halves?
     * rightCcd (64-bit float array): coefficients for an affine transformation
       for the right-hand CCD.
+
+The DETECTOR_DISTORTIONS (e.g., BSplineDistortion) are applied in the pixel
+frame, after the affine transformation for the right-hand CCD.
 
 
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-

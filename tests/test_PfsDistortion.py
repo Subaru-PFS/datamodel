@@ -8,6 +8,8 @@ import numpy as np
 
 from pfs.datamodel.pfsDetectorMap import (
     Box,
+    BSpline2D,
+    BSplineDistortion,
     DoubleDistortion,
     DoubleRotScaleDistortion,
     MosaicPolynomialDistortion,
@@ -33,15 +35,30 @@ class PfsDistortionTestCase(unittest.TestCase):
             MosaicPolynomialDistortion(2, self.box, rr(size=18)),
             RotScaleDistortion(self.box, rr(size=6)),
             DoubleRotScaleDistortion(self.box, rr(size=10)),
+            BSplineDistortion(
+                [2048.0],
+                [self.makeSpline(), BSpline2D.empty()],
+                [BSpline2D.empty(), self.makeSpline()],
+            ),
         ]
 
+    def makeSpline(self) -> BSpline2D:
+        """Make a cubic tensor-product B-spline with random coefficients"""
+        xKnots = np.concatenate([[0.0] * 4, [512.0, 1024.0], [2048.0] * 4])
+        yKnots = np.concatenate([[0.0] * 4, [2000.0], [4000.0] * 4])
+        return BSpline2D(3, xKnots, yKnots, self.rng.uniform(size=(len(xKnots) - 4, len(yKnots) - 4)))
+
     def assertDistortionsEqual(self, left, right):
-        """Assert that two distortions are equal"""
+        """Assert that two distortions (or their components) are equal"""
         self.assertIs(type(left), type(right))
         self.assertEqual(vars(left).keys(), vars(right).keys())
         for name, value in vars(left).items():
             other = vars(right)[name]
-            if isinstance(value, Box):
+            if isinstance(value, list):
+                self.assertEqual(len(value), len(other))
+                for vv, oo in zip(value, other):
+                    self.assertDistortionsEqual(vv, oo)
+            elif isinstance(value, Box):
                 self.assertEqual(
                     (value.xMin, value.yMin, value.xMax, value.yMax),
                     (other.xMin, other.yMin, other.xMax, other.yMax),

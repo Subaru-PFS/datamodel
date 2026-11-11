@@ -29,6 +29,8 @@ __all__ = (
     "MosaicPolynomialDistortion",
     "RotScaleDistortion",
     "DoubleRotScaleDistortion",
+    "BSpline2D",
+    "BSplineDistortion",
     "MultipleDistortionsDetectorMap",
     "LayeredDetectorMap",
     "OpticalModelDetectorMap",
@@ -1612,6 +1614,157 @@ class DoubleRotScaleDistortion(PfsDistortion):
         header.update(self.box.toFitsHeader())
         image = astropy.io.fits.ImageHDU(data=self.parameters, header=header, name=self.getExtName(index))
         fits.append(image)
+
+
+class BSpline2D:
+    """Tensor-product B-spline in two dimensions
+
+    An empty spline (no coefficients) evaluates to zero.
+
+    Parameters
+    ----------
+    order : `int`
+        Order of the spline (3 for cubic).
+    xKnots, yKnots : `numpy.ndarray` of `float`
+        Full knot vectors in x and y, including the repeated boundary knots.
+    coefficients : `numpy.ndarray` of `float`, shape ``(numX, numY)``
+        Spline coefficients, where ``numX = len(xKnots) - order - 1`` and
+        similarly for ``numY``.
+    """
+    def __init__(self, order: int, xKnots: np.ndarray, yKnots: np.ndarray, coefficients: np.ndarray):
+        self.order = order
+        self.xKnots = np.asarray(xKnots, dtype=float)
+        self.yKnots = np.asarray(yKnots, dtype=float)
+        self.coefficients = np.asarray(coefficients, dtype=float)
+        if self.coefficients.size == 0:
+            self.coefficients = self.coefficients.reshape(0, 0)
+        expectShape = (
+            (max(len(self.xKnots) - order - 1, 0), max(len(self.yKnots) - order - 1, 0))
+            if self.coefficients.size > 0 else (0, 0)
+        )
+        if self.coefficients.shape != expectShape:
+            raise RuntimeError(
+                f"Coefficients shape {self.coefficients.shape} doesn't match knots; expected {expectShape}"
+            )
+
+    @classmethod
+    def empty(cls, order: int = 3) -> "BSpline2D":
+        """Construct an empty spline, which evaluates to zero"""
+        return cls(order, np.array([]), np.array([]), np.zeros((0, 0)))
+
+    def isEmpty(self) -> bool:
+        """Return whether the spline is empty (evaluates to zero)"""
+        return self.coefficients.size == 0
+
+
+class BSplineDistortion(PfsDistortion):
+    """Distortion given by tensor-product B-splines in x and y
+
+    The detector is divided into regions in x (e.g., the two CCDs of a divided
+    detector), each with its own splines for the distortion in x and y.
+
+    Parameters
+    ----------
+    xBoundaries : `numpy.ndarray` of `float`
+        Boundaries in x between the regions; region ``ii`` covers
+        ``xBoundaries[ii - 1] <= x < xBoundaries[ii]``.
+    xSplines, ySplines : `list` of `BSpline2D`
+        Splines for the distortion in x and y in each region. There must be one
+        more than the number of boundaries.
+    """
+    def __init__(self, xBoundaries: np.ndarray, xSplines: List[BSpline2D], ySplines: List[BSpline2D]):
+        self.xBoundaries = np.asarray(xBoundaries, dtype=float)
+        self.xSplines = list(xSplines)
+        self.ySplines = list(ySplines)
+        numRegions = len(self.xBoundaries) + 1
+        if len(self.xSplines) != numRegions or len(self.ySplines) != numRegions:
+            raise RuntimeError(
+                f"Number of splines ({len(self.xSplines)}, {len(self.ySplines)}) doesn't match number of "
+                f"regions ({numRegions})"
+            )
+
+    @staticmethod
+    def getExtName(index: int) -> str:
+        """Return FITS extension name
+
+        Parameters
+        ----------
+        index : `int`
+            Index of distortion.
+        """
+        return f"BSplineDistortion_{index}"
+
+    @classmethod
+    def _readImpl(cls, fits: astropy.io.fits.HDUList, index: int) -> "PfsDistortion":
+        """Read from FITS file
+
+        Parameters
+        ----------
+        fits : `astropy.io.fits.HDUList`
+            FITS file in memory.
+        index : `int`
+            Index of distortion to read.
+
+        Returns
+        -------
+        self : ``cls``
+            Constructed distortion, from FITS file.
+        """
+        hdu = fits[cls.getExtName(index)]
+        numBoundaries = hdu.header["NBOUND"]
+        xBoundaries = np.array([hdu.header[f"BOUND{ii}"] for ii in range(numBoundaries)], dtype=float)
+        numRegions = numBoundaries + 1
+        splines: Dict[int, List[Optional[BSpline2D]]] = {0: [None]*numRegions, 1: [None]*numRegions}
+        for row in hdu.data:
+            shape = (int(row["numX"]), int(row["numY"]))
+            coefficients = np.asarray(row["coefficients"], dtype=float).reshape(shape)
+            spline = BSpline2D(int(row["order"]), row["xKnots"], row["yKnots"], coefficients)
+            splines[int(row["axis"])][int(row["region"])] = spline
+        if any(ss is None for ss in splines[0] + splines[1]):
+            raise RuntimeError(f"Missing splines in {cls.getExtName(index)}")
+        return cls(xBoundaries, splines[0], splines[1])
+
+    def _writeImpl(self, fits: astropy.io.fits.HDUList, index: int):
+        """Write to a FITS file
+
+        Parameters
+        ----------
+        fits : `astropy.io.fits.HDUList`
+            FITS file in memory; modified.
+        index : `int`
+            Index of distortion to write.
+        """
+        header = astropy.io.fits.Header()
+        header["INHERIT"] = True
+        header["NBOUND"] = (len(self.xBoundaries), "Number of region boundaries in x")
+        for ii, bound in enumerate(self.xBoundaries):
+            header[f"BOUND{ii}"] = (bound, f"Region boundary {ii} in x (pixels)")
+
+        rows = [(axis, region, spline) for axis, splines in enumerate((self.xSplines, self.ySplines))
+                for region, spline in enumerate(splines)]
+        numRows = len(rows)
+
+        def variable(values: List[np.ndarray]) -> np.ndarray:
+            """Make an object array of variable-length arrays"""
+            result = np.empty(numRows, dtype=object)
+            for ii, vv in enumerate(values):
+                result[ii] = np.asarray(vv, dtype=float).ravel()
+            return result
+
+        splines = [rr[2] for rr in rows]
+        Column = astropy.io.fits.Column
+        columns = [
+            Column(name="axis", format="I", array=[rr[0] for rr in rows]),
+            Column(name="region", format="I", array=[rr[1] for rr in rows]),
+            Column(name="order", format="I", array=[ss.order for ss in splines]),
+            Column(name="numX", format="J", array=[ss.coefficients.shape[0] for ss in splines]),
+            Column(name="numY", format="J", array=[ss.coefficients.shape[1] for ss in splines]),
+            Column(name="xKnots", format="PD()", array=variable([ss.xKnots for ss in splines])),
+            Column(name="yKnots", format="PD()", array=variable([ss.yKnots for ss in splines])),
+            Column(name="coefficients", format="PD()", array=variable([ss.coefficients for ss in splines])),
+        ]
+        table = astropy.io.fits.BinTableHDU.from_columns(columns, header=header, name=self.getExtName(index))
+        fits.append(table)
 
 
 class MultipleDistortionsDetectorMap(PfsDetectorMap):
