@@ -1350,7 +1350,8 @@ LSF_OFFSET: constant offsets of groups (e.g. a fibre's MTP sub-bundle) in a surf
     label              string; the group (empty to record a factor with no groups)
     value              64-bit float; the group's offset
     error              64-bit float; its error
-    isReference        boolean; is this the factor's reference group (offset zero)?
+    isReference        boolean; was this the factor's reference group (offset zero) in the
+                       fit? (The offsets may then be recentred, e.g. to average zero)
     hasOffset          boolean; does the group have an offset (rather than being
                        listed only as the reference)?
 
