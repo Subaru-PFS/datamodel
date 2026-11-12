@@ -50,6 +50,17 @@ OpticalModelDetectorMap:
 * 1: Initial version.
 
 
+PfsDistortion
+-------------
+
+A single distortion (one of the PfsDistortion subclasses used in detectorMaps)
+written as a FITS file of its own, e.g., for pickling. The DISTORTIONS table
+lists the class of the distortion, which is written with an index of zero, as
+in the detectorMaps.
+
+* 1: Initial version.
+
+
 PfsSimpleSpectrum and PfsFiberArray
 -----------------------------------
 

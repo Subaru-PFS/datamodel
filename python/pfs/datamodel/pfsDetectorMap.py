@@ -1099,11 +1099,16 @@ class PfsDistortion(ABC):
     For fully-functional implementations that include evaluation of the
     mappings, see the drp_stella package.
 
-    Subclasses must implement the ``readFits`` and ``writeFits`` methods.
+    Subclasses must implement the ``_readImpl`` and ``_writeImpl`` methods,
+    which read and write the distortion within a FITS file (e.g., that of a
+    detectorMap).
 
     Multiple distortions may be written to a single FITS file, so a single
     extension name is not sufficient to identify them; the index is added to
     disambiguate and order them.
+
+    A single distortion may also be written as a FITS file of its own with
+    ``writeFits``, and read back with ``readFits``.
     """
     @classmethod
     def getName(cls) -> str:
@@ -1130,14 +1135,71 @@ class PfsDistortion(ABC):
         subclass : `PfsDistortion`
             Distortion subclass.
         """
-        for ss in cls.__subclasses__():
+        subclasses = list(cls.__subclasses__())
+        while subclasses:
+            ss = subclasses.pop()
             if ss.getName() == name:
                 return ss
+            subclasses.extend(ss.__subclasses__())
         raise RuntimeError(f"Unrecognised distortion class: {name}")
 
     @classmethod
+    def readFits(cls, filename) -> "PfsDistortion":
+        """Read a single distortion from a FITS file
+
+        The FITS file should have been written by `writeFits`. The class of
+        the distortion is determined from the file.
+
+        Parameters
+        ----------
+        filename : `str` or file-like object
+            Filename or file-like object from which to read.
+
+        Returns
+        -------
+        self : `PfsDistortion`
+            Distortion read from the FITS file.
+        """
+        with astropy.io.fits.open(filename, memmap=False) as fits:
+            names = ["".join(nn.tolist()) for nn in fits["DISTORTIONS"].data["name"]]
+            if len(names) != 1:
+                raise RuntimeError(f"Expected a single distortion; got {len(names)}")
+            DistortionClass = PfsDistortion.getDistortion(names[0])
+            if not issubclass(DistortionClass, cls):
+                raise RuntimeError(f"Distortion is a {DistortionClass.getName()}, not a {cls.getName()}")
+            return DistortionClass._readImpl(fits, 0)
+
+    def writeFits(self, filename):
+        """Write the distortion as a FITS file of its own
+
+        The format follows that used for the distortions in a detectorMap: a
+        ``DISTORTIONS`` table lists the class of the distortion, which is
+        written with an index of zero.
+
+        Parameters
+        ----------
+        filename : `str` or file-like object
+            Filename or file-like object to which to write.
+        """
+        # NOTE: When making any changes to this method that modify the output
+        # format, increment the DAMD_VER header value below, and record the
+        # change in the versions.txt file.
+        header = astropy.io.fits.Header()
+        header["DAMD_VER"] = (1, "PfsDistortion datamodel version")
+        fits = astropy.io.fits.HDUList([astropy.io.fits.PrimaryHDU(header=header)])
+
+        tableHeader = astropy.io.fits.Header()
+        tableHeader["INHERIT"] = True
+        table = astropy.io.fits.BinTableHDU.from_columns([
+            astropy.io.fits.Column("name", format="PA()", array=[self.getName()]),
+        ], header=tableHeader, name="DISTORTIONS")
+        fits.append(table)
+        self._writeImpl(fits, 0)
+        fits.writeto(filename, overwrite=True)
+
+    @classmethod
     @abstractmethod
-    def readFits(cls, fits: astropy.io.fits.HDUList, index: int) -> "PfsDistortion":
+    def _readImpl(cls, fits: astropy.io.fits.HDUList, index: int) -> "PfsDistortion":
         """Read from FITS file
 
         Parameters
@@ -1152,10 +1214,10 @@ class PfsDistortion(ABC):
         self : ``cls``
             Constructed distortion, from FITS file.
         """
-        raise NotImplementedError("Subclass must implement readFits()")
+        raise NotImplementedError("Subclass must implement _readImpl()")
 
     @abstractmethod
-    def writeFits(self, fits: astropy.io.fits.HDUList, index: int):
+    def _writeImpl(self, fits: astropy.io.fits.HDUList, index: int):
         """Write to FITS file
 
         Parameters
@@ -1165,7 +1227,7 @@ class PfsDistortion(ABC):
         index : `int`
             Index of distortion to write.
         """
-        raise NotImplementedError("Subclass must implement writeFits()")
+        raise NotImplementedError("Subclass must implement _writeImpl()")
 
 
 class PolynomialDistortion(PfsDistortion):
@@ -1206,7 +1268,7 @@ class PolynomialDistortion(PfsDistortion):
         return f"PolynomialDistortion_{index}"
 
     @classmethod
-    def readFits(cls, fits: astropy.io.fits.HDUList, index: int) -> "PfsDistortion":
+    def _readImpl(cls, fits: astropy.io.fits.HDUList, index: int) -> "PfsDistortion":
         """Read from FITS file
 
         Parameters
@@ -1228,7 +1290,7 @@ class PolynomialDistortion(PfsDistortion):
         yCoefficients = hdu.data["yCoefficients"].astype(float)
         return cls(order, box, xCoefficients, yCoefficients)
 
-    def writeFits(self, fits: astropy.io.fits.HDUList, index: int):
+    def _writeImpl(self, fits: astropy.io.fits.HDUList, index: int):
         """Write to a FITS file
 
         Parameters
@@ -1296,7 +1358,7 @@ class DoubleDistortion(PfsDistortion):
         return f"DoubleDistortion_{index}"
 
     @classmethod
-    def readFits(cls, fits: astropy.io.fits.HDUList, index: int) -> "PfsDistortion":
+    def _readImpl(cls, fits: astropy.io.fits.HDUList, index: int) -> "PfsDistortion":
         """Read from FITS file
 
         Parameters
@@ -1320,7 +1382,7 @@ class DoubleDistortion(PfsDistortion):
         yRight = hdu.data["yRight"].astype(float)
         return cls(order, box, xLeft, yLeft, xRight, yRight)
 
-    def writeFits(self, fits: astropy.io.fits.HDUList, index: int):
+    def _writeImpl(self, fits: astropy.io.fits.HDUList, index: int):
         """Write to a FITS file
 
         Parameters
@@ -1378,7 +1440,7 @@ class MosaicPolynomialDistortion(PfsDistortion):
         return f"MosaicPolynomialDistortion_{index}"
 
     @classmethod
-    def readFits(cls, fits: astropy.io.fits.HDUList, index: int) -> "PfsDistortion":
+    def _readImpl(cls, fits: astropy.io.fits.HDUList, index: int) -> "PfsDistortion":
         """Read from FITS file
 
         Parameters
@@ -1399,7 +1461,7 @@ class MosaicPolynomialDistortion(PfsDistortion):
         coefficients = hdu.data.astype(float)
         return cls(order, box, coefficients)
 
-    def writeFits(self, fits: astropy.io.fits.HDUList, index: int):
+    def _writeImpl(self, fits: astropy.io.fits.HDUList, index: int):
         """Write to a FITS file
 
         Parameters
@@ -1448,7 +1510,7 @@ class RotScaleDistortion(PfsDistortion):
         return f"RotScaleDistortion_{index}"
 
     @classmethod
-    def readFits(cls, fits: astropy.io.fits.HDUList, index: int) -> "PfsDistortion":
+    def _readImpl(cls, fits: astropy.io.fits.HDUList, index: int) -> "PfsDistortion":
         """Read from FITS file
 
         Parameters
@@ -1468,7 +1530,7 @@ class RotScaleDistortion(PfsDistortion):
         parameters = hdu.data.astype(float)
         return cls(box, parameters)
 
-    def writeFits(self, fits: astropy.io.fits.HDUList, index: int):
+    def _writeImpl(self, fits: astropy.io.fits.HDUList, index: int):
         """Write to a FITS file
 
         Parameters
@@ -1515,7 +1577,7 @@ class DoubleRotScaleDistortion(PfsDistortion):
         return f"DoubleRotScaleDistortion_{index}"
 
     @classmethod
-    def readFits(cls, fits: astropy.io.fits.HDUList, index: int) -> "PfsDistortion":
+    def _readImpl(cls, fits: astropy.io.fits.HDUList, index: int) -> "PfsDistortion":
         """Read from FITS file
 
         Parameters
@@ -1535,7 +1597,7 @@ class DoubleRotScaleDistortion(PfsDistortion):
         parameters = hdu.data.astype(float)
         return cls(box, parameters)
 
-    def writeFits(self, fits: astropy.io.fits.HDUList, index: int):
+    def _writeImpl(self, fits: astropy.io.fits.HDUList, index: int):
         """Write to a FITS file
 
         Parameters
@@ -1624,7 +1686,7 @@ class MultipleDistortionsDetectorMap(PfsDetectorMap):
 
         names = ("".join(nn.tolist()) for nn in fits["DISTORTIONS"].data["name"])
         classes = (PfsDistortion.getDistortion(nn) for nn in names)
-        distortions = [DistortionClass.readFits(fits, ii) for ii, DistortionClass in enumerate(classes)]
+        distortions = [DistortionClass._readImpl(fits, ii) for ii, DistortionClass in enumerate(classes)]
 
         return cls(identity, box, base, distortions, header)
 
@@ -1660,7 +1722,7 @@ class MultipleDistortionsDetectorMap(PfsDetectorMap):
         ], header=tableHeader, name="DISTORTIONS")
         fits.append(table)
         for ii, distortion in enumerate(self.distortions):
-            distortion.writeFits(fits, ii)
+            distortion._writeImpl(fits, ii)
 
         return fits
 
@@ -1759,7 +1821,7 @@ class LayeredDetectorMap(PfsDetectorMap):
 
         names = ("".join(nn.tolist()) for nn in fits["DISTORTIONS"].data["name"])
         classes = (PfsDistortion.getDistortion(nn) for nn in names)
-        distortions = [DistortionClass.readFits(fits, ii) for ii, DistortionClass in enumerate(classes)]
+        distortions = [DistortionClass._readImpl(fits, ii) for ii, DistortionClass in enumerate(classes)]
 
         return cls(identity, box, spatial, spectral, base, distortions, dividedDetector, rightCcd, header)
 
@@ -1806,7 +1868,7 @@ class LayeredDetectorMap(PfsDetectorMap):
         ], header=tableHeader, name="DISTORTIONS")
         fits.append(table)
         for ii, distortion in enumerate(self.distortions):
-            distortion.writeFits(fits, ii)
+            distortion._writeImpl(fits, ii)
 
         return fits
 
@@ -1935,7 +1997,7 @@ class OpticalModelDetectorMap(PfsDetectorMap):
         indices = table.data["index"].astype(int)
         names = ("".join(nn.tolist()) for nn in table.data["name"])
         classes = (PfsDistortion.getDistortion(nn) for nn in names)
-        return [DistortionClass.readFits(fits, ii) for ii, DistortionClass in zip(indices, classes)]
+        return [DistortionClass._readImpl(fits, ii) for ii, DistortionClass in zip(indices, classes)]
 
     @classmethod
     def _readImpl(
@@ -2029,7 +2091,7 @@ class OpticalModelDetectorMap(PfsDetectorMap):
         ], header=tableHeader, name=extName)
         fits.append(table)
         for ii, distortion in zip(indices, distortions):
-            distortion.writeFits(fits, ii)
+            distortion._writeImpl(fits, ii)
         return indexStart + len(distortions)
 
     def _writeImpl(self):
