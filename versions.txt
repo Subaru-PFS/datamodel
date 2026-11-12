@@ -82,6 +82,8 @@ This class is used for the pfsArm and pfsMerged products.
 * 2: Added NORM for normalisations.
 * 3: Added NOTES to PfsFiberArraySet.
 * 4: Allow WAVELENGTH to be a single array if it applies to all spectra.
+* 5: Added the line-spread function (LSF_ARM, LSF_SURFACE, LSF_OFFSET, LSF_FIBER and LSF_INPUT
+     HDUs), when known.
 
 
 PfsTargetSpectra
@@ -90,6 +92,7 @@ PfsTargetSpectra
 This class is used for the pfsCalibrated and pfsCoadd products.
 
 * 1: Initial version.
+* 2: Added the line-spread function (LSF_* HDUs), when known.
 
 
 PfsFiberProfiles

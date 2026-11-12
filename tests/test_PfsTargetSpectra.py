@@ -359,6 +359,20 @@ class PfsTargetSpectraTestCase(lsst.utils.tests.TestCase):
             with astropy.io.fits.open(filename) as hdus:
                 self.assertIn("DAMD_VER", hdus[0].header)
 
+    def testLsf(self):
+        """Claude: the LSF is written and read with the spectra, identified by target index"""
+        spectra = self.makePfsTargetSpectra(list(range(5)))
+        self.assertIsNone(spectra.lsf)
+        targets = list(spectra)
+        lsf = makeLsf(np.arange(len(targets)), 1000)
+        spectra.lsf = FakeLsf(lsf)
+        with lsst.utils.tests.getTempFilePath(".fits") as filename:
+            spectra.writeFits(filename)
+            self.assertEqual(spectra.lsf.calledWith, targets)  # Told the order in which targets are written
+            copy = PfsCoadd.readFits(filename)
+        self.assertPfsTargetSpectraEqual(copy, spectra)
+        self.assertEqual([ii.spectrum for ii in copy.lsf.inputs], list(range(len(targets))))
+
     def testDifferentLengths(self):
         """Test I/O when the spectra have different lengths"""
         spectra = self.makePfsTargetSpectra(list(range(123)), length=itertools.cycle([999, 1000, 1001]))
@@ -366,6 +380,33 @@ class PfsTargetSpectraTestCase(lsst.utils.tests.TestCase):
             spectra.writeFits(filename)
             copy = PfsCoadd.readFits(filename)
             self.assertPfsTargetSpectraEqual(copy, spectra)
+
+
+def makeLsf(fiberId, length, combined=True):
+    """Claude: a simple LSF for spectra with the given ``fiberId`` (or target indices)"""
+    from pfs.datamodel.pfsLsf import PfsArmLsfData, PfsLsf, PfsLsfInput
+    arm = PfsArmLsfData(arm="r", spectrograph=1, length=length, kind="gaussian", fiberId=np.asarray(fiberId),
+                        gaussianWidth=np.linspace(1.0, 2.0, len(fiberId)))
+    inputs = []
+    if combined:
+        inputs = [PfsLsfInput(spectrum=int(ff), armIndex=0, fiberId=int(ff), order=1,
+                              indexPositions=np.array([0, length - 1]), indexSamples=np.array([0.0, 99.0]),
+                              indexMaxError=0.0, weightMinIndex=0, weightMaxIndex=length - 1,
+                              weightBinSize=50, weightValues=np.ones(3, dtype=np.float32))
+                  for ff in fiberId]
+    return PfsLsf([arm], inputs)
+
+
+class FakeLsf:
+    """Claude: stands in for drp_stella's LSF, which converts itself with ``toDatamodel``"""
+    def __init__(self, lsf, expectKeys=None):
+        self.lsf = lsf
+        self.expectKeys = expectKeys
+        self.calledWith = "not called"
+
+    def toDatamodel(self, keys=None):
+        self.calledWith = keys
+        return self.lsf
 
 
 class TestMemory(lsst.utils.tests.MemoryTestCase):
