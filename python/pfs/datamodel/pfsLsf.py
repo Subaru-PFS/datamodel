@@ -82,7 +82,8 @@ class PfsLsfSurface:
     offsets : `dict` [`str`, `dict` [`str`, (`float`, `float`)]]
         For each grouping factor, the offset (and its error) of each group.
     reference : `dict` [`str`, `str` or `None`]
-        Each factor's reference group, whose offset is zero.
+        Each factor's reference group, whose offset was zero in the fit
+        (the offsets may have been recentred since, e.g. to average zero).
     rms, chi2 : `float`
         RMS residual and chi^2 of the fit.
     ndof, nUsed : `int`
