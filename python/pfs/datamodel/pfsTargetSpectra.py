@@ -13,7 +13,8 @@ from .pfsTable import PfsTable
 from .target import Target
 from .fluxTable import FluxTable
 from .pfsFiberArray import PfsFiberArray
-from .utils import astropyHeaderFromDict, astropyHeaderToDict
+from .utils import astropyHeaderFromDict, astropyHeaderToDict, markVacuumWavelengths
+from .pfsLsf import PfsLsf, lsfToDatamodel
 
 __all__ = ["PfsTargetSpectra",]
 
@@ -32,10 +33,13 @@ class PfsTargetSpectra(Mapping[Target, PfsFiberArray]):
     PfsFiberArrayClass: Type[PfsFiberArray]  # Subclasses must override
     NotesClass: Type[PfsTable]  # Subclasses must override
 
-    def __init__(self, spectra: Sequence[PfsFiberArray], metadata: Optional[Mapping[str, Any]] = None):
+    def __init__(
+        self, spectra: Sequence[PfsFiberArray], metadata: Optional[Mapping[str, Any]] = None, lsf=None
+    ):
         super().__init__()
         if metadata is None:
             metadata = dict()
+        self.lsf = lsf  # Line-spread function of the spectra (keyed by target), or None
         self.spectra: Dict[Target, PfsFiberArray] = {spectrum.target: spectrum for spectrum in spectra}
         if len(self.spectra) != len(spectra):
             raise RuntimeError("Spectra targets not unique")
@@ -173,6 +177,7 @@ class PfsTargetSpectra(Mapping[Target, PfsFiberArray]):
             skyData = readData("SKY", np.float32)
             covarData = readData("COVAR", np.float32)
             covar2Hdu = fits["COVAR2"].data if "COVAR2" in fits else None
+            lsf = PfsLsf.fromFits(fits)  # None if there isn't one
             metadataHdu = fits["METADATA"].data
             fluxTableHdu = fits["FLUXTABLE"].data
             notesTable = cls.NotesClass.readHdu(fits)
@@ -263,7 +268,7 @@ class PfsTargetSpectra(Mapping[Target, PfsFiberArray]):
                 )
                 spectra.append(spectrum)
 
-        return cls(spectra, header)
+        return cls(spectra, header, lsf)
 
     def writeFits(self, filename: str):
         """Write to FITS file
@@ -281,7 +286,7 @@ class PfsTargetSpectra(Mapping[Target, PfsFiberArray]):
         # the versions.txt file.
         fits = HDUList()
         header = astropyHeaderFromDict(self.metadata)
-        header['DAMD_VER'] = (1, "PfsTargetSpectra datamodel version")
+        header['DAMD_VER'] = (2, "PfsTargetSpectra datamodel version")
         fits.append(PrimaryHDU(header=header))
 
         targetId = np.arange(len(self), dtype=np.int16)
@@ -423,6 +428,7 @@ class PfsTargetSpectra(Mapping[Target, PfsFiberArray]):
             fits.append(ImageHDU(data=wavelength[0], name="WAVELENGTH"))
         else:
             writeComponent("wavelength", "WAVELENGTH", np.float64)
+        markVacuumWavelengths(fits[-1])
 
         writeComponent("flux", "FLUX", np.float32)
         writeComponent("mask", "MASK", np.int32)
@@ -497,6 +503,11 @@ class PfsTargetSpectra(Mapping[Target, PfsFiberArray]):
         for ii, spectrum in enumerate(self.values()):
             notes.setRow(ii, **spectrum.notes.getDict())
         notes.writeHdu(fits)
+
+        # The LSF identifies the spectra by their index in the TARGET HDU
+        lsf = lsfToDatamodel(self.lsf, keys=list(self))
+        if lsf is not None:
+            lsf.toFits(fits)
 
         with open(filename, "wb") as fd:
             fits.writeto(fd)

@@ -4,12 +4,13 @@ from typing import Type
 
 import numpy as np
 
-from .utils import astropyHeaderToDict, astropyHeaderFromDict, inheritDocstrings
+from .utils import astropyHeaderToDict, astropyHeaderFromDict, inheritDocstrings, markVacuumWavelengths
 from .masks import MaskHelper
 from .target import Target
 from .observations import Observations
 from .identity import Identity
 from .pfsTable import PfsTable, EmptyTable
+from .pfsLsf import PfsLsf, lsfToDatamodel
 
 __all__ = ["PfsFiberArraySet"]
 
@@ -46,6 +47,8 @@ class PfsFiberArraySet:
         Keyword-value pairs for the header.
     notes : `PfsTable`
         Reduction notes for each spectrum.
+    lsf : `PfsLsf`, or an object with a ``toDatamodel`` method returning one, optional
+        Line-spread function of the spectra (keyed by ``fiberId``).
     """
     filenameFormat = None  # Subclasses must override
     """Format for filename (`str`)
@@ -67,7 +70,8 @@ class PfsFiberArraySet:
     """Class for notes (`PfsTable` subclass)"""
 
     def __init__(
-        self, identity, fiberId, wavelength, flux, mask, sky, norm, covar, flags, metadata, notes=None
+        self, identity, fiberId, wavelength, flux, mask, sky, norm, covar, flags, metadata, notes=None,
+        lsf=None,
     ):
         self.identity = identity
         self.fiberId = fiberId
@@ -84,6 +88,7 @@ class PfsFiberArraySet:
         self.length = wavelength.shape[1]
 
         self.notes = notes if notes is not None else self.NotesClass.empty(self.numSpectra)
+        self.lsf = lsf
         self.validate()
 
     def validate(self):
@@ -132,6 +137,7 @@ class PfsFiberArraySet:
         kwargs = {name: getattr(self, name) for name in ("identity", "flags", "metadata")}
         kwargs.update(**{name: getattr(self, name)[logical] for
                          name in ("fiberId", "wavelength", "flux", "mask", "sky", "norm", "covar", "notes")})
+        kwargs["lsf"] = self.lsf  # Keyed by fiberId, so it applies to any subset
         return type(self)(**kwargs)
 
     def select(self, pfsConfig=None, **kwargs):
@@ -272,6 +278,8 @@ class PfsFiberArraySet:
             data["identity"] = Identity.fromFits(fd)
             if version >= 3:
                 data["notes"] = cls.NotesClass.readHdu(fd)
+            if version >= 5:
+                data["lsf"] = PfsLsf.fromFits(fd)
 
         data["flags"] = MaskHelper.fromFitsHeader(data["metadata"])
         return cls(**data)
@@ -319,7 +327,7 @@ class PfsFiberArraySet:
         header = self.metadata.copy()
         header.update(self.flags.toFitsHeader())
         header = astropyHeaderFromDict(header)
-        header['DAMD_VER'] = (4, "PfsFiberArraySet datamodel version")
+        header['DAMD_VER'] = (5, "PfsFiberArraySet datamodel version")
         fits.append(astropy.io.fits.PrimaryHDU(header=header))
         fits.append(astropy.io.fits.ImageHDU(self.fiberId.astype(np.int32), name="FIBERID"))
 
@@ -327,7 +335,8 @@ class PfsFiberArraySet:
         wavelength = self.wavelength[0]
         if not all(np.all(wl == wavelength) for wl in self.wavelength[1:]):
             wavelength = self.wavelength
-        fits.append(astropy.io.fits.ImageHDU(data=wavelength.astype(np.float64), name="WAVELENGTH"))
+        wavelengthHdu = astropy.io.fits.ImageHDU(data=wavelength.astype(np.float64), name="WAVELENGTH")
+        fits.append(markVacuumWavelengths(wavelengthHdu))
 
         for attr, dtype in (
             ("flux", np.float32),
@@ -345,6 +354,9 @@ class PfsFiberArraySet:
 
         self.identity.toFits(fits)
         self.notes.writeHdu(fits)
+        lsf = lsfToDatamodel(self.lsf)
+        if lsf is not None:
+            lsf.toFits(fits)
         with open(filename, "wb") as fd:
             fits.writeto(fd)
 
@@ -415,8 +427,11 @@ class PfsFiberArraySet:
         indices = np.argsort(fiberId)
         identity = Identity.fromMerge([ss.identity for ss in spectraList])
         flags = MaskHelper.fromMerge(list(ss.flags for ss in spectraList))
+        lsfList = [lsfToDatamodel(ss.lsf) for ss in spectraList]
+        lsf = PfsLsf.merge(lsfList) if all(ll is not None for ll in lsfList) else None
         return cls(identity, fiberId[indices], wavelength[indices], flux[indices], mask[indices],
-                   sky[indices], norm[indices], covar[indices], flags, metadata if metadata else {}, notes)
+                   sky[indices], norm[indices], covar[indices], flags, metadata if metadata else {}, notes,
+                   lsf)
 
     def extractFiber(self, FiberArrayClass, pfsConfig, fiberId):
         """Extract a single fiber

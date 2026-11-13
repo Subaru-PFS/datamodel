@@ -10,7 +10,7 @@ import numpy as np
 import astropy.io.fits
 from scipy.interpolate import CubicSpline
 
-from .utils import astropyHeaderFromDict, astropyHeaderToDict
+from .utils import astropyHeaderFromDict, astropyHeaderToDict, markVacuumWavelengths
 from .identity import CalibIdentity
 
 __all__ = (
@@ -513,7 +513,7 @@ class SplinedDetectorMap(PfsDetectorMap):
             astropy.io.fits.Column(name="value", format="D", array=wavelengthValues),
         ], name="WAVELENGTH")
         hdu.header["INHERIT"] = True
-        fits.append(hdu)
+        fits.append(markVacuumWavelengths(hdu))
         return fits
 
 

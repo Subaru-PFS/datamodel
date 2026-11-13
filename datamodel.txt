@@ -24,6 +24,11 @@ NCOARSE     Number of wavelengths used in computing the coarse
 The values of NCOLUMN and NROW may be different in the optical and IR arms, and will differ for
 raw and reduced data.  Possible values are given in the section, "Parameters"
 
+All wavelengths in these files are vacuum wavelengths, in nm. Air wavelengths are
+shorter (by about 0.18 nm at 650 nm), and nothing in the numbers says which they
+are, so HDUs named WAVELENGTH have the header keyword VACUUM = T (in the FITS WCS
+standard's terms, they are WAVE, not AWAV).
+
 In various places I refer to a SHA-1, which is a strong 160-bit hash, as used by e.g. git
 (https://en.wikipedia.org/wiki/SHA-1).  We truncate these hashes to 63bits (so as to fit
 in standard 64-bit signed integers). Sixty-three bits would produce up to 2^63 ~ 9e18 values.
@@ -337,7 +342,7 @@ HDU #0 PDU
 HDU #1 FIBERID      Identifier of each fiber                [32-bit INT]            NFIBER
 HDU #2 SLITOFF      Slit offsets in x,y,z                   [32-bit FLOAT]          3*NFIBER
 HDU #3 CENTER       Spline for column with trace center     [BINARY FITS TABLE]     NFIBER
-HDU #4 WAVELENGTH   Spline for wavelength (nm)              [BINARY FITS TABLE]     NFIBER
+HDU #4 WAVELENGTH   Spline for wavelength (nm, vacuum)              [BINARY FITS TABLE]     NFIBER
 
 The primary header records the dimensions of the detector in the MINX,MINY,MAXX,MAXY keywords,
 and the polynomial order of the distortion field in the ORDER keyword.
@@ -354,7 +359,7 @@ HDU #0 PDU
 HDU #1 FIBERID          Identifier of each fiber                [32-bit INT]            NFIBER
 HDU #2 SLITOFF          Slit offsets in x,y,z                   [32-bit FLOAT]          3*NFIBER
 HDU #3 CENTER           Spline for column with trace center     [BINARY FITS TABLE]     NFIBER
-HDU #4 WAVELENGTH       Spline for wavelength (nm)              [BINARY FITS TABLE]     NFIBER
+HDU #4 WAVELENGTH       Spline for wavelength (nm, vacuum)              [BINARY FITS TABLE]     NFIBER
 HDU #5 DISTORTIONS      Distortion names                        [BINARY FITS TABLE]     NDISTORTION
 HDU #6...
 
@@ -380,7 +385,7 @@ HDU #0 PDU
 HDU #1 FIBERID          Identifier of each fiber                [32-bit INT]            NFIBER
 HDU #2 SLITOFF          Slit offsets in x,y,z                   [32-bit FLOAT]          3*NFIBER
 HDU #3 CENTER           Spline for column with trace center     [BINARY FITS TABLE]     NFIBER
-HDU #4 WAVELENGTH       Spline for wavelength (nm)              [BINARY FITS TABLE]     NFIBER
+HDU #4 WAVELENGTH       Spline for wavelength (nm, vacuum)              [BINARY FITS TABLE]     NFIBER
 HDU #5 COEFFICIENTS     Distortion coefficients                 [BINARY FITS TABLE]     NCOEFF
 
 The primary header records the dimensions of the detector in the MINX,MINY,MAXX,MAXY keywords.
@@ -393,7 +398,7 @@ HDU #0 PDU
 HDU #1 FIBERID          Identifier of each fiber                [32-bit INT]            NFIBER
 HDU #2 SLITOFF          Slit offsets in x,y,z                   [32-bit FLOAT]          3*NFIBER
 HDU #3 CENTER           Spline for column with trace center     [BINARY FITS TABLE]     NFIBER
-HDU #4 WAVELENGTH       Spline for wavelength (nm)              [BINARY FITS TABLE]     NFIBER
+HDU #4 WAVELENGTH       Spline for wavelength (nm, vacuum)              [BINARY FITS TABLE]     NFIBER
 HDU #5 COEFFICIENTS     Distortion coefficients                 [BINARY FITS TABLE]     NCOEFF
 HDU #6 HIGHCCD          Coefficients for high-fiberId CCD       [BINARY FITS TABLE]     6
 
@@ -423,7 +428,7 @@ HDU #0 PDU
 HDU #1 FIBERID          Identifier of each fiber                [32-bit INT]            NFIBER
 HDU #2 SLITOFF          Slit offsets in x,y,z                   [32-bit FLOAT]          3*NFIBER
 HDU #3 CENTER           Spline for column with trace center     [BINARY FITS TABLE]     NFIBER
-HDU #4 WAVELENGTH       Spline for wavelength (nm)              [BINARY FITS TABLE]     NFIBER
+HDU #4 WAVELENGTH       Spline for wavelength (nm, vacuum)              [BINARY FITS TABLE]     NFIBER
 HDU #5 COEFFICIENTS     Distortion coefficients                 [BINARY FITS TABLE]     NCOEFF
 HDU #6 RIGHTCCD         Coefficients for right CCD              [BINARY FITS TABLE]     6
 
@@ -445,7 +450,7 @@ HDU #0 PDU
 HDU #1 FIBERID      Identifier of each fiber                [32-bit INT]            NFIBER
 HDU #2 SLITOFF      Slit offsets in x,y,z                   [32-bit FLOAT]          3*NFIBER
 HDU #3 CENTER       Spline for column with trace center     [BINARY FITS TABLE]     NFIBER
-HDU #4 WAVELENGTH   Spline for wavelength (nm)              [BINARY FITS TABLE]     NFIBER
+HDU #4 WAVELENGTH   Spline for wavelength (nm, vacuum)              [BINARY FITS TABLE]     NFIBER
 HDU #5 LAYERS       Slit offsets, CCD transform             [BINARY FITS TABLE]
 HDU #6 DISTORTIONS  Distortion list                         [BINARY FITS TABLE]
 HDUs ...
@@ -725,6 +730,7 @@ HDU #6 NORM         Normalisation (electrons)               [FLOAT]         NROW
 HDU #7 COVAR        Near-diagonal part of flux covariance   [FLOAT]         NROW*3*NFIBER
 HDU #8 CONFIG       Identification of the exposure          [BINARY TABLE]
 HDU #9 NOTES        Reduction notes                         [BINARY TABLE]  NFIBER*NNOTES
+HDU #10-13 LSF_*    Line-spread function, if known          [BINARY TABLES] (see "Line-spread functions")
 
 Note that the data need not be resampled onto a uniform grid, as a wavelength is provided for each pixel.
 
@@ -752,7 +758,8 @@ Combined spectra from a single exposure (wavelength calibrated but not flux cali
    "pfsMerged-%06d.fits" % (visit,)
 
 The format will be identical to that of the pfsArm files, except that the fluxes
-(in the FLUX, SKY and NORM HDUs) will be in units of electrons per nm.
+(in the FLUX, SKY and NORM HDUs) will be in units of electrons per nm, and the
+line-spread function has an LSF_INPUT HDU (see "Line-spread functions").
 
 One exception is the WAVELENGTH array, which may be a single array (instead of NFIBER arrays),
 in which case that array applies to all of the spectra.
@@ -786,7 +793,7 @@ These FITS files will include a principal table HDU (in addition to the
 mandatory empty PHDU) with columns:
 
     fiberId         32-bit int; fiber identifier
-    wavelength      64-bit float (nm); line wavelength
+    wavelength      64-bit float (nm, vacuum); line wavelength
     x               32-bit float (pixels); centroid position in x
     y               32-bit float (pixels); centroid position in y
     xErr            32-bit float (pixels); error in centroid position in x
@@ -813,6 +820,98 @@ Both the ARCLINES_DESCRIPTION and ARCLINES_TRANSITION HDUs have the same format:
 
     number          32-bit int: index
     string          string: content for appropriate column in the principal table
+
+-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+LSF line measurements
+
+The line-spread function of each detector is fit from arc lines in the pfsArms of
+arc exposures. Each arc line in each fibre of each exposure is fit with a model of
+the extracted fibre image: a disk of radius 'radius' (the fibre face) blurred by a
+kernel of rms 'rms', expanded as an Edgeworth series in the kernel's standardised
+cumulants (skewness 'S', excess kurtosis 'K', and 'lam5', 'lam6'), optionally
+convolved with a Lorentzian of FWHM 'lorentz', and integrated over pixels. The per-line fits for a detector are written as
+
+    "lsfLines-%1s%1d.fits" % (arm, spectrograph)
+
+with a principal table HDU (in addition to the mandatory empty PHDU), LSFLINES,
+with columns:
+
+    visit           32-bit int; exposure identifier
+    fiberId         32-bit int; fiber identifier
+    wavelength      64-bit float (nm, vacuum); reference (catalogue) wavelength
+    status          32-bit int; reference line status bitmask
+    description     32-bit int; index into HDU LSFLINES_DESCRIPTION
+    transition      32-bit int; index into HDU LSFLINES_TRANSITION
+    x               32-bit float (pixels); position on the detector in x
+    y               32-bit float (pixels); position on the detector in y
+    pixel           64-bit float (pixels); fitted line centre (= first moment) in the spectrum
+    pixelErr        32-bit float (pixels); error in pixel
+    refPixel        64-bit float (pixels); position of 'wavelength' in the spectrum
+    dispersion      32-bit float (nm/pixel); dispersion at the line
+    dataCentroid    32-bit float (pixels); first moment of the data about 'pixel', in a window
+    modelCentroid   32-bit float (pixels); first moment of the model about 'pixel', same window
+    radius          32-bit float (pixels); radius of the fibre disk
+    radiusErr       32-bit float (pixels); error in radius
+    rms             32-bit float (pixels); rms of the blur kernel
+    rmsErr          32-bit float (pixels); error in rms
+    S               32-bit float; skewness of the blur kernel
+    SErr            32-bit float; error in S
+    K               32-bit float; excess kurtosis of the blur kernel
+    KErr            32-bit float; error in K
+    lam5            32-bit float; fifth standardised cumulant of the blur kernel (NaN if not fit)
+    lam5Err         32-bit float; error in lam5
+    lam6            32-bit float; sixth standardised cumulant of the blur kernel (NaN if not fit)
+    lam6Err         32-bit float; error in lam6
+    lorentz         32-bit float (pixels); FWHM of a Lorentzian convolved with the profile (NaN if not fit)
+    lorentzErr      32-bit float (pixels); error in lorentz
+    haloFrac        32-bit float; fraction of the light in a halo (the disk blurred by a broad Gaussian; NaN if not fit)
+    haloFracErr     32-bit float; error in haloFrac
+    haloWidth       32-bit float (pixels); rms of the halo's Gaussian blur (NaN if not fit)
+    haloWidthErr    32-bit float (pixels); error in haloWidth
+    flux            32-bit float (arbitrary units); line flux
+    fluxErr         32-bit float (arbitrary units); error in flux
+    peak            32-bit float (arbitrary units); peak flux of the line's model
+    chi2            32-bit float; chi^2 of the fit
+    ndof            32-bit int; degrees of freedom of the fit
+    nBadCore        32-bit int; number of masked pixels in the line's core
+    flag            32-bit int; bitmask describing how the line was used:
+                        0x001 SATURATED: the line's core is saturated in this fibre (not fit)
+                        0x002 SATURATED_ELSEWHERE: saturated in too many fibres (not used)
+                        0x004 EXCLUDED_STATUS: the catalogue status is excluded (not used)
+                        0x008 BROAD: intrinsically broader than the LSF, measured or per the catalogue (not used)
+                        0x010 PINNED: the centre was held fixed (free fit + centroid zero point)
+                        0x020 REJECTED_CENTROID: clipped by the smooth fit of the centroid
+                        0x040 REJECTED_RADIUS: ... of radius
+                        0x080 REJECTED_RMS: ... of rms
+                        0x100 REJECTED_S: ... of S
+                        0x200 REJECTED_K: ... of K
+                        0x400 REJECTED_LAM5: ... of lam5
+                        0x800 REJECTED_LAM6: ... of lam6
+                        0x1000 REJECTED_LORENTZ: ... of lorentz
+                        0x2000 LOW_SN: the line's median S/N over the fibres is too low (not used)
+                        0x4000 REJECTED_HALOFRAC: clipped by the smooth fit of haloFrac
+                        0x8000 REJECTED_HALOWIDTH: clipped by the smooth fit of haloWidth
+                        0x10000 IIS: an engineering (IIS) fibre's line, fit with the science fibres'
+                                blur kernel (rms, S, K, halo) held fixed; only its disk radius is measured
+                        0x20000 REJECTED_IIS: clipped by the smooth fit of the IIS radius scale
+
+The LSFLINES_DESCRIPTION and LSFLINES_TRANSITION HDUs have the same format as
+ARCLINES_DESCRIPTION.
+
+-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+LSF models
+
+The line-spread function over a detector, fit from the arc lines in the LSFLINES
+table (see "LSF line measurements") by pfs.drp.stella.pipelines.FitLsfTask, is
+written as
+
+    "armLsf-%1s%1d.fits" % (arm, spectrograph)
+
+with an empty PHDU and the LSF_ARM, LSF_SURFACE, LSF_OFFSET and LSF_FIBER HDUs
+described under "Line-spread functions" (one detector, with each fibre's
+wavelength spline). reduceExposure uses it to give each pfsArm its LSF.
 
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
@@ -930,7 +1029,7 @@ The file contains multiple image HDUs:
 
 HDU #0 PDU
 HDU #1 FIBERID      Fiber identifiers       [32-bit INT]        NFIBER
-HUD #2 WAVELENGTH   Wavelength (nm)         [64-bit FLOAT]      NFIBER*NROW
+HUD #2 WAVELENGTH   Wavelength (nm, vacuum) [64-bit FLOAT]      NFIBER*NROW
 HDU #3 VALUES       Normalization values    [64-bit FLOAT]      NFIBER*NROW
 HDU #4 MODEL        Model details
 
@@ -1107,7 +1206,7 @@ HDU #3 OBSERVATIONS     PFS observations of target                  [FITS BINARY
         pfiCenter [2 * 64-bit FLOAT]: Actual measured fiber position on the focal plane
         obsTime [STRING]: Time of observation
         expTime [32-bit FLOAT]: Exposure time (sec)
-HDU #4 WAVELENGTH       Wavelengths, as an image, array or table    [64-bit FLOAT]      NWAVELENGTH*NOBJECT?
+HDU #4 WAVELENGTH       Vacuum wavelengths, as an image, array or table [64-bit FLOAT]  NWAVELENGTH*NOBJECT?
 HDU #5 FLUX             Fluxes (nJy), as an image or table          [32-bit FLOAT]      NWAVELENGTH*NOBJECT
 HDU #6 MASK             Quality bitmask, as an image or table       [32-bit INT]        NWAVELENGTH*NOBJECT
 HDU #7 SKY              Coadded sky spectra, as an image or table   [32-bit FLOAT]      NWAVELENGTH*NOBJECT
@@ -1125,6 +1224,7 @@ HDU #11 FLUXTABLE       Un-resampled measurements                   [FITS BINARY
         error [32-bit FLOAT ARRAY]: Flux error arrays
         mask [32-bit INT ARRAY]: Quality bitmask arrays
 HDU #12 NOTES           Reduction notes                                [FITS BINARY TABLE] NNOTES
+HDU #13-17 LSF_*        Line-spread function, if known           [FITS BINARY TABLES] (see "Line-spread functions")
 
 
 If the wavelength arrays for all spectra are equal, the WAVELENGTH image will be
@@ -1171,23 +1271,143 @@ Line-spread functions
 
 The line-spread function (LSF) is the response of the spectrograph to a single
 narrow line; it is the one-dimensional equivalent of the point-spread function
-(PSF).
+(PSF). How the LSFs are modelled, measured and combined is described in the
+"Line-spread functions" chapter of the PFS 2D Pipeline Algorithms document
+(drp_doc); the python API of the objects that read them is described there and
+in drp_stella's docstrings.
 
-The datamodel representation for the LSF has not yet been settled. However, they
-are temporarily represented as python pickles of instances of classes defined in
-drp_stella (subclasses of pfs.drp.stella.Lsf; see the docstrings for API
-details) so that they can be used in the mean time.
+The LSF of the spectra in a pfsArm, pfsMerged or pfsCoadd file is stored in that
+file, so that it always accompanies the spectra and uses their wavelengths; the
+LSF of each detector is in the armLsf files (see "LSF models"). Files written
+before these HDUs existed simply lack them. Positions are in pixels along the
+spectra (rows of the detector for a pfsArm), and all wavelengths are in vacuum.
 
-The LSFs will be saved to:
+The LSF of a detector is an extracted, pixel-integrated image of a uniformly
+illuminated disk (the fibre's core) convolved with a blur whose shape is an
+Edgeworth series about a Gaussian, plus a halo; or, for a placeholder, a Gaussian
+of a given width for each fibre. Each parameter of the profile is a smooth
+function of position on the detector:
+
+    radius          disk radius (pixels)
+    rms             rms of the blur kernel (pixels)
+    S, K            skewness and excess kurtosis of the blur kernel
+                    (lam5, lam6 if the blur's Edgeworth order is higher)
+    haloFrac        fraction of the light in the halo (the disk blurred by a
+                    broad Gaussian)
+    haloWidth       rms of the halo's Gaussian (pixels)
+    lorentz         FWHM of a convolving Lorentzian (pixels; if fit)
+    centroid        measured offset of the arc lines from the detectorMap used
+                    in the fit (pixels; a diagnostic, not part of the profile)
+    iisRadiusScale  ratio of the engineering (IIS) fibres' disk radius to the
+                    science fibres'
+    iisHaloScale    ratio of the engineering fibres' halo fraction to the
+                    science fibres'
+
+These are written in the following HDUs (the header of LSF_ARM has LSF_VER, the
+version of their format):
+
+LSF_ARM: one row per detector LSF in the file
+    armIndex           32-bit int; index of the row (referred to by the other HDUs)
+    arm                string; arm (b, r, m, n)
+    spectrograph       32-bit int; spectrograph module
+    length             32-bit int; number of rows (pixels) in each spectrum
+    kind               string; "disk" (the model above) or "gaussian" (placeholder)
+    extraction         string; how the spectra were extracted: "optimal" or "boxcar"
+    blurOrder          32-bit int; Edgeworth order of the blur (2: Gaussian)
+    centroidZeroPoint  64-bit float (pixels); data minus free fits' first moments
+    xSplit             64-bit float (pixels); columns >= xSplit are on the right-hand
+                       CCD (infinite for a monolithic detector)
+    affine             6 x 64-bit float; [x, y, 1] @ affine.reshape(3, 2) maps the
+                       right-hand CCD's pixels to the detector frame (NaN if
+                       monolithic)
+    affineMaxError     64-bit float (pixels); error of that affine transform
+    iisExtraBlur       2 x 64-bit float; extra blur of the engineering fibres:
+                       variance (pixels^2) and fourth cumulant (pixels^4); NaN if none
+    traceKnots         64-bit float array; rows of the knots of the trace splines
+    wavelengthKnots    64-bit float array; rows of the knots of the wavelength
+                       splines (empty when stored with spectra)
+    metadata           string; provenance, as JSON
+
+LSF_SURFACE: one row per parameter per detector
+    armIndex           32-bit int; the detector (LSF_ARM)
+    name               string; parameter name (see above)
+    degree             2 x 32-bit int; Chebyshev degree in (u, v)
+    domain             4 x 64-bit float; (uMin, uMax, vMin, vMax), mapped onto [-1, 1]
+    coeffs             64-bit float array; coefficients, ordered as for
+                       numpy.polynomial.chebyshev.chebvander2d
+    rms                64-bit float; rms residual of the fit
+    chi2               64-bit float; chi^2 of the fit
+    ndof               32-bit int; degrees of freedom of the fit
+    nUsed              32-bit int; number of points used in the fit
+
+    (u, v) are the detector pixels (x, y), transformed by the affine transform on
+    the right-hand CCD.
+
+LSF_OFFSET: constant offsets of groups (e.g. a fibre's MTP sub-bundle) in a surface
+    armIndex           32-bit int; the detector (LSF_ARM)
+    surface            string; parameter name (LSF_SURFACE)
+    factor             string; grouping factor (e.g. "mtp")
+    label              string; the group (empty to record a factor with no groups)
+    value              64-bit float; the group's offset
+    error              64-bit float; its error
+    isReference        boolean; was this the factor's reference group (offset zero) in the
+                       fit? (The offsets may then be recentred, e.g. to average zero)
+    hasOffset          boolean; does the group have an offset (rather than being
+                       listed only as the reference)?
+
+LSF_FIBER: one row per fibre per detector
+    armIndex           32-bit int; the detector (LSF_ARM)
+    fiberId            32-bit int; fibre identifier
+    isEngineering      boolean; is this an engineering (IIS) fibre?
+    gaussianWidth      64-bit float (pixels); the LSF's width ("gaussian"; NaN otherwise)
+    traceValues        64-bit float array (pixels); the trace's x at the traceKnots
+    wavelengthValues   64-bit float array (nm, vacuum); the wavelength at the
+                       wavelengthKnots (empty when stored with spectra)
+    group_<factor>     string; the fibre's group for each grouping factor (e.g.
+                       group_mtp), whose offset applies to it
+
+    The splines are cubic.
+
+LSF_INPUT: in pfsMerged and pfsCoadd files only; how each input enters each spectrum
+    spectrum           32-bit int; the spectrum: its fiberId (pfsMerged), or its
+                       index in the TARGET HDU (pfsCoadd)
+    armIndex           32-bit int; the input's detector (LSF_ARM)
+    fiberId            32-bit int; the input's fibre
+    order              32-bit int; order of the input's resampling (as for the flux)
+    indexPositions     32-bit int array; output pixels at which the map from
+                       output to input pixels is sampled
+    indexSamples       64-bit float array; input pixel at each of indexPositions
+                       (interpolated with a cubic spline)
+    indexMaxError      64-bit float (input pixels); error of that interpolation
+    weightMinIndex     32-bit int; first output pixel covered by the input
+    weightMaxIndex     32-bit int; last output pixel covered by the input
+    weightBinSize      32-bit int; size of the bins of the smooth weight (pixels)
+    weightValues       32-bit float array; the input's weight in each bin
+                       (interpolated linearly between the bins' centres)
+
+For a line at position c in a combined spectrum, its response at pixel j is
+
+    K(j; c) = sum_a W_a(j) [R_a k_a(t_a(c))](j)
+
+where, for each input a, t_a is the map from output to input pixels, k_a is the
+input's LSF (its detector's, for its fibre), R_a is the input's resampling, and
+W_a are the inputs' weights, normalised to sum to 1. Each resampled input kernel,
+and K, are normalised to unit sum. The LSF is not truncated at the ends of an
+input's data.
+
+Deprecated LSF files
+
+The separate LSF files below are python pickles of drp_stella objects (subclasses
+of pfs.drp.stella.Lsf). They are DEPRECATED: still written, from the same LSFs as
+those in the spectra files, so that existing code keeps working; use the LSF in
+the spectra files instead.
+
     "pfsArmLsf-%06d-%1s%1d.pickle" % (visit, arm, spectrograph)
     "pfsMergedLsf-%06d.pickle" % (visit,)
     "pfsSingleLsf-%05d-%05d-%s-%016x-%06d.pickle" % (catId, tract, patch, objId, visit)
     "pfsObjectLsf-%05d-%05d-%s-%016x-%03d-0x%016x.pickle" % (catId, tract, patch, objId, nVisit, pfsVisitHash)
 
-These correspond to the corresponding FITS product without the "Lsf", e.g.
-    "pfsArm-%06d-%1s%1d.fits" % (visit, arm, spectrograph)
-
-The pickle files can be read in python using the following function:
+They can be read in python with:
 
     def readLsfPickle(filename):
         """Read the line-spread function from a pickle file"""
@@ -1196,9 +1416,9 @@ The pickle files can be read in python using the following function:
         with open(filename, "rb") as fd:
             return pickle.load(fd)
 
-This will return either a single Lsf object (for pfsSingleLsf and pfsObjectLsf
-files) or a python dictionary of Lsf objects, indexed by fiberId (in the case of
-pfsArmLsf and pfsMergedLsf files).
+This returns either a single Lsf object (for pfsSingleLsf and pfsObjectLsf files)
+or a python dictionary of Lsf objects, indexed by fiberId (for pfsArmLsf and
+pfsMergedLsf files).
 
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 

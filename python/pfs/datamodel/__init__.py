@@ -7,6 +7,7 @@ from .masks import *
 from .pfsConfig import *
 from .pfsSimpleSpectrum import *
 from .pfsFiberArray import *
+from .pfsLsf import *
 from .pfsFiberArraySet import *
 from .target import *
 from .observations import *
