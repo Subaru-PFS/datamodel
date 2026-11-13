@@ -1237,8 +1237,8 @@ class PolynomialDistortion(PfsDistortion):
 
     Parameters
     ----------
-    order : `int`
-        Order of the polynomials.
+    xOrder, yOrder : `int`
+        Orders of the polynomials.
     box : `Box`
         Range of the polynomials.
     xCoefficients : `numpy.ndarray` of `float`
@@ -1248,15 +1248,30 @@ class PolynomialDistortion(PfsDistortion):
     """
     def __init__(
         self,
-        order: int,
+        xOrder: int,
+        yOrder: int,
         box: Box,
         xCoefficients: np.ndarray,
         yCoefficients: np.ndarray,
     ):
-        self.order = order
+        self.xOrder = xOrder
+        self.yOrder = yOrder
         self.box = box
         self.xCoefficients = xCoefficients
         self.yCoefficients = yCoefficients
+
+    @property
+    def order(self) -> int:
+        """Common polynomial order for x and y (backward compatibility)
+
+        Raises
+        ------
+        RuntimeError
+            If the x and y orders differ.
+        """
+        if self.xOrder != self.yOrder:
+            raise RuntimeError(f"Distortion orders differ: xOrder={self.xOrder}, yOrder={self.yOrder}")
+        return self.xOrder
 
     @staticmethod
     def getExtName(index: int) -> str:
@@ -1286,11 +1301,36 @@ class PolynomialDistortion(PfsDistortion):
             Constructed distortion, from FITS file.
         """
         hdu = fits[cls.getExtName(index)]
-        order = hdu.header["ORDER"]
+        if "XORDER" in hdu.header and "YORDER" in hdu.header:
+            xOrder = hdu.header["XORDER"]
+            yOrder = hdu.header["YORDER"]
+        elif "ORDER" in hdu.header:
+            xOrder = hdu.header["ORDER"]
+            yOrder = hdu.header["ORDER"]
+        else:
+            raise RuntimeError("FITS header missing polynomial order")
         box = Box.fromFitsHeader(hdu.header)
-        xCoefficients = hdu.data["xCoefficients"].astype(float)
-        yCoefficients = hdu.data["yCoefficients"].astype(float)
-        return cls(order, box, xCoefficients, yCoefficients)
+        # Both coefficient arrays are stored in the same table, so the shorter
+        # one (if the orders differ) has been padded to the length of the other.
+        xCoefficients = hdu.data["xCoefficients"][:cls.getNumCoefficients(xOrder)].astype(float)
+        yCoefficients = hdu.data["yCoefficients"][:cls.getNumCoefficients(yOrder)].astype(float)
+        return cls(xOrder, yOrder, box, xCoefficients, yCoefficients)
+
+    @staticmethod
+    def getNumCoefficients(order: int) -> int:
+        """Return the number of polynomial coefficients for an order
+
+        Parameters
+        ----------
+        order : `int`
+            Polynomial order.
+
+        Returns
+        -------
+        numCoefficients : `int`
+            Number of coefficients for a 2D polynomial of that order.
+        """
+        return (order + 1)*(order + 2)//2
 
     def _writeImpl(self, fits: astropy.io.fits.HDUList, index: int):
         """Write to a FITS file
@@ -1303,7 +1343,8 @@ class PolynomialDistortion(PfsDistortion):
             Index of distortion to write.
         """
         header = astropy.io.fits.Header()
-        header["ORDER"] = self.order
+        header["XORDER"] = self.xOrder
+        header["YORDER"] = self.yOrder
         header["INHERIT"] = True
         header.update(self.box.toFitsHeader())
 
@@ -1413,8 +1454,8 @@ class MosaicPolynomialDistortion(PfsDistortion):
 
     Parameters
     ----------
-    order : `int`
-        Order of the polynomials.
+    xOrder, yOrder : `int`
+        Orders of the polynomials.
     box : `Box`
         Range of the polynomials.
     coefficients : `numpy.ndarray` of `float`
@@ -1422,13 +1463,28 @@ class MosaicPolynomialDistortion(PfsDistortion):
     """
     def __init__(
         self,
-        order: int,
+        xOrder: int,
+        yOrder: int,
         box: Box,
         coefficients: np.ndarray,
     ):
-        self.order = order
+        self.xOrder = xOrder
+        self.yOrder = yOrder
         self.box = box
         self.coefficients = coefficients
+
+    @property
+    def order(self) -> int:
+        """Common polynomial order for x and y (backward compatibility)
+
+        Raises
+        ------
+        RuntimeError
+            If the x and y orders differ.
+        """
+        if self.xOrder != self.yOrder:
+            raise RuntimeError(f"Distortion orders differ: xOrder={self.xOrder}, yOrder={self.yOrder}")
+        return self.xOrder
 
     @staticmethod
     def getExtName(index: int) -> str:
@@ -1458,10 +1514,17 @@ class MosaicPolynomialDistortion(PfsDistortion):
             Constructed distortion, from FITS file.
         """
         hdu = fits[cls.getExtName(index)]
-        order = hdu.header["ORDER"]
+        if "XORDER" in hdu.header and "YORDER" in hdu.header:
+            xOrder = hdu.header["XORDER"]
+            yOrder = hdu.header["YORDER"]
+        elif "ORDER" in hdu.header:
+            xOrder = hdu.header["ORDER"]
+            yOrder = hdu.header["ORDER"]
+        else:
+            raise RuntimeError("FITS header missing polynomial order")
         box = Box.fromFitsHeader(hdu.header)
         coefficients = hdu.data.astype(float)
-        return cls(order, box, coefficients)
+        return cls(xOrder=xOrder, yOrder=yOrder, box=box, coefficients=coefficients)
 
     def _writeImpl(self, fits: astropy.io.fits.HDUList, index: int):
         """Write to a FITS file
@@ -1474,7 +1537,8 @@ class MosaicPolynomialDistortion(PfsDistortion):
             Index of distortion to write.
         """
         header = astropy.io.fits.Header()
-        header["ORDER"] = self.order
+        header["XORDER"] = self.xOrder
+        header["YORDER"] = self.yOrder
         header["INHERIT"] = True
         header.update(self.box.toFitsHeader())
 

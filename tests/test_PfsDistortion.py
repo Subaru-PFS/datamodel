@@ -30,9 +30,9 @@ class PfsDistortionTestCase(unittest.TestCase):
         """Make an example of each distortion class"""
         rr = self.rng.uniform
         return [
-            PolynomialDistortion(2, self.box, rr(size=6), rr(size=6)),
+            PolynomialDistortion(2, 3, self.box, rr(size=6), rr(size=10)),  # Different x,y orders
             DoubleDistortion(2, self.box, rr(size=6), rr(size=6), rr(size=6), rr(size=6)),
-            MosaicPolynomialDistortion(2, self.box, rr(size=18)),
+            MosaicPolynomialDistortion(2, 3, self.box, rr(size=22)),  # 6 affine + 6 x + 10 y
             RotScaleDistortion(self.box, rr(size=6)),
             DoubleRotScaleDistortion(self.box, rr(size=10)),
             BSplineDistortion(
@@ -92,6 +92,34 @@ class PfsDistortionTestCase(unittest.TestCase):
             distortion.writeFits(filename)  # Overwriting is allowed
             copy = PfsDistortion.readFits(filename)
         self.assertDistortionsEqual(distortion, copy)
+
+    def testOldOrderKeyword(self):
+        """Test reading polynomial distortions written with a single ORDER"""
+        for distortion in self.makeDistortions()[:3:2]:  # PolynomialDistortion, MosaicPolynomialDistortion
+            with self.subTest(distortion=distortion.getName()):
+                buffer = io.BytesIO()
+                distortion.writeFits(buffer)
+                with astropy.io.fits.open(io.BytesIO(buffer.getvalue())) as fits:
+                    header = fits[distortion.getExtName(0)].header
+                    self.assertIn("XORDER", header)
+                    header["ORDER"] = 4
+                    del header["XORDER"]
+                    del header["YORDER"]
+                    old = io.BytesIO()
+                    fits.writeto(old)
+                copy = PfsDistortion.readFits(io.BytesIO(old.getvalue()))
+                self.assertEqual(copy.xOrder, 4)
+                self.assertEqual(copy.yOrder, 4)
+                self.assertEqual(copy.order, 4)
+
+    def testOrder(self):
+        """Test the backward-compatible ``order`` attribute"""
+        rr = self.rng.uniform
+        same = PolynomialDistortion(2, 2, self.box, rr(size=6), rr(size=6))
+        self.assertEqual(same.order, 2)
+        different = PolynomialDistortion(2, 3, self.box, rr(size=6), rr(size=10))
+        with self.assertRaises(RuntimeError):
+            different.order
 
     def testWrongClass(self):
         """Test that reading with the wrong subclass fails"""
