@@ -527,9 +527,26 @@ The PDU contains the following keys:
                     and 'r' and 'm' cannot be present
                     in the same combination)
                     examples: 'brn', 'bmn', 'rb'.
+      DAMD_VER  PfsDesign/PfsConfig datamodel version (see versions.txt)
+      W_PFDSGN  The pfsDesignId
+      VARIANT   Which variant of PFDSGN0 this design is (0 if not a variant)
+      PFDSGN0   The pfsDesignId of the base design this is a variant of
+                    (0 if not a variant)
+      W_DSGOBS  Designed observation time, ISO-8601 (UTC); absent if not set
+      W_DSVRnn  Versions of the software used to create the design, nn=00..13:
+                    pfs_instdata, pfs_utils, datamodel, author, ets_fiberalloc,
+                    ets_pointing, ets_shuffle, ets_target_database,
+                    ics_cobraCharmer, ics_cobraOps, ics_fpsActor,
+                    pfs_obsproc_planning, qplan, spt_operational_database
+                    (a card is absent when its version is not known)
+
+The DESIGN and PHOTOMETRY HDU headers repeat these keys, and also carry
+"HIERARCH TargetType.<name>", "HIERARCH FiberStatus.<name>" and
+"HIERARCH CobraId.<name>" cards documenting the values of those enumerations.
 
 The DESIGN table lists for each object:
       fiberId        32-bit int
+      cobraId        32-bit int (see 'cobraId' below)
       catId          32-bit int
       tract          32-bit int
       patch          string
@@ -580,6 +597,12 @@ The 'fiberStatus' in the DESIGN table is an enumerated type, with values:
     MASKED = 9: Excluded from convergence for this visit.
     UNKNOWN = 10: Cobra position is unknown for this visit.
 
+The 'cobraId' in the DESIGN table is the identifier of the cobra carrying the
+fiber, or one of the special values:
+    ENGINEERING = 65533: Engineering fiber.
+    NOT_CONNECTED = 65534: PFS is not connected to PFI.
+    NOT_SET = 65535: cobraId is not set (also how files without the column read).
+
 The PHOTOMETRY table lists:
       fiberId            32-bit int
       fiberFlux    [nJy] 32-bit float
@@ -622,6 +645,7 @@ The GUIDESTARS table lists:
       agId           32-bit int
       agX            32-bit float (pixels)
       agY            32-bit float (pixels)
+      flag           32-bit int
 
 Where the:
     * objId corresponds to the unique object identifer for the guide star
@@ -643,14 +667,12 @@ Where the:
           is expected to be detected
     * agY is the Y-position on the corresponding AG camera where the guide star
           is expected to be detected
+    * flag is a bitmask of the guide star's catalogue properties
+          (SourceCatalogFlags in pfs_utils: GAIA, HSC, PMRA, ..., GALAXY);
+          0 for files written without the column
 
 Additional keywords are required for the GUIDESTARS HDU:
-    * EPOCH the reference epoch for the guide star data.
-        All the guide star information share the same epoch.
-        This should be accurate to the order of weeks to ensure that the
-        parallax can be incorporated into the measurements.
-        The format for the time is the ISO-8601 yyyy-mm-ddThh:mm:ss format
-        and the time coordinate is TCB.
+    * DAMD_VER the GuideStars datamodel version (currently 1)
     * TEL_ELEV the telescope elevation (degrees)
     * GS_CATID the identifier of the catalogue containing the guide stars.
         This implies that all the guide stars in this table originate from
@@ -671,24 +693,69 @@ FITS file format:
 HDU #0 PDU
 HDU #1          FITS binary table named "CONFIG"
 HDU #2          FITS binary table named "PHOTOMETRY"
+HDU #3          FITS binary table named "GUIDESTARS"
 
-The PDU has keys indicating the actual pointing of the telescope boresight.
+The PDU contains the same keys as for the PfsDesign (RA and DEC being the
+boresight of the design), plus:
 
-      RA        Actual telescope boresight Right Ascension (degrees).
-      DEC       Actual telescope boresight Declination (degrees).
+      W_VISIT   Visit number
+      W_VISIT0  Visit of the convergence the fiber positions come from
+      W_CAMMSK  Bitmask of the cameras used for this visit
+      W_INSMSK  Bitmask of instrument status flags for this visit
+                    (see 'InstrumentStatusFlag' below)
+      W_DSGOBS  Middle of the integration window of this visit, ISO-8601 (UTC);
+                    ra, dec and pfiNominal are not recomputed for it
+      W_DSOBS0  Designed observation time of the PfsDesign, ISO-8601 (UTC)
+      W_CVGOBS  Observation time the ra, dec and pfiNominal are computed for,
+                    i.e. the convergence of W_VISIT0, ISO-8601 (UTC)
+                    (DAMD_VER >= 7; earlier files read back with W_DSGOBS)
+      W_CVFBI   Where a cobra with an invalid target was sent
+      W_CVFBU   Where a cobra with no assigned target was sent
+      W_CVTOL   [mm] Distance tolerance: fiberStatus=GOOD if within it
+      W_CVSKF   Whether the fiducial interference check was skipped
+      W_CVNIT   Number of iterations allocated to the convergence
+      W_CVETM   [s] Elapsed time of the convergence
+      W_CVRTL   [mm] Tolerance requested for the convergence loop
+      W_CVBMC   Blind-move calibration aiming the dot cobras
+      W_CVDLD   Dot fraction the ramp lands the dot cobras at
+      W_CVDTG   Dot fraction the dot cobras should end at
+      W_C0VRnn  Versions of the software used for the convergence, nn=00..07:
+                    pfs_instdata, pfs_utils, datamodel, author,
+                    ics_cobraCharmer, ics_fpsActor, ics_mcsActor, moduleXml
+      W_CFVRnn  Versions of the software used for the exposure, nn=00..05:
+                    pfs_instdata, pfs_utils, datamodel, author,
+                    ics_iicActor, ics_spsActor
+
+The W_DSGOBS, W_DSOBS0, W_CVGOBS, W_VISIT0, W_CV* and version cards are absent
+when their value is not known.  The W_DSVRnn cards are those of the PfsDesign.
+
+The instrument control software adds its own cards to the PDU (see
+getPfsConfigCards in ics_utils), among which:
+      W_SEQID   IIC sequence id (opdb iic_sequence)
+      W_SEQTYP  IIC sequence type
+      W_SEQNAM  IIC sequence name
+      W_SEQCMN  IIC sequence comments
+      W_GRPID   Sequence group id (opdb sequence_group); -9998 if none
+      W_GRPNAM  Sequence group name
+      W_DINROT  [deg] INSROT of the SPS visit minus INSROT of the convergence
 
 The CONFIG table lists for each object:
       fiberId        32-bit int
+      cobraId        32-bit int (see 'cobraId' for the PfsDesign)
       catId          32-bit int
       tract	         32-bit int
       patch          string
       objId          64-bit int
       ra             64-bit float (degrees)
       dec            64-bit float (degrees)
-      targetType     32-bit int (enumerated type: SCIENCE,SKY,FLUXSTD,UNASSIGNED,ENGINEERING)
-      fiberStatus    32-bit int (enumerated type: GOOD,BROKENFIBER,BLOCKED,BLACKSPOT,UNILLUMINATED)
+      targetType     32-bit int (enumerated type, as for the PfsDesign)
+      fiberStatus    32-bit int (enumerated type, as for the PfsDesign)
       pfiCenter      pair of 32-bit floats (millimeters on the PFI)
       pfiNominal     pair of 32-bit floats (millimeters on the PFI)
+      cobraTheta     32-bit float (degrees)
+      cobraPhi       32-bit float (degrees)
+      targetValidationMask  32-bit int (bitmask, see below)
+      cobraCommand   32-bit int (enumerated type, see below)
       epoch          7-character string
       pmRa           32-bit float (mas/yr)
       pmDec          32-bit float (mas/yr)
@@ -696,13 +763,45 @@ The CONFIG table lists for each object:
       proposalId     string
       obCode         string
 
-(I.e., the same as for PfsDesign, except for the addition of the
-"pfiCenter" column.)
+Where the:
+    * pfiCenter is the actual position of the fiber on the PFI, and pfiNominal
+      the intended target position.
+
+The 'cobraTheta' and 'cobraPhi' in the CONFIG table are the angles of the cobra
+at the end of the convergence, in degrees, in the frame of the cobra
+calibration model (see W_C0VR07):
+    * cobraTheta is measured from the theta CCW hard stop, and can exceed 360
+      (the theta range overlaps itself).
+    * cobraPhi is measured from the phi CCW hard stop.
+They are NaN when unknown: no cobra, fiber not matched by MCS, or files written
+without the columns.
 
 The 'targetType' and 'fiberStatus' in the CONFIG table are the same enumerated
 types as in the PfsDesign.
 
-The PHOTOMETRY table is the same as for the PfsDesign.
+The 'targetValidationMask' in the CONFIG table is a bitmask of why FPS refused
+to send a cobra to its design target, or zero if it was accepted.  It is set
+only where there was a target to validate (targetType SCIENCE, SKY, FLUXSTD).
+    NOT_FINITE = 1<<0: The design gave no position for a target that was meant to be observed.
+    TOO_CLOSE_TO_CENTER = 1<<1: The target lies inside the cobra's minimum reach.
+    TOO_FAR_FROM_CENTER = 1<<2: The target lies beyond the cobra's maximum reach.
+    FIDUCIAL_INTERFERENCE = 1<<3: The cobra arm would interfere with a fiducial fiber.
+    NOT_SET = 1<<15: No target validation was recorded (files before DAMD_VER 6).
+
+The 'cobraCommand' in the CONFIG table is an enumerated type recording what FPS
+did with the cobra for this visit:
+    NOT_COMMANDED = 0: Left where it was: excluded by the operator, broken, or not a cobra at all.
+    CONVERGE = 1: Driven to its design target.
+    HOME = 2: Driven to its hard stop.
+    BLACK_DOT = 3: Parked on its black dot.
+    NOT_SET = 4: No command was recorded (files before DAMD_VER 6).
+
+The 'InstrumentStatusFlag' bits of W_INSMSK are:
+    INSROT_MISMATCH = 1<<0: INSROT at the time of convergence vs SPS exposure exceeded threshold.
+    CONVERGENCE_FAILED = 1<<1: The pfsConfig0 was generated, but FPS reported the convergence as failed.
+    CONVERGENCE_SKIPPED = 1<<2: The pfsConfig0 was generated, but FPS did not perform the convergence.
+
+The PHOTOMETRY and GUIDESTARS tables are the same as for the PfsDesign.
 
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
