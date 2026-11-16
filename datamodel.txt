@@ -158,42 +158,162 @@ MaskedImage
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 Auto-Guider image data
 
-The file name format is as follows:
+The agcc actor writes one file per AG exposure, holding the images from all six
+AG cameras. The file name format is as follows:
     "agcc_{pfs_visit:06d}_{agc_exposure_id:08d}.fits"
 
 Where agc_exposure_id is a unique integer (monotonically increasing exposure by exposure).
 
-This data contain the following mandatory tables:
+FITS file format:
+
+HDU #0 PDU             (no data, no keys of its own)
+HDU #1 CAM1            [16-bit unsigned INT]      1072 x 1033
+HDU #2 CAM2            [16-bit unsigned INT]      1072 x 1033
+HDU #3 CAM3            [16-bit unsigned INT]      1072 x 1033
+HDU #4 CAM4            [16-bit unsigned INT]      1072 x 1033
+HDU #5 CAM5            [16-bit unsigned INT]      1072 x 1033
+HDU #6 CAM6            [16-bit unsigned INT]      1072 x 1033
+HDU #7...       FITS binary tables named "TABLE1" ... "TABLE6" (optional)
+
+The six CAM[1-6] HDUs are always present, in this order. A camera that did not
+take part in the exposure has an HDU with no data and none of the keys below.
+The images are the raw, unbinned, full frames (no background subtraction),
+stored as 16-bit integers with BZERO=32768.
+
+Each CAM[1-6] HDU with data has the following keys:
+      DATE      Start of the exposure, yyyy-mm-ddThh:mm:ss (HST)
+      INSTRUME  The camera model
+      SERIAL    The camera serial number
+      EXPTIME   Exposure time (ms)
+      VBIN      Vertical binning
+      HBIN      Horizontal binning
+      CCD-TEMP  CCD temperature (deg C)
+      SHUTTER   'OPEN' or 'CLOSE' (dark)
+      CCDAREA   The area read out, '[x0:y0,x1:y1]'
+      FRAMEID   The agc_exposure_id
+      VISITID   The pfs_visit
+
+A TABLE[1-6] HDU is written only for a camera whose spots were measured, so
+there may be fewer than six and their HDU numbers vary: find them by name
+(TABLE3 belongs to CAM3). Each TABLE[1-6] HDU contains, per spot:
+
+  moment_00      32-bit float  The (0,0) image moment (background-subtracted flux, counts)
+  centroid_x     32-bit float  The x-centroid (pixels)
+  centroid_y     32-bit float  The y-centroid (pixels)
+  moment_20      32-bit float  The (2,0) central image moment (pixels^2)
+  moment_11      32-bit float  The (1,1) central image moment (pixels^2)
+  moment_02      32-bit float  The (0,2) central image moment (pixels^2)
+  peak_x         16-bit int    x-location of peak value (pixels)
+  peak_y         16-bit int    y-location of peak value (pixels)
+  peak_intensity 32-bit float  peak intensity value (counts)
+  background     32-bit float  measured background level (counts)
+
+Pixel positions here and in the tables of the display files below are 0-indexed
+positions in the full frame: the centre of the first pixel is (0.0, 0.0), so the
+FITS pixel coordinate is the value plus one.
+
+-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+Auto-Guider display files
+
+For each AG exposure the vgw actor rewrites the agcc file above and sends it to
+Gen2, where the guide view (Ginga) displays it. These files are for display
+while observing; PFS does not archive them. There are two kinds:
+
+    "_agcc_{pfs_visit:06d}_{agc_exposure_id:08d}.fits"    raw
+    "agcc_{pfs_visit:06d}_{agc_exposure_id:08d}.fits"     processed
+
+The raw file is sent for every AG exposure, as soon as the agcc actor has written
+it. The processed file is sent when the ag actor has finished measuring an
+exposure (field acquisition or a guiding iteration). The processed file has the
+same name as the agcc file it was made from but not the same contents.
+
+Both kinds have the layout of the agcc file, except that:
+    * the CAM[1-6] images are RICE-compressed (lossless);
+    * a CAM[1-6] HDU with no data is left out, so there may be fewer than six
+          and the HDU numbers vary: find the HDUs by name;
+    * the CHECKSUM and DATASUM keys are not carried over.
+
+The raw file has nothing else. The processed file adds a celestial WCS and three
+tables:
 
 HDU #0 PDU
-HDU #1 CAM1            [16-bit INT]      NPIXEL
-HDU #2 CAM2            [16-bit INT]      NPIXEL
-HDU #3 CAM3            [16-bit INT]      NPIXEL
-HDU #4 CAM4            [16-bit INT]      NPIXEL
-HDU #5 CAM5            [16-bit INT]      NPIXEL
-HDU #6 CAM6            [16-bit INT]      NPIXEL
+HDU             CAM[1-6], as above, each with a WCS
+HDU             TABLE[1-6], as above
+HDU             FITS binary table named "guide_objects"
+HDU             FITS binary table named "detected_objects"
+HDU             FITS binary table named "identified_objects"
 
-And the following optional tables:
+The PDU of the processed file contains the following keys:
+      RA2000    Right ascension of the field centre, 'hh:mm:ss.sss' (ICRS)
+      DEC2000   Declination of the field centre, '+dd:mm:ss.ss' (ICRS)
+      RA        The same as RA2000
+      DEC       The same as DEC2000
+      EQUINOX   2000.0
+      INST-PA   Position angle of the instrument (degrees)
 
-HDU #7 TABLE1          FITS binary table
-HDU #8 TABLE2          FITS binary table
-HDU #9 TABLE3          FITS binary table
-HDU #10 TABLE4         FITS binary table
-HDU #11 TABLE5         FITS binary table
-HDU #12 TABLE6         FITS binary table
+Each CAM[1-6] HDU of the processed file has a TAN-SIP WCS (CTYPEn, CUNITn,
+CRVALn, CRPIXn, CDi_j and third-order A_p_q, B_p_q, AP_p_q, BP_p_q). CRVAL is
+the field centre and CRPIX its position in that camera's pixel frame, far off
+the detector. It is a nominal WCS from the field centre and INST-PA, good for
+display; it is not fitted to the stars in the image.
 
-Each TABLE[1-6] HDU contains :
+The guide_objects table lists the guide stars of the pfsConfig (of the pfsDesign
+when there is no pfsConfig yet):
+      source_id      64-bit int    The guide star identifier (objId in the GUIDESTARS table)
+      ra             64-bit float  Right ascension (degrees)
+      dec            64-bit float  Declination (degrees)
+      mag            32-bit float  Magnitude
+      camera_id      16-bit int    The AG camera, 0-5 (CAM1 is 0)
+      x              32-bit float  Expected x-position on that camera (pixels)
+      y              32-bit float  Expected y-position on that camera (pixels)
+      x_dp           32-bit float  Expected x-position in the detector plane (mm)
+      y_dp           32-bit float  Expected y-position in the detector plane (mm)
+      flags          16-bit int    Catalogue properties (SourceCatalogFlags in pfs_utils)
+      filter_flag    16-bit unsigned int
+                                   0 if the star was used; otherwise the
+                                   SourceCatalogFlags it was rejected for
+                                   (GALAXY, or the required properties it lacks)
 
-  moment_00      32-bit int    The (0,0) image moment
-  centroid_x     32-bit int    The x-centroid
-  centroid_y     32-bit int    The y-centroid
-  moment_20      32-bit int    The (2,0) image moment
-  moment_11      32-bit int    The (1,1) image moment
-  moment_02      32-bit int    The (0,2) image moment
-  peak_x         16-bit int    x-location of peak value
-  peak_y         16-bit int    y-location of peak value
-  peak_intensity 32-bit int    peak intensity value
-  background     32-bit int    measured background level
+The detected_objects table lists the spots of TABLE[1-6] that the ag actor used,
+all cameras together (spots with a bad detection flag are left out):
+      camera_id          16-bit int    The AG camera, 0-5
+      spot_id            16-bit int    The spot number within that camera
+      moment_00          32-bit float  As in TABLE[1-6]
+      centroid_x         32-bit float  As in TABLE[1-6] (pixels)
+      centroid_y         32-bit float  As in TABLE[1-6] (pixels)
+      central_moment_11  32-bit float  moment_11 in TABLE[1-6]
+      central_moment_20  32-bit float  moment_20 in TABLE[1-6]
+      central_moment_02  32-bit float  moment_02 in TABLE[1-6]
+      peak_x             16-bit unsigned int  As in TABLE[1-6] (pixels)
+      peak_y             16-bit unsigned int  As in TABLE[1-6] (pixels)
+      peak               16-bit unsigned int  peak_intensity in TABLE[1-6]
+      background         32-bit float  As in TABLE[1-6]
+      flags              8-bit unsigned int   Detection properties
+                                       (SourceDetectionFlags in pfs_utils)
+
+The identified_objects table has one row per spot that was compared with the
+guide stars:
+      detected_object_id     16-bit int    Row in detected_objects (0-indexed)
+      guide_object_id        16-bit int    Row in guide_objects (0-indexed)
+      detected_object_x_mm   32-bit float  Spot position in the detector plane (mm)
+      detected_object_y_mm   32-bit float
+      guide_object_x_mm      32-bit float  Guide star position in the detector plane (mm)
+      guide_object_y_mm      32-bit float
+      detected_object_x_pix  32-bit float  Spot position on the camera (pixels)
+      detected_object_y_pix  32-bit float
+      guide_object_x_pix     32-bit float  Guide star position on the camera (pixels)
+      guide_object_y_pix     32-bit float
+      camera_id              16-bit int    The AG camera, 0-5
+      match_flags            16-bit int    How the spot matched its guide star
+                                           (SourceMatchingFlags in pfs_utils)
+
+A row with match_flags equal to GOOD_MATCH (1) is a spot matched to its guide
+star within tolerance; any other value says why it is not.
+
+The detector plane is the frame of dp2det and det2dp in pfs_utils
+(pfs.utils.coordinates.coordinates): millimetres in the focal plane, common to
+the six cameras. The y positions here have the opposite sign to
+agc_nominal_y_mm and agc_center_y_mm in the opdb agc_match table.
 
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
