@@ -3,7 +3,7 @@ from typing import Any, Dict, Optional
 import numpy as np
 import astropy.io.fits
 
-from .utils import astropyHeaderFromDict, astropyHeaderToDict, createHash
+from .utils import astropyHeaderFromDict, astropyHeaderToDict, createHash, markVacuumWavelengths
 from .identity import CalibIdentity
 from .pfsConfig import PfsConfig
 from .pfsFiberArraySet import PfsFiberArraySet
@@ -249,7 +249,8 @@ class PfsFiberNorms:
         header = Header()
         header["INHERIT"] = True
         fits.append(ImageHDU(self.fiberId.astype(int), name="FIBERID", header=header))
-        fits.append(ImageHDU(self.wavelength.astype(float), name="WAVELENGTH", header=header))
+        wavelength = ImageHDU(self.wavelength.astype(float), name="WAVELENGTH", header=header)
+        fits.append(markVacuumWavelengths(wavelength))
         fits.append(ImageHDU(self.values.astype(float), name="VALUES", header=header))
         fits.append(
             BinTableHDU.from_columns(

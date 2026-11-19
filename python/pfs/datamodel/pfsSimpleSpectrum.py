@@ -4,7 +4,7 @@ import numpy as np
 
 from .masks import MaskHelper
 from .target import Target
-from .utils import astropyHeaderFromDict, inheritDocstrings
+from .utils import astropyHeaderFromDict, inheritDocstrings, markVacuumWavelengths
 from .wavelengthArray import WavelengthArray
 
 __all__ = ["PfsSimpleSpectrum"]
@@ -179,7 +179,7 @@ class PfsSimpleSpectrum:
         maskHeader.extend(header)
         fits.append(CompImageHDU(self.mask, header=maskHeader, name="MASK"))
         if not haveWavelengthHeader:
-            fits.append(ImageHDU(self.wavelength, header=header, name="WAVELENGTH"))
+            fits.append(markVacuumWavelengths(ImageHDU(self.wavelength, header=header, name="WAVELENGTH")))
         self.target.toFits(fits)
         return header
 

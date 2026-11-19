@@ -94,6 +94,65 @@ class PfsFiberArraySetTestCase(lsst.utils.tests.TestCase):
             copy = PfsMerged.readFits(filename)
             self.assertPfsMergedEqual(copy, spectra)
 
+    def testLsf(self):
+        """Claude: the LSF is written and read with the spectra, follows subsets, and merges"""
+        spectra = self.makePfsMerged()
+        self.assertIsNone(spectra.lsf)
+        lsf = makeLsf(spectra.fiberId, spectra.length)
+        spectra.lsf = FakeLsf(lsf)  # converts itself
+        with lsst.utils.tests.getTempFilePath(".fits") as filename:
+            spectra.writeFits(filename)
+            self.assertIsNone(spectra.lsf.calledWith)  # Keyed by fiberId: no keys needed
+            copy = PfsMerged.readFits(filename)
+        self.assertPfsMergedEqual(copy, spectra)
+        self.assertEqual(len(copy.lsf.arms), 1)
+        np.testing.assert_array_equal(copy.lsf.arms[0].fiberId, spectra.fiberId)
+        np.testing.assert_array_equal(copy.lsf.arms[0].gaussianWidth, lsf.arms[0].gaussianWidth)
+        self.assertEqual([ii.spectrum for ii in copy.lsf.inputs], list(spectra.fiberId))
+
+        # A subset keeps the LSF, which is keyed by fiberId
+        subset = copy[copy.fiberId > copy.fiberId[1]]
+        self.assertIs(subset.lsf, copy.lsf)
+
+        # Merging concatenates the LSFs, with the detector indices adjusted
+        other = self.makePfsMerged()
+        other.fiberId = other.fiberId + 1000
+        other.lsf = makeLsf(other.fiberId, other.length)
+        merged = PfsMerged.fromMerge([copy, other])
+        self.assertEqual(len(merged.lsf.arms), 2)
+        self.assertEqual({ii.armIndex for ii in merged.lsf.inputs if ii.spectrum >= 1000}, {1})
+
+        # Merging spectra of which some have no LSF gives no LSF
+        other.lsf = None
+        self.assertIsNone(PfsMerged.fromMerge([copy, other]).lsf)
+
+
+def makeLsf(fiberId, length, combined=True):
+    """Claude: a simple LSF for spectra with the given ``fiberId`` (or target indices)"""
+    from pfs.datamodel.pfsLsf import PfsArmLsfData, PfsLsf, PfsLsfInput
+    arm = PfsArmLsfData(arm="r", spectrograph=1, length=length, kind="gaussian", fiberId=np.asarray(fiberId),
+                        gaussianWidth=np.linspace(1.0, 2.0, len(fiberId)))
+    inputs = []
+    if combined:
+        inputs = [PfsLsfInput(spectrum=int(ff), armIndex=0, fiberId=int(ff), order=1,
+                              indexPositions=np.array([0, length - 1]), indexSamples=np.array([0.0, 99.0]),
+                              indexMaxError=0.0, weightMinIndex=0, weightMaxIndex=length - 1,
+                              weightBinSize=50, weightValues=np.ones(3, dtype=np.float32))
+                  for ff in fiberId]
+    return PfsLsf([arm], inputs)
+
+
+class FakeLsf:
+    """Claude: stands in for drp_stella's LSF, which converts itself with ``toDatamodel``"""
+    def __init__(self, lsf, expectKeys=None):
+        self.lsf = lsf
+        self.expectKeys = expectKeys
+        self.calledWith = "not called"
+
+    def toDatamodel(self, keys=None):
+        self.calledWith = keys
+        return self.lsf
+
 
 class TestMemory(lsst.utils.tests.MemoryTestCase):
     pass
