@@ -1010,7 +1010,9 @@ written as
 
 with an empty PHDU and the LSF_ARM, LSF_SURFACE, LSF_OFFSET and LSF_FIBER HDUs
 described under "Line-spread functions" (one detector, with each fibre's
-wavelength spline). reduceExposure uses it to give each pfsArm its LSF.
+wavelength spline). It is a calibration product: each model is certified with the
+range of dates for which it is valid, and reduceExposure uses the one valid when a
+visit was taken to give that visit's pfsArm its LSF.
 
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
