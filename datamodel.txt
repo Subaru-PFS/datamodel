@@ -1062,7 +1062,8 @@ polynomial over the focal plane is fitted to each exposure's values and subtract
 "value" is the deviation from that polynomial.  The skyNorms are raw:  relative only to the fiber
 normalizations (pfsFiberNorms) applied to the pfsArm spectra.  Any later correction applied to the
 pfsArm (the "pfiCorrection" column of its NOTES HDU records the total, c, applied as NORM *= 1 + c)
-is first removed.
+is first removed, as is the black spot correction (the "blackSpotCorrection" column, b, applied
+separately as NORM *= b).
 
 skyNorms_calib is a combination of skyNorms measured from many exposures.
 
