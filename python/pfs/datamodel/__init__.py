@@ -20,5 +20,7 @@ from .guideStars import *
 from .pfsTable import *
 from .pfsFocalPlaneFunction import *
 from .pfsFiberNorms import *
+from .pfsThetaPhiModel import *
+from .pfsThetaPhiFine import *
 from .pfsZCandidates import *
 from .pfsCoZCandidates import *

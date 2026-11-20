@@ -1039,6 +1039,151 @@ values. The format is not specified here, and varies according to the model.
 
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
+Fiber throughput across the patrol region:  the smooth model
+
+A fiber's throughput depends on where its cobra puts it.  The fiber normalizations are measured with the cobras
+at home (cobraHome:  both arms against their hard stops), so a spectrum taken with the cobra anywhere else needs
+a correction.  The smooth part of it is described for every fiber of the PFI by one file;  the per-fiber fine
+structure is a separate product.  Both are calibration inputs, applied by reduceExposure;  the factors applied
+are recorded in the pfsArm's NOTES (in pfiCorrection, the total applied).
+
+    "pfsThetaPhiModel-%s.fits" % (calibDate,)
+
+For each fiber the flux at cobra angles (theta, phi) is modelled as
+
+    flux(theta, phi) = h (1 + s(theta, phi))           [ x (1 + delta) for a cobraHome exposure ]
+
+where h is a level (per night), and
+
+    s(theta, phi) = sum_k c_k [b_k(theta, phi) - b_k(thetaHome, phiHome)]
+
+is zero at home.  So 1 + s is the throughput at (theta, phi) relative to the smooth surface at home, and
+1 + delta the throughput of a cobraHome exposure relative to that surface (delta is measured per run).  A
+spectrum normalized by the fiber normalizations is corrected by multiplying its NORM by
+
+    (1 + alpha s(theta, phi))/(1 + delta)      for a cobra anywhere but cobraHome
+    1                                          for a cobraHome exposure
+
+where alpha, measured per arm, is the share of s that the sky sees (s and delta are measured with quartz).
+delta is that of the latest run to start on or before the observation (RUNS table).  A cobraHome exposure is one
+with both arms driven to their stops:  the pfsConfig's cobraCommand HOME_BOTH (DAMD-200);  for older pfsConfigs,
+HOME with theta at its home angle and phi at 0.  The angles alone are not enough:  in the cobraHome state the fiber
+sits 60-70 microns off where those angles would put it.
+
+Angles are in degrees, measured from the CCW hard stops as in the cobra calibration, the FPS and the pfsConfig:
+theta from tht0 (home, the CW stop, is at 360 + (tht1 - tht0) mod 360, i.e. 360-400 degrees) and phi from phiIn
+(home is 0).  The basis functions are
+
+    b_k(theta, phi) = F_k(m_k theta) G_k(n_k phi)
+
+with F_k, G_k each one of cos, sin, "one" (the constant 1) or "lin" (a ramp:  m_k theta/360, theta not wrapped,
+so that theta and theta + 360 can differ), as listed in the BASIS table.
+
+The file has several HDUs:
+
+HDU #0 PDU          Header:  DAMD_VER, MODEL, ANGLE_UNIT, THETA0, PHI0, ORDER, PURE_HARMONICS, THETA_RAMP,
+                    the band the model was measured in (BAND_LO, BAND_HI, nm), CALIB_DATE, fit settings and
+                    provenance
+HDU #1 COEFFS       Coefficients c_k                      [64-bit FLOAT]  NFIBER*NCOEFF
+HDU #2 BASIS        The basis, in COEFFS order            [BINARY TABLE]  NCOEFF
+HDU #3 FIBERS       Per-fiber home angles and quality     [BINARY TABLE]  NFIBER
+HDU #4 RUNS         The runs with a measured delta        [BINARY TABLE]  NRUN
+HDU #5 HOMEOFFSETS  delta for each fiber and run          [64-bit FLOAT]  NFIBER*NRUN
+HDU #6 ALPHA        alpha for each arm                    [BINARY TABLE]  NARM
+
+The BASIS table has columns THETA_HARMONIC (32-bit int, m_k), THETA_FUNC (string), PHI_HARMONIC (32-bit int,
+n_k) and PHI_FUNC (string).
+
+The FIBERS table has columns FIBERID (32-bit int), HOME_THETA and HOME_PHI (64-bit float, degrees:  the angles
+at which s is zero), FLAGS (32-bit int), NUM_POINTS (32-bit int:  points in the fit), PHI_MIN and PHI_MAX (64-bit
+float, degrees:  the range of phi in the data), THETA_COVERAGE (64-bit float:  the fraction of the theta circle
+covered), RMS (64-bit float:  robust rms of the fit's residuals, a fraction) and MODEL_ERR (64-bit float:  the
+error in s, a fraction;  0 if not measured).
+
+The FLAGS bits are:
+    NO_MODEL = 0x1:  no model was fitted;  the coefficients are NaN.
+    FIT_FAILED = 0x2:  the fit is degenerate or absurd.
+    BROKEN_COBRA = 0x4:  BROKENCOBRA in at least one input visit (advisory).
+    POOR_COVERAGE = 0x8:  the data covered too little of phi, or had too few points (advisory).
+    EDGE = 0x10:  the cobra is shadowed at the edge of the PFI (advisory).
+A fiber with NO_MODEL or FIT_FAILED gets no correction.
+
+The RUNS table has columns RUN (string:  the label) and START (string:  ISO-8601 date of the run's first night).
+The ALPHA table has columns ARM (string), ALPHA (64-bit float) and SAMPLE (string:  what it was measured from).
+NaN in HOMEOFFSETS means that delta wasn't measured for that fiber and run.
+
+Known limitation:  at phi below about 20 degrees, quartz light shows a component varying with theta and scaling
+with delta that the sky doesn't, so s (measured with quartz) is off for the sky by up to about 0.1 delta there.
+
+
+-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+Fiber throughput across the patrol region:  each fiber's fine structure
+
+On top of the smooth model (pfsThetaPhiModel), each fiber's throughput has its own fine structure as its cobra
+moves:  about 0.2% rms, on scales of a few degrees, stable for months.  It is described for one arm by one file,
+as a Gaussian process for each fiber trained on the sky's residuals from the smooth model at converged cobra
+positions.  It is a calibration input, applied by reduceExposure.
+
+    "pfsThetaPhiFine-%s-%s.fits" % (calibDate, arm)
+
+For a fiber whose cobra is at (theta, phi), the layer is
+
+    f(theta, phi) = sum_i w_i sum_c AMP_c^2 M32(r_ic)
+    r_ic = sqrt((dtheta_i/LTHETA_c)^2 + ((phi - phi_i)/LPHI_c)^2)
+    dtheta_i = ((theta - theta_i + 180) mod 360) - 180
+    M32(r) = (1 + sqrt(3) r) exp(-sqrt(3) r)
+
+summed over the fiber's training points i (theta_i, phi_i, w_i in the POINTS table) and the kernel's terms c
+(AMP_c, LTHETA_c, LPHI_c in the FIBERS table).  A spectrum's NORM is multiplied by 1 + f;  by 1 for a cobraHome
+exposure (as for pfsThetaPhiModel) and for a fiber with the NO_LAYER flag or not in the file.  The angles are as
+for pfsThetaPhiModel.
+
+The layer is the sky's correction (SOURCE = sky), applied to all light.  Quartz light shares only about a
+quarter of it, so for quartz the correction is wrong by about 0.07% rms (0.10% near the training points), and not
+at all at home, so the fiber normalizations are unaffected.
+
+The approximate error in f is sqrt(sum_c AMP_c^2) times g(d), where d is the distance to the fiber's nearest
+training point in units of the first kernel term's length scales (dtheta/LTHETA_1, dphi/LPHI_1), and g is
+interpolated in the table ERR_D0..ERR_D(n-1) (d), ERR_G0..ERR_G(n-1) (g) in the header.
+
+The file has several HDUs:
+
+HDU #0 PDU      Header:  DAMD_VER, KERNEL (= matern32sum, the form above), NTERM (number of kernel terms),
+                ANGLE_UNIT, THETA0, PHI0, THETA_WRAP, ARM, BAND_LO and BAND_HI (nm), SOURCE, SMOOTH_HASH (the
+                hash, PFS.HASH.THETAPHIMODEL, of the pfsThetaPhiModel the layer was fitted against), the runs
+                pooled, the error model (ERR_N, ERR_D*, ERR_G*), CALIB_DATE and provenance
+HDU #1 FIBERS   Per-fiber kernel, points and flags       [BINARY TABLE]  NFIBER
+HDU #2 POINTS   The training points, contiguous by fiber [BINARY TABLE]  NPOINT (in all)
+
+The FIBERS table has columns FIBERID (32-bit int), POINT0 (32-bit int:  the row of the fiber's first point in
+POINTS), NPOINT (32-bit int:  how many), AMP_c, LTHETA_c and LPHI_c for c = 1..NTERM (32-bit float:  the
+amplitude, a fraction, and the length scales, degrees), FLAGS (32-bit int), REPEAT_CORR (32-bit float:  the
+validity test, the repeat correlation of the residuals against the previous run) and VAR_REMOVED (32-bit float:
+the share of the variance removed, leaving one night out).
+
+The FLAGS bits are:
+    NO_LAYER = 0x1:  no layer (too few points, or the validity test failed);  the correction is 1.
+    STALE = 0x2:  the repeat correlation against the previous run is low:  a possible break (advisory).
+    FEW_POINTS = 0x4:  few training points (advisory).
+
+The POINTS table has columns THETA and PHI (32-bit float, degrees) and WEIGHT (32-bit float, 1/fraction).
+
+A pfsThetaPhiFine file must be used with the pfsThetaPhiModel it was fitted against (SMOOTH_HASH).
+
+The training data are in a separate QA product, not read by the pipeline:
+
+    "thetaPhiFineQa-%s-%s.fits" % (calibDate, arm)
+
+with one binary table HDU, THETAPHIFINEQA, of one row per point:  fiberId (32-bit int), visit (32-bit int),
+night (string), source (string:  sky or quartz), theta and phi (32-bit float, degrees), y (32-bit float:  the
+residual from the smooth model, a fraction), sigma (32-bit float:  its error), used (logical:  in the training
+set?) and looPred (32-bit float:  the prediction leaving the point's night out).  The string columns are stored
+in separate HDUs, as for other tables of this kind.
+
+
+-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
 Reference model
 
 The reference model set is a product from `calculateReferenceFlux` and is stored in the pfsFluxReference file.

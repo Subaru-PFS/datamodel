@@ -188,6 +188,24 @@ This class is used for the fiber normalisations calib product.
 * 2: Major format changes.
 
 
+PfsThetaPhiModel
+----------------
+
+This class is used for the pfsThetaPhiModel calib product:  the smooth model of each
+fiber's throughput as a function of cobra position.
+
+* 1: Initial version.
+
+
+PfsThetaPhiFine
+---------------
+
+This class is used for the pfsThetaPhiFine calib product:  each fiber's fine structure
+in throughput as a function of cobra position, for one arm.
+
+* 1: Initial version.
+
+
 ObjectGroupMap
 --------------
 
