@@ -143,9 +143,9 @@ class PfsThetaPhiModelTestCase(lsst.utils.tests.TestCase):
         self.assertEqual(copy.alpha, model.alpha)
         self.assertEqual(copy.alphaSample["r"], self.alphaSample["r"])
         self.assertEqual(copy.metadata["CALIB_DATE"], "2026-11-20")
-        self.assertEqual(copy.hash, model.hash)
-        changed = self.makeModel(coeffs=self.coeffs*1.001)
-        self.assertNotEqual(changed.hash, model.hash)
+        self.assertEqual(copy.modelId, model.modelId)
+        self.assertNotEqual(self.makeModel().modelId, model.modelId)            # each model gets its own
+        self.assertEqual(self.makeModel(modelId="abc").modelId, "abc")
         theta = self.rng.uniform(0, 400, 20)
         self.assertFloatsEqual(copy.evaluate(self.fiberId[3], theta, 45.0),
                                model.evaluate(self.fiberId[3], theta, 45.0))

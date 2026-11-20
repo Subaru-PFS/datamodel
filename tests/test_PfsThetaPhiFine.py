@@ -128,7 +128,7 @@ class PfsThetaPhiFineTestCase(lsst.utils.tests.TestCase):
             [3], basis, np.full((1, len(basis)), 0.001), [381.6], [0.0], [0], [100], [0.0], [180.0], [1.0],
             [0.002], [0.0], [], [], np.zeros((1, 0)), dict(r=0.93), {}, dict(ORDER=1, PURE_HARMONICS=1),
         )
-        layer = self.makeLayer(metadata=dict(self.metadata, SMOOTH_HASH=model.hash))
+        layer = self.makeLayer(metadata=dict(self.metadata, SMOOTH_ID=model.modelId))
         layer.checkSmoothModel(model)
         other = PfsThetaPhiModel(
             [3], basis, np.full((1, len(basis)), 0.002), [381.6], [0.0], [0], [100], [0.0], [180.0], [1.0],
@@ -137,7 +137,7 @@ class PfsThetaPhiFineTestCase(lsst.utils.tests.TestCase):
         with self.assertRaises(RuntimeError):
             layer.checkSmoothModel(other)
         with self.assertRaises(RuntimeError):
-            self.makeLayer().checkSmoothModel(model)                                 # no SMOOTH_HASH
+            self.makeLayer().checkSmoothModel(model)                                 # no SMOOTH_ID
 
     def testQa(self):
         """The QA table round-trips"""

@@ -15,7 +15,7 @@ and the factor applied to a spectrum's norm is 1 + f;  1 for a cobraHome exposur
 layer.  The layer is the sky's correction:  it is applied to all light, although quartz light shares only
 about a quarter of it (an error of ~0.07% rms for quartz, none at home).
 
-The layer is trained per arm, and refers to the smooth model it was fitted against (by its hash).
+The layer is trained per arm, and refers to the smooth model it was fitted against (by its MODEL_ID).
 
 Angles are in degrees, measured from the CCW hard stops as in the cobra calibration, the FPS and the
 pfsConfig:  theta from tht0 and phi from phiIn (as for `PfsThetaPhiModel`).
@@ -80,7 +80,7 @@ class PfsThetaPhiFine:
         distance to the nearest training point (in units of the first kernel term's length scales) in
         ``errDistance``.
     metadata : `dict` (`str`: POD), optional
-        Keyword-value pairs for the header (arm, band, provenance, ``SMOOTH_HASH``, ...).
+        Keyword-value pairs for the header (arm, provenance, ``SMOOTH_ID``, ...).
     """
 
     def __init__(
@@ -264,9 +264,10 @@ class PfsThetaPhiFine:
         RuntimeError
             If the layer records a different model.
         """
-        expected = self.metadata.get("SMOOTH_HASH")
-        if expected is None or int(expected) != model.hash:
-            raise RuntimeError(f"thetaPhiFine was fitted against thetaPhiModel {expected}, not {model.hash}")
+        expected = self.metadata.get("SMOOTH_ID")
+        if expected is None or str(expected) != model.modelId:
+            raise RuntimeError(f"thetaPhiFine was fitted against thetaPhiModel {expected}, "
+                               f"not {model.modelId}")
 
     @classmethod
     def _readImpl(cls, fits: astropy.io.fits.HDUList) -> Dict[str, Any]:

@@ -1081,7 +1081,9 @@ so that theta and theta + 360 can differ), as listed in the BASIS table.
 
 The file has several HDUs:
 
-HDU #0 PDU          Header:  DAMD_VER, MODEL, ANGLE_UNIT, THETA0, PHI0, ORDER, PURE_HARMONICS, THETA_RAMP,
+HDU #0 PDU          Header:  DAMD_VER, MODEL_ID (a unique identifier, recorded by the products fitted against
+                    the model and by the spectra it corrects), MODEL, ANGLE_UNIT, THETA0, PHI0, ORDER,
+                    PURE_HARMONICS, THETA_RAMP,
                     the band the model was measured in (BAND_LO, BAND_HI, nm), CALIB_DATE, fit settings and
                     provenance
 HDU #1 COEFFS       Coefficients c_k                      [64-bit FLOAT]  NFIBER*NCOEFF
@@ -1150,8 +1152,8 @@ interpolated in the table ERR_D0..ERR_D(n-1) (d), ERR_G0..ERR_G(n-1) (g) in the 
 The file has several HDUs:
 
 HDU #0 PDU      Header:  DAMD_VER, KERNEL (= matern32sum, the form above), NTERM (number of kernel terms),
-                ANGLE_UNIT, THETA0, PHI0, THETA_WRAP, ARM, BAND_LO and BAND_HI (nm), SOURCE, SMOOTH_HASH (the
-                hash, PFS.HASH.THETAPHIMODEL, of the pfsThetaPhiModel the layer was fitted against), the runs
+                ANGLE_UNIT, THETA0, PHI0, THETA_WRAP, ARM, SOURCE, SMOOTH_ID (the MODEL_ID of the
+                pfsThetaPhiModel the layer was fitted against), the runs
                 pooled, the error model (ERR_N, ERR_D*, ERR_G*), CALIB_DATE and provenance
 HDU #1 FIBERS   Per-fiber kernel, points and flags       [BINARY TABLE]  NFIBER
 HDU #2 POINTS   The training points, contiguous by fiber [BINARY TABLE]  NPOINT (in all)
@@ -1169,7 +1171,7 @@ The FLAGS bits are:
 
 The POINTS table has columns THETA and PHI (32-bit float, degrees) and WEIGHT (32-bit float, 1/fraction).
 
-A pfsThetaPhiFine file must be used with the pfsThetaPhiModel it was fitted against (SMOOTH_HASH).
+A pfsThetaPhiFine file must be used with the pfsThetaPhiModel it was fitted against (SMOOTH_ID = MODEL_ID).
 
 The training data are in a separate QA product, not read by the pipeline:
 

@@ -22,12 +22,13 @@ pfsConfig:  theta from tht0 (so home, the CW stop, is at 360 + (tht1 - tht0) mod
 (home is 0).
 """
 import enum
+import uuid
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 import numpy as np
 import astropy.io.fits
 
-from .utils import astropyHeaderFromDict, astropyHeaderToDict, createHash
+from .utils import astropyHeaderFromDict, astropyHeaderToDict
 
 __all__ = ("ThetaPhiModelFlag", "makeThetaPhiBasis", "evaluateThetaPhiBasis", "PfsThetaPhiModel")
 
@@ -151,6 +152,9 @@ class PfsThetaPhiModel:
         What each arm's alpha was measured from (runs and selection).
     metadata : `dict` (`str`: POD), optional
         Keyword-value pairs for the header (provenance, fit settings, band, calibration date).
+    modelId : `str`, optional
+        A unique identifier for this model, recorded by the products fitted against it (e.g.
+        `PfsThetaPhiFine`) and by the spectra it corrects;  a new one (a UUID) if not given.
     """
 
     def __init__(
@@ -173,7 +177,9 @@ class PfsThetaPhiModel:
         alpha: Dict[str, float],
         alphaSample: Dict[str, str],
         metadata: Optional[Dict[str, Any]] = None,
+        modelId: Optional[str] = None,
     ):
+        self.modelId = str(modelId) if modelId is not None else uuid.uuid4().hex
         self.fiberId = np.asarray(fiberId, dtype=int)
         self.basis = [(int(it), str(tf), int(ip), str(pf)) for it, tf, ip, pf in basis]
         self.coeffs = np.asarray(coeffs, dtype=float)
@@ -186,11 +192,11 @@ class PfsThetaPhiModel:
         self.thetaCoverage = np.asarray(thetaCoverage, dtype=float)
         self.rms = np.asarray(rms, dtype=float)
         self.modelError = np.asarray(modelError, dtype=float)
-        self.runs = list(runs)
-        self.runStart = list(runStart)
+        self.runs = [str(rr) for rr in runs]
+        self.runStart = [str(ss) for ss in runStart]
         self.homeOffsets = np.asarray(homeOffsets, dtype=float).reshape(len(self.fiberId), len(self.runs))
-        self.alpha = dict(alpha)
-        self.alphaSample = dict(alphaSample)
+        self.alpha = {str(aa): float(vv) for aa, vv in alpha.items()}
+        self.alphaSample = {str(aa): str(ss) for aa, ss in alphaSample.items()}
         self.metadata = dict(metadata) if metadata else {}
         self._index = {int(fid): ii for ii, fid in enumerate(self.fiberId)}
         self.validate()
@@ -213,18 +219,6 @@ class PfsThetaPhiModel:
     def __contains__(self, fiberId: int) -> bool:
         """Is the fiber present?"""
         return int(fiberId) in self._index
-
-    @property
-    def hash(self) -> int:
-        """A hash of the model's content
-
-        Recorded by the products fitted against this model (e.g. `PfsThetaPhiFine`), so that a mismatched pair
-        can be detected.  Not ``__hash__``, whose seed varies between runs.
-        """
-        return createHash(
-            self.fiberId.tobytes(), self.basis, self.coeffs.tobytes(), self.homeTheta.tobytes(),
-            self.homePhi.tobytes(), self.runs, self.homeOffsets.tobytes(), sorted(self.alpha.items()),
-        )
 
     def _indices(self, fiberId: np.ndarray) -> np.ndarray:
         """Return the index of each fiberId, or -1 if it isn't present"""
@@ -396,8 +390,9 @@ class PfsThetaPhiModel:
         if version != 1:
             raise RuntimeError(f"Cannot read PfsThetaPhiModel with DAMD_VER={version}")
         metadata = astropyHeaderToDict(fits[0].header)
+        modelId = fits[0].header["MODEL_ID"]
         for key in ("SIMPLE", "BITPIX", "NAXIS", "EXTEND", "DAMD_VER", "MODEL", "ANGLE_UNIT", "THETA0",
-                    "PHI0", "PFS.HASH.THETAPHIMODEL"):
+                    "PHI0", "MODEL_ID"):
             metadata.pop(key, None)
 
         table = fits["BASIS"].data
@@ -433,6 +428,7 @@ class PfsThetaPhiModel:
             alpha={str(aa).strip(): float(vv) for aa, vv in zip(alpha["ARM"], alpha["ALPHA"])},
             alphaSample={str(aa).strip(): str(ss).strip() for aa, ss in zip(alpha["ARM"], alpha["SAMPLE"])},
             metadata=metadata,
+            modelId=modelId,
         )
 
     @classmethod
@@ -471,7 +467,7 @@ class PfsThetaPhiModel:
 
         header = astropyHeaderFromDict(self.metadata)
         header["DAMD_VER"] = (1, "PfsThetaPhiModel datamodel version")
-        header["HIERARCH PFS.HASH.THETAPHIMODEL"] = (self.hash, "Hash of this thetaPhiModel")
+        header["MODEL_ID"] = (self.modelId, "Unique identifier of this thetaPhiModel")
         header["MODEL"] = ("doubleFourier", "s = sum_k c_k [b_k(theta, phi) - b_k(home)]")
         header["HIERARCH ANGLE_UNIT"] = ("deg", "Units of theta and phi")
         header["THETA0"] = ("tht0", "theta is measured from the CCW theta hard stop")
