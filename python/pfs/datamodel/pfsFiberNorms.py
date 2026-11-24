@@ -15,8 +15,15 @@ __all__ = ("PfsFiberNorms",)
 class PfsFiberNorms:
     """Fiber normalisations
 
-    Coefficients of the flux correction for each fiber, used to normalise the
-    science spectra in order to remove instrumental features.
+    A per-fiber, per-wavelength flux correction. The stored ``values`` are
+    what is applied: reduction multiplies the extracted spectrum's ``norm``
+    by them (``pfsArm.norm *= values``), so the final ``flux/norm`` is
+    divided by ``values``. They are measured as ``flux/norm`` of a quartz;
+    because the extraction ``norm`` is purely geometric (the fiber-profile
+    integral), ``values`` carry the quartz lamp's spectral shape as well as
+    the per-fiber throughput, i.e. they act as a one-dimensional spectral
+    flat: wavelength-dependent, not a single scalar per fiber. The lamp's
+    spectral shape is restored by flux calibration downstream.
 
     Parameters
     ----------
@@ -27,13 +34,16 @@ class PfsFiberNorms:
     wavelength : `numpy.ndarray` of `float`
         Wavelength for each pixel of each fiber.
     values : `numpy.ndarray` of `float`
-        Norm value for each pixel of each fiber.
+        The applied correction (``flux/norm`` of a quartz) for each pixel of
+        each fiber; wavelength-dependent.
     fiberProfilesHash : `dict` mapping `int` to `int`
-        Hash of the fiberProfiles used to generate the coefficients, indexed
+        Hash of the fiberProfiles used to generate the values, indexed
         by spectrograph number.
     model : `astropy.io.fits.BinTableHDU`
-        Table of model parameters. Since we already have the values, this is
-        unused except for provenance and QA. The format is not specified here.
+        Table of model parameters (e.g. a single representative norm per
+        fiber; see ``MODELTYP``). Not applied to the data (``values`` is what
+        is used); kept for provenance and QA only. The format is not
+        specified here and varies according to the model.
     metadata : `dict` (`str`: POD), optional
         Keyword-value pairs for the header.
     """
