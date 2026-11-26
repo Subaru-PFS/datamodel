@@ -1377,8 +1377,8 @@ narrow line; it is the one-dimensional equivalent of the point-spread function
 (drp_doc); the python API of the objects that read them is described there and
 in drp_stella's docstrings.
 
-The LSF of the spectra in a pfsArm, pfsMerged or pfsCoadd file is stored in that
-file, so that it always accompanies the spectra and uses their wavelengths; the
+The LSF of the spectra in a pfsArm, pfsMerged, pfsCalibrated or pfsCoadd file is
+stored in that file, so that it always accompanies the spectra and uses their wavelengths; the
 LSF of each detector is in the armLsf files (see "LSF models"). Files written
 before these HDUs existed simply lack them. Positions are in pixels along the
 spectra (rows of the detector for a pfsArm), and all wavelengths are in vacuum.
@@ -1469,7 +1469,7 @@ LSF_FIBER: one row per fibre per detector
 
     The splines are cubic.
 
-LSF_INPUT: in pfsMerged and pfsCoadd files only; how each input enters each spectrum
+LSF_INPUT: in pfsMerged, pfsCalibrated and pfsCoadd files only; how each input enters each spectrum
     spectrum           32-bit int; the spectrum: its fiberId (pfsMerged), or its
                        index in the TARGET HDU (pfsCoadd)
     armIndex           32-bit int; the input's detector (LSF_ARM)
@@ -1499,8 +1499,11 @@ input's data.
 Deprecated LSF files
 
 The separate LSF files below are python pickles of drp_stella objects (subclasses
-of pfs.drp.stella.Lsf). They are DEPRECATED: still written, from the same LSFs as
-those in the spectra files, so that existing code keeps working; use the LSF in
+of pfs.drp.stella.Lsf). They are DEPRECATED. The pipeline no longer writes them
+(the LSF is in the spectra files), and reads them only for spectra written before
+the LSF was stored in them. The exported files (pfsArm, pfsMerged, pfsSingle and
+pfsObject) are still accompanied by these pickles, made from the LSF in the
+spectra, until a replacement format is agreed with their users; use the LSF in
 the spectra files instead.
 
     "pfsArmLsf-%06d-%1s%1d.pickle" % (visit, arm, spectrograph)
