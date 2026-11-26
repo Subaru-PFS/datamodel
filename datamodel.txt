@@ -1730,7 +1730,7 @@ HDU #2 WARNINGS     Warning flags for each solver     [FITS BINARY TABLE] NOBJEC
         The lineMeas velocity fit range does not include the input velocity
         (comming from either the previous redhiftSolver stage, input lineMeas catalog).
         The range is thus extended to contain this velocity.
-    
+
     **TOO_LITTLE_PIXELS = 22**
         Some computations were skipped because there are not enough pixels. Currently used if there are not enough pixels to compute fit quality.
 
@@ -1965,7 +1965,7 @@ Possible error codes list and their meaning:
 
 **SPECTRUM_CORRECTION_ERROR**
   When correcting input spectrum values (parameter `autoCorrectInput`` set to true), we try for the missing values, to :
-  
+
   - use the lowest flux abs value
   - use the highest noise value
 
@@ -2150,13 +2150,13 @@ HDU #19 QUALITY                      Binary table              [FITS BINARY TABL
     Colums for :
         targetId [16-bit INT]: Target identifier, links to TARGET HDU
         nbValidPoints [16-bit INT]: number of valid pixels in the spectrum
-        galaxyOIIRatio [32-bit FLOAT]: ratio of OII doublet flux for galaxy 
+        galaxyOIIRatio [32-bit FLOAT]: ratio of OII doublet flux for galaxy
         galaxyOII3726Snr [32-bit FLOAT]: snr of OII 3726 for galaxy
         galaxyOII3729Snr [32-bit FLOAT]: snr of OII 3729 for galaxy
         qsoOIIRatio [32-bit FLOAT]: ratio of OII doublet flux for qso
         qsoOII3726Snr [32-bit FLOAT]: snr of OII 3726 for qso
         qsoOII3729Snr [32-bit FLOAT]: snr of OII 3729 for qso
-	
+
 			Example File Names
 			------------------
 
